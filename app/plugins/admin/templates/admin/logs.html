@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Logs{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Activity Logs</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-history mr-2"></i>Activity Logs
+        </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="logs-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Activity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.timestamp|datetime }}</td>
+                        <td>
+                            <span class="badge badge-info">{{ log.username }}</span>
+                        </td>
+                        <td>
+                            {% if 'Created' in log.activity %}
+                                <span class="text-success">
+                                    <i class="fas fa-plus-circle mr-1"></i>
+                                    {{ log.activity }}
+                                </span>
+                            {% elif 'Updated' in log.activity %}
+                                <span class="text-primary">
+                                    <i class="fas fa-edit mr-1"></i>
+                                    {{ log.activity }}
+                                </span>
+                            {% elif 'Deleted' in log.activity %}
+                                <span class="text-danger">
+                                    <i class="fas fa-trash mr-1"></i>
+                                    {{ log.activity }}
+                                </span>
+                            {% else %}
+                                <i class="fas fa-info-circle mr-1"></i>
+                                {{ log.activity }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#logs-table').DataTable({
+        "order": [[0, "desc"]],  // Sort by timestamp descending
+        "pageLength": 50,
+        "language": {
+            "search": "Search logs:"
+        },
+        "columnDefs": [
+            { "width": "20%", "targets": 0 }, // Timestamp column
+            { "width": "15%", "targets": 1 }, // User column
+            { "width": "65%", "targets": 2 }  // Activity column
+        ]
+    });
+});
+</script>
+
+<style>
+.badge {
+    font-size: 90%;
+}
+</style>
+{% endblock %}

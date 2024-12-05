@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if mapping else 'New' }} Route Mapping{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.routes') }}">Routes</a></li>
+<li class="breadcrumb-item active">{{ 'Edit' if mapping else 'New' }} Route</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-route mr-2"></i>{{ 'Edit' if mapping else 'New' }} Route Mapping
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="route-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="page_name">Page Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="page_name" name="page_name" 
+                               value="{{ mapping.page_name if mapping else '' }}" required>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="route">Route <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="route" name="route" 
+                               value="{{ mapping.route if mapping else '' }}" required>
+                        <small class="form-text text-muted">
+                            Example: main.index or /admin/routes
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="icon">Icon</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i id="icon-preview" class="fas {{ mapping.icon if mapping else 'fa-link' }}"></i>
+                                </span>
+                            </div>
+                            <input type="text" class="form-control" id="icon" name="icon" 
+                                   value="{{ mapping.icon if mapping else 'fa-link' }}" readonly>
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-outline-secondary" id="icon-picker">
+                                    Choose Icon
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="weight">Weight</label>
+                        <input type="number" class="form-control" id="weight" name="weight" 
+                               value="{{ mapping.weight if mapping else 0 }}">
+                        <small class="form-text text-muted">
+                            Lower numbers appear first in navigation
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Navigation Type</label>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="type_individual" name="nav_type" class="custom-control-input" 
+                                   value="individual" {{ 'checked' if not mapping or not mapping.nav_category }}>
+                            <label class="custom-control-label" for="type_individual">Individual Link</label>
+                        </div>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="type_category" name="nav_type" class="custom-control-input" 
+                                   value="category" {{ 'checked' if mapping and mapping.nav_category }}>
+                            <label class="custom-control-label" for="type_category">Part of Category</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group" id="category_group" style="display: none;">
+                        <label for="category">Category</label>
+                        <select class="form-control select2" id="category" name="category_id">
+                            <option value="">Select Category</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" 
+                                    {{ 'selected' if mapping and mapping.nav_category and mapping.nav_category.id == category.id }}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Allowed Roles</label>
+                <select class="form-control select2" id="roles" name="roles" multiple>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}" 
+                            {{ 'selected' if mapping and role in mapping.allowed_roles }}>
+                        {{ role.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">
+                    If no roles are selected, all authenticated users will have access
+                </small>
+            </div>
+
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-1"></i>Save Route
+                </button>
+                <a href="{{ url_for('admin.routes') }}" class="btn btn-secondary">
+                    <i class="fas fa-times mr-1"></i>Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Icon Picker Modal -->
+<div class="modal fade" id="iconModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Choose Icon</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" class="form-control" id="icon-search" 
+                           placeholder="Search icons...">
+                </div>
+                <div id="icon-grid" class="row">
+                    <!-- Icons will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4'
+    });
+
+    // Navigation type toggle
+    $('input[name="nav_type"]').change(function() {
+        if ($(this).val() === 'category') {
+            $('#category_group').slideDown();
+        } else {
+            $('#category_group').slideUp();
+        }
+    });
+
+    // Trigger initial nav type state
+    $('input[name="nav_type"]:checked').trigger('change');
+
+    // Load icons when modal opens
+    $('#icon-picker').click(function() {
+        if ($('#icon-grid').children().length === 0) {
+            $.get("{{ url_for('admin.get_icons') }}", function(icons) {
+                icons.forEach(function(icon) {
+                    $('#icon-grid').append(`
+                        <div class="col-md-2 col-sm-3 col-4 text-center icon-item mb-3">
+                            <div class="p-2 border rounded icon-select" data-icon="${icon}">
+                                <i class="fas ${icon} fa-2x"></i>
+                                <div class="small text-muted mt-1">${icon}</div>
+                            </div>
+                        </div>
+                    `);
+                });
+            });
+        }
+        $('#iconModal').modal('show');
+    });
+
+    // Icon search
+    $('#icon-search').on('input', function() {
+        const search = $(this).val().toLowerCase();
+        $('.icon-item').each(function() {
+            const icon = $(this).find('.icon-select').data('icon');
+            $(this).toggle(icon.toLowerCase().includes(search));
+        });
+    });
+
+    // Icon selection
+    $(document).on('click', '.icon-select', function() {
+        const icon = $(this).data('icon');
+        $('#icon').val(icon);
+        $('#icon-preview').attr('class', 'fas ' + icon);
+        $('#iconModal').modal('hide');
+    });
+
+    // Form validation
+    $('#route-form').submit(function(e) {
+        const page_name = $('#page_name').val().trim();
+        const route = $('#route').val().trim();
+        
+        if (!page_name || !route) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Error',
+                text: 'Page name and route are required',
+                icon: 'error'
+            });
+        }
+    });
+});
+</script>
+
+<style>
+.icon-select {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.icon-select:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.05);
+}
+.select2-container .select2-selection--multiple {
+    min-height: 38px;
+}
+</style>
+{% endblock %}

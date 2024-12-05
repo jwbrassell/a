@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card shadow-sm p-5">
+                <h1 class="display-1 text-muted mb-4">404</h1>
+                <h2 class="h3 mb-4">Page Not Found</h2>
+                <p class="lead mb-4">Sorry, we couldn't find the page you're looking for.</p>
+                <div class="mb-4">
+                    <p class="text-muted">You might want to double-check the URL or head back to the home page.</p>
+                    {% if current_user.is_authenticated %}
+                        <small class="text-muted">
+                            Logged in as: {{ current_user.username }}
+                        </small>
+                    {% endif %}
+                </div>
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                        Return to Home
+                    </a>
+                    {% if not current_user.is_authenticated %}
+                        <a href="{{ url_for('main.login') }}" class="btn btn-outline-secondary">
+                            Login
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

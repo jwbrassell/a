@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Navigation Categories{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Navigation Categories</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-folder mr-2"></i>Navigation Categories
+        </h3>
+        <div class="card-tools">
+            <a href="{{ url_for('admin.new_category') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus mr-1"></i>New Category
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="categories-table">
+                <thead>
+                    <tr>
+                        <th>Weight</th>
+                        <th>Name</th>
+                        <th>Icon</th>
+                        <th>Description</th>
+                        <th>Routes</th>
+                        <th>Created By</th>
+                        <th>Created At</th>
+                        <th>Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                    <tr>
+                        <td>{{ category.weight }}</td>
+                        <td>{{ category.name }}</td>
+                        <td><i class="fas {{ category.icon }}"></i></td>
+                        <td>{{ category.description or '' }}</td>
+                        <td>
+                            <span class="badge badge-info">
+                                {{ category.routes|length }} routes
+                            </span>
+                        </td>
+                        <td>{{ category.created_by }}</td>
+                        <td>{{ category.created_at|datetime }}</td>
+                        <td>
+                            {% if category.updated_at %}
+                            <small class="text-muted">
+                                by {{ category.updated_by }}<br>
+                                {{ category.updated_at|datetime }}
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('admin.edit_category', id=category.id) }}" 
+                                   class="btn btn-info btn-sm" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-danger btn-sm" 
+                                        onclick="confirmDelete('{{ category.id }}', '{{ category.name }}')"
+                                        title="Delete"
+                                        {{ 'disabled' if category.routes|length > 0 }}>
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <form id="delete-form-{{ category.id }}" 
+                                  action="{{ url_for('admin.delete_category', id=category.id) }}" 
+                                  method="POST" style="display: none;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#categories-table').DataTable({
+        "order": [[0, "asc"]],  // Sort by weight by default
+        "pageLength": 25,
+        "language": {
+            "search": "Search categories:"
+        }
+    });
+});
+
+function confirmDelete(id, name) {
+    Swal.fire({
+        title: 'Delete Category?',
+        text: `Are you sure you want to delete the category "${name}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById(`delete-form-${id}`).submit();
+        }
+    });
+}
+</script>
+
+<style>
+.badge {
+    font-size: 90%;
+}
+</style>
+{% endblock %}

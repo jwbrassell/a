@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}About - {{ metadata.name }}{% endblock %}
+
+{% block breadcrumb %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('hello.index') }}">Hello Plugin</a></li>
+    <li class="breadcrumb-item active">About</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas {{ metadata.icon }}"></i>
+                        About {{ metadata.name }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Plugin Details</h4>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table">
+                                        <tbody>
+                                            <tr>
+                                                <th>Name:</th>
+                                                <td>{{ metadata.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Version:</th>
+                                                <td>{{ metadata.version }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Author:</th>
+                                                <td>{{ metadata.author }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Description:</th>
+                                                <td>{{ metadata.description }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Configuration</h4>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table">
+                                        <tbody>
+                                            <tr>
+                                                <th>Category:</th>
+                                                <td>{{ metadata.category }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Navigation Weight:</th>
+                                                <td>{{ metadata.weight }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Icon:</th>
+                                                <td><i class="fas {{ metadata.icon }}"></i> ({{ metadata.icon }})</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Required Roles:</th>
+                                                <td>
+                                                    {% for role in metadata.required_roles %}
+                                                    <span class="badge bg-primary">{{ role }}</span>
+                                                    {% endfor %}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('hello.index') }}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Plugin
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
