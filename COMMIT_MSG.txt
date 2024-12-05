@@ -1,21 +1,9 @@
-feat(plugins): Add user profile plugin
+feat: enhance DataTables dark mode styling
 
-Add a new plugin that provides user profile functionality accessible from both
-the top-right dropdown menu and left sidebar navigation.
+- Add light text color for table content
+- Style table borders to match dark theme
+- Improve hover effects for dark mode
+- Add dark styling for DataTables controls (length selector and search input)
+- Ensure compatibility with AdminLTE dark mode implementation
 
-Key changes:
-- Create profile plugin with blueprint and metadata
-- Add profile view template showing user information
-- Add route_exists template filter for conditional rendering
-- Update base template to include profile links
-- Add comprehensive plugin documentation
-
-Technical details:
-- Plugin follows application's plugin architecture pattern
-- Uses conditional rendering to handle plugin availability
-- Requires only authentication, no specific role requirements
-- Positioned above logout in navigation (weight: 98)
-- Includes detailed README with implementation details
-
-This commit provides a foundation for future profile-related features like
-profile editing, picture upload, and security settings.
+This change improves the visibility and consistency of DataTables when using dark mode.

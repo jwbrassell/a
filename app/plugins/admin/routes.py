@@ -1,4 +1,4 @@
-from flask import render_template, flash, redirect, url_for, request, jsonify
+from flask import render_template, flash, redirect, url_for, request, jsonify, current_app
 from flask_login import login_required, current_user
 from app.utils.rbac import requires_roles
 from app.models import Role, PageRouteMapping, UserActivity, NavigationCategory
@@ -6,6 +6,9 @@ from app import db
 from app.plugins.admin import bp
 from datetime import datetime, timedelta
 import logging
+import re
+from sqlalchemy import func
+from werkzeug.routing import Map
 
 logger = logging.getLogger(__name__)
 
@@ -254,12 +257,33 @@ def new_route():
     """Create a new route mapping."""
     if request.method == 'POST':
         try:
+            # Check for duplicate page name
+            existing_page = PageRouteMapping.query.filter(
+                func.lower(PageRouteMapping.page_name) == func.lower(request.form['page_name'])
+            ).first()
+            if existing_page:
+                flash('A page with this name already exists.', 'error')
+                return redirect(url_for('admin.new_route'))
+
+            # Handle new category if provided
+            category_id = request.form.get('category_id')
+            if category_id and not category_id.isdigit():
+                # This is a new category name
+                category = NavigationCategory(
+                    name=category_id,
+                    icon=request.form.get('category_icon', 'fa-folder'),
+                    created_by=current_user.username
+                )
+                db.session.add(category)
+                db.session.flush()  # Get the ID without committing
+                category_id = category.id
+
             mapping = PageRouteMapping(
                 page_name=request.form['page_name'],
                 route=request.form['route'],
                 icon=request.form.get('icon', 'fa-link'),
                 weight=request.form.get('weight', 0),
-                category_id=request.form.get('category_id')
+                category_id=category_id if category_id and category_id.isdigit() else None
             )
             
             # Handle roles
@@ -297,12 +321,34 @@ def edit_route(id):
     
     if request.method == 'POST':
         try:
+            # Check for duplicate page name
+            existing_page = PageRouteMapping.query.filter(
+                func.lower(PageRouteMapping.page_name) == func.lower(request.form['page_name']),
+                PageRouteMapping.id != id
+            ).first()
+            if existing_page:
+                flash('A page with this name already exists.', 'error')
+                return redirect(url_for('admin.edit_route', id=id))
+
+            # Handle new category if provided
+            category_id = request.form.get('category_id')
+            if category_id and not category_id.isdigit():
+                # This is a new category name
+                category = NavigationCategory(
+                    name=category_id,
+                    icon=request.form.get('category_icon', 'fa-folder'),
+                    created_by=current_user.username
+                )
+                db.session.add(category)
+                db.session.flush()  # Get the ID without committing
+                category_id = category.id
+
             old_route = mapping.route
             mapping.page_name = request.form['page_name']
             mapping.route = request.form['route']
             mapping.icon = request.form.get('icon', 'fa-link')
             mapping.weight = request.form.get('weight', 0)
-            mapping.category_id = request.form.get('category_id')
+            mapping.category_id = category_id if category_id and category_id.isdigit() else None
             
             # Handle roles
             role_ids = request.form.getlist('roles')
@@ -382,3 +428,49 @@ def get_icons():
         'fa-user-shield', 'fa-window-maximize', 'fa-wrench'
     ]
     return jsonify(icons)
+
+# Get available routes
+@bp.route('/api/routes')
+@login_required
+@requires_roles('admin')
+def get_routes():
+    """Get list of available routes."""
+    try:
+        routes = []
+        for rule in current_app.url_map.iter_rules():
+            # Skip static files and admin routes
+            if not rule.endpoint.startswith('static.') and not rule.endpoint.startswith('admin.'):
+                # Convert URL parameters to a readable format
+                url = str(rule)
+                if '<' in url:  # Has parameters
+                    for param in re.findall(r'<([^>]+)>', url):
+                        url = url.replace(f'<{param}>', f':{param.split(":")[-1]}')
+                
+                routes.append({
+                    'endpoint': rule.endpoint,
+                    'route': url
+                })
+        
+        return jsonify(routes)
+    except Exception as e:
+        logger.error(f"Error getting routes: {str(e)}")
+        return jsonify([]), 500
+
+# Get category icon
+@bp.route('/category/<int:id>/icon')
+@login_required
+@requires_roles('admin')
+def get_category_icon(id):
+    """Get icon for a category."""
+    try:
+        category = NavigationCategory.query.get_or_404(id)
+        return jsonify({
+            'success': True,
+            'icon': category.icon
+        })
+    except Exception as e:
+        logger.error(f"Error getting category icon: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

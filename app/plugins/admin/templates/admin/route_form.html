@@ -32,8 +32,12 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="route">Route <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="route" name="route" 
-                               value="{{ mapping.route if mapping else '' }}" required>
+                        <select class="form-control select2" id="route" name="route" required>
+                            <option value="">Select Route</option>
+                            {% if mapping %}
+                            <option value="{{ mapping.route }}" selected>{{ mapping.route }}</option>
+                            {% endif %}
+                        </select>
                         <small class="form-text text-muted">
                             Example: main.index or /admin/routes
                         </small>
@@ -93,8 +97,8 @@
                 
                 <div class="col-md-6">
                     <div class="form-group" id="category_group" style="display: none;">
-                        <label for="category">Category</label>
-                        <select class="form-control select2" id="category" name="category_id">
+                        <label for="category_id">Category</label>
+                        <select class="form-control select2" id="category_id" name="category_id">
                             <option value="">Select Category</option>
                             {% for category in categories %}
                             <option value="{{ category.id }}" 
@@ -103,6 +107,23 @@
                             </option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <div class="form-group" id="category_icon_group" style="display: none;">
+                        <label for="category_icon">Category Icon</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i id="category-icon-preview" class="fas fa-folder"></i>
+                                </span>
+                            </div>
+                            <input type="text" class="form-control" id="category_icon" name="category_icon" 
+                                   value="fa-folder" readonly>
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-outline-secondary category-icon-picker">
+                                    Choose Icon
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -161,9 +182,87 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    // Initialize Select2
-    $('.select2').select2({
-        theme: 'bootstrap4'
+    // Initialize Select2 for all selects except category selects
+    $('.form-select:not(#category_id)').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+
+    // Initialize category select with tags enabled
+    $('#category_id').select2({
+        theme: 'bootstrap4',
+        width: '100%',
+        tags: true,
+        allowClear: true,
+        placeholder: 'Select or type a category'
+    });
+
+    // Initialize route select with AJAX loading
+    $('#route').select2({
+        theme: 'bootstrap4',
+        width: '100%',
+        ajax: {
+            url: "{{ url_for('admin.get_routes') }}",
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    q: params.term,
+                    page: params.page
+                };
+            },
+            processResults: function(data) {
+                return {
+                    results: data.map(function(item) {
+                        return {
+                            id: item.route,
+                            text: item.endpoint + ' (' + item.route + ')'
+                        };
+                    })
+                };
+            },
+            cache: true
+        },
+        minimumInputLength: 0,
+        placeholder: 'Select a route'
+    });
+
+    // Special initialization for icon selects
+    $('.icon-select').select2({
+        theme: 'bootstrap4',
+        width: '100%',
+        templateResult: formatIcon,
+        templateSelection: formatIcon
+    });
+
+    function formatIcon(icon) {
+        if (!icon.id) return icon.text;
+        return $('<span><i class="fas ' + icon.id + '"></i> ' + icon.text + '</span>');
+    }
+
+    // Category handling
+    $('#category_id').on('change', function() {
+        const selectedOption = $(this).select2('data')[0];
+        if (selectedOption && !selectedOption.id.match(/^\d+$/)) {
+            // New category, show icon selector
+            $('#category_icon_group').show();
+        } else {
+            // Existing category, hide icon selector
+            $('#category_icon_group').hide();
+            
+            // If it's an existing category, fetch its icon
+            if (selectedOption && selectedOption.id) {
+                fetch(`/admin/category/${selectedOption.id}/icon`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.icon) {
+                            $('#category_icon').val(data.icon);
+                            $('#category-icon-preview').attr('class', 'fas ' + data.icon);
+                        }
+                    })
+                    .catch(error => console.error('Error fetching category icon:', error));
+            }
+        }
     });
 
     // Navigation type toggle
@@ -172,6 +271,7 @@ $(document).ready(function() {
             $('#category_group').slideDown();
         } else {
             $('#category_group').slideUp();
+            $('#category_icon_group').hide();
         }
     });
 
@@ -179,13 +279,17 @@ $(document).ready(function() {
     $('input[name="nav_type"]:checked').trigger('change');
 
     // Load icons when modal opens
-    $('#icon-picker').click(function() {
+    $('#icon-picker, .category-icon-picker').click(function() {
+        const isCategory = $(this).hasClass('category-icon-picker');
+        const targetInput = isCategory ? '#category_icon' : '#icon';
+        const targetPreview = isCategory ? '#category-icon-preview' : '#icon-preview';
+        
         if ($('#icon-grid').children().length === 0) {
             $.get("{{ url_for('admin.get_icons') }}", function(icons) {
                 icons.forEach(function(icon) {
                     $('#icon-grid').append(`
                         <div class="col-md-2 col-sm-3 col-4 text-center icon-item mb-3">
-                            <div class="p-2 border rounded icon-select" data-icon="${icon}">
+                            <div class="p-2 border rounded icon-select" data-icon="${icon}" data-target="${targetInput}">
                                 <i class="fas ${icon} fa-2x"></i>
                                 <div class="small text-muted mt-1">${icon}</div>
                             </div>
@@ -194,6 +298,9 @@ $(document).ready(function() {
                 });
             });
         }
+        
+        // Store the target elements for this selection
+        $('#iconModal').data('targetInput', targetInput).data('targetPreview', targetPreview);
         $('#iconModal').modal('show');
     });
 
@@ -209,15 +316,20 @@ $(document).ready(function() {
     // Icon selection
     $(document).on('click', '.icon-select', function() {
         const icon = $(this).data('icon');
-        $('#icon').val(icon);
-        $('#icon-preview').attr('class', 'fas ' + icon);
-        $('#iconModal').modal('hide');
+        const modal = $('#iconModal');
+        const targetInput = modal.data('targetInput');
+        const targetPreview = modal.data('targetPreview');
+        
+        $(targetInput).val(icon);
+        $(targetPreview).attr('class', 'fas ' + icon);
+        modal.modal('hide');
     });
 
     // Form validation
     $('#route-form').submit(function(e) {
         const page_name = $('#page_name').val().trim();
         const route = $('#route').val().trim();
+        const nav_type = $('input[name="nav_type"]:checked').val();
         
         if (!page_name || !route) {
             e.preventDefault();
@@ -226,6 +338,20 @@ $(document).ready(function() {
                 text: 'Page name and route are required',
                 icon: 'error'
             });
+            return;
+        }
+
+        if (nav_type === 'category') {
+            const category = $('#category_id').val();
+            if (!category) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Please select or enter a category',
+                    icon: 'error'
+                });
+                return;
+            }
         }
     });
 });

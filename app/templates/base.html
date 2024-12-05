@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='src/bootstrap4-duallistbox/bootstrap-duallistbox.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='src/select2/select2.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='src/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='src/sweetalert2/sweetalert2.min.css') }}">
     
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='src/jquery/js/jquery-3.6.0.min.js') }}"></script>
@@ -31,6 +32,7 @@
     <script src="{{ url_for('static', filename='src/bootstrap-switch/js/bootstrap-switch.min.js') }}"></script>
     <script src="{{ url_for('static', filename='src/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js') }}"></script>
     <script src="{{ url_for('static', filename='src/select2/select2.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='src/sweetalert2/sweetalert2.all.min.js') }}"></script>
 
     <style>
         .flash-message {
@@ -71,6 +73,53 @@
         .sidebar nav {
             padding-bottom: 150px;
         }
+        .breadcrumb {
+            justify-content: flex-end;
+        }
+
+        /* DataTables Dark Mode Enhancements */
+        .dark-mode .dataTables_wrapper .dataTables_length select,
+        .dark-mode .dataTables_wrapper .dataTables_filter input {
+            background-color: #343a40;
+            border-color: #6c757d;
+            color: #fff;
+        }
+        
+        .dark-mode .dataTables_wrapper .dataTables_length select:focus,
+        .dark-mode .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+        /* Table Dark Mode Styles */
+        .dark-mode .table {
+            color: #fff !important;
+        }
+
+        .dark-mode .table th,
+        .dark-mode .table td {
+            border-color: #454d55;
+        }
+
+        .dark-mode .table tbody tr {
+            color: #fff;
+        }
+
+        .dark-mode .table-hover tbody tr:hover {
+            color: #fff;
+            background-color: rgba(255,255,255,.075) !important;
+        }
+
+        .dark-mode .table thead th {
+            border-bottom-color: #454d55;
+        }
+
+        .dark-mode .dataTables_wrapper .dataTables_length,
+        .dark-mode .dataTables_wrapper .dataTables_filter,
+        .dark-mode .dataTables_wrapper .dataTables_info,
+        .dark-mode .dataTables_wrapper .dataTables_processing {
+            color: #fff;
+        }
     </style>
     {% block head %}{% endblock %}
 </head>
@@ -102,6 +151,12 @@
 
             <!-- Right navbar -->
             <ul class="navbar-nav ml-auto">
+                <!-- Dark Mode Toggle -->
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="darkModeToggle" role="button">
+                        <i class="fas fa-moon"></i>
+                    </a>
+                </li>
                 {% if current_user.is_authenticated %}
                 <!-- User Info -->
                 <li class="nav-item dropdown">
@@ -226,5 +281,48 @@
     </div>
 
     {% block scripts %}{% endblock %}
+
+    <script>
+        // Dark mode toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const body = document.body;
+            const navbar = document.querySelector('.main-header.navbar');
+            const icon = darkModeToggle.querySelector('i');
+            
+            // Check if dark mode preference is stored
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                enableDarkMode();
+            }
+
+            darkModeToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (body.classList.contains('dark-mode')) {
+                    disableDarkMode();
+                } else {
+                    enableDarkMode();
+                }
+            });
+
+            function enableDarkMode() {
+                body.classList.add('dark-mode');
+                navbar.classList.remove('navbar-light', 'navbar-white');
+                navbar.classList.add('navbar-dark', 'navbar-dark');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                localStorage.setItem('darkMode', 'true');
+            }
+
+            function disableDarkMode() {
+                body.classList.remove('dark-mode');
+                navbar.classList.remove('navbar-dark', 'navbar-dark');
+                navbar.classList.add('navbar-light', 'navbar-white');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                localStorage.setItem('darkMode', 'false');
+            }
+        });
+    </script>
 </body>
 </html>
