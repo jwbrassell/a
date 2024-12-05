@@ -1,30 +1,14 @@
-refactor(admin): Modularize admin dashboard and enhance documentation
+feat(navigation): Implement dynamic navigation with weights and RBAC
 
-BREAKING CHANGE: Admin dashboard template structure has been reorganized
+- Add NavigationManager for dynamic menu building based on user roles
+- Create navigation macros for consistent rendering
+- Update base template to use dynamic navigation structure
+- Modify app initialization to support navigation features
+- Update models to support navigation weights and ordering
 
-- Split admin dashboard into reusable components:
-  * role_management.html for role operations
-  * route_mapping.html for route and category management
-  * navigation_management.html for navigation ordering
-
-- Add dedicated JavaScript files:
-  * role_management.js for role-related operations
-  * route_mapping.js for route mapping and category operations
-
-- Enhance category management:
-  * Add icon selection for new categories
-  * Improve category editing interface
-  * Add icon preview functionality
-
-- Update admin blueprint documentation:
-  * Add Mermaid diagrams for:
-    - Component structure visualization
-    - Data flow sequences
-    - Route relationships
-    - Database schema ERD
-  * Document new component organization
-  * Add detailed API references
-  * Include best practices
-
-This change improves code organization, maintainability, and developer
-understanding through better documentation and visualization.
+This change improves the navigation system by:
+- Adding role-based access control to menu items
+- Supporting weighted ordering of menu items
+- Implementing category-based nested navigation
+- Providing consistent rendering through macros
+- Integrating with the plugin system

@@ -1,0 +1,25 @@
+{% macro render_nav_item(route, is_child=false) %}
+    <li class="nav-item">
+        <a href="{{ url_for(route.route|route_to_endpoint) }}" class="nav-link">
+            <i class="{% if is_child %}fas {{ route.icon }} nav-icon{% else %}nav-icon fas {{ route.icon }}{% endif %}"></i>
+            <p>{{ route.page_name }}</p>
+        </a>
+    </li>
+{% endmacro %}
+
+{% macro render_category(category) %}
+    <li class="nav-item">
+        <a href="#" class="nav-link">
+            <i class="nav-icon fas {{ category.icon }}"></i>
+            <p>
+                {{ category.name }}
+                <i class="fas fa-angle-left right"></i>
+            </p>
+        </a>
+        <ul class="nav nav-treeview">
+            {% for route in category.routes %}
+                {{ render_nav_item(route, true) }}
+            {% endfor %}
+        </ul>
+    </li>
+{% endmacro %}

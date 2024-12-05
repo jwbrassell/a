@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask_login import UserMixin
-from app import db
+from app import db, login_manager
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Association Tables
@@ -13,6 +13,10 @@ page_route_roles = db.Table('page_route_roles',
     db.Column('page_route_id', db.Integer, db.ForeignKey('page_route_mapping.id'), primary_key=True),
     db.Column('role_id', db.Integer, db.ForeignKey('role.id'), primary_key=True)
 )
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 class User(db.Model, UserMixin):
     """User model for authentication and user management."""
