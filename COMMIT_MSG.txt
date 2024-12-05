@@ -1,12 +1,11 @@
-feat: Add image registry system
+docs: add hello plugin README and update main documentation
 
-- Add ImageRegistry class for centralized image management
-- Organize static images into avatars and loaders directories
-- Add template helpers for accessing images (get_avatar, get_loader)
-- Support dynamic image scanning and hot-reload
-- Update app initialization to include image registry
-- Update documentation with image management features
+- Create comprehensive README for hello plugin demonstrating system features
+- Add table of contents to main README for improved navigation
+- Include plugin documentation section in main README
+- Add summaries and links to all plugin documentation (Profile, Dispatch, Hello)
 
-The image registry provides a structured way to manage and access images 
-throughout the application, with dedicated support for avatars and loaders.
-Template helpers make it easy to use images in templates with proper fallbacks.
+The hello plugin README follows the established documentation structure,
+providing clear guidance on installation, features, and usage. The main
+README's new table of contents and plugin documentation section improves
+discoverability and provides a centralized overview of all available plugins.

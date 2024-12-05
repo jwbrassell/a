@@ -11,6 +11,9 @@ A Flask plugin for managing and tracking dispatch requests with email notificati
 - DataTables integration for viewing transactions
 - Role-based access control
 - Color-coded priorities with custom icons
+- Comprehensive activity tracking and logging
+- Error handling with status tracking
+- Customizable email templates
 
 ## Installation
 
@@ -102,12 +105,15 @@ The plugin uses the following components (already included in the base applicati
   - name: Team name
   - email: Team email address
   - description: Optional team description
+  - created_at: Creation timestamp
+  - updated_at: Last update timestamp
 
 - DispatchPriority
   - name: Priority level name
   - description: Priority description
   - color: Hex color code
   - icon: Font Awesome icon class
+  - created_at: Creation timestamp
 
 - DispatchTransaction
   - team_id: Reference to team
@@ -117,7 +123,8 @@ The plugin uses the following components (already included in the base applicati
   - rma_info: RMA details
   - is_bridge: Bridge flag
   - bridge_link: Bridge URL
-  - status: Request status
+  - status: Request status ('sent' or 'failed')
+  - error_message: Details if email sending fails
   - created_by_id: User reference
   - created_at: Timestamp
 
@@ -129,13 +136,33 @@ The plugin automatically adds:
 
 ## Email Templates
 
-Dispatch notifications include:
-- Team information
-- Priority level
-- Description
-- Requestor details
-- Optional RMA information
-- Optional Bridge link
+Dispatch notifications are sent as HTML emails with a structured table format:
+
+- Header: Contains team name in subject
+- Body Table:
+  - Team information
+  - Priority level
+  - Description
+  - Requestor details
+  - Optional RMA information (if provided)
+  - Optional Bridge link (if provided)
+
+## Activity Tracking
+
+The plugin integrates with the application's activity tracking system:
+- Logs creation of new dispatch requests
+- Tracks team and priority management actions
+- Records user interactions with forms
+- Maintains audit trail of all changes
+
+## Error Handling
+
+The plugin includes comprehensive error handling:
+- Email sending failures are logged and stored
+- Transaction status tracking ('sent' or 'failed')
+- Detailed error messages for troubleshooting
+- Database transaction rollback on errors
+- User-friendly error notifications
 
 ## Troubleshooting
 
@@ -143,12 +170,20 @@ Dispatch notifications include:
    - Verify SMTP settings in .env file
    - Check mail server connectivity
    - Review error logs for specific issues
+   - Check transaction status and error_message
 
 2. If access is denied:
    - Ensure user has required roles
    - Check role assignments in admin interface
+   - Verify user session is active
 
 3. For database issues:
    - Verify migrations are up to date
    - Check database connectivity
    - Review logs for SQL errors
+   - Ensure proper rollback on failures
+
+4. For activity tracking issues:
+   - Check UserActivity table for entries
+   - Verify track_activity decorator is present
+   - Review logging configuration
