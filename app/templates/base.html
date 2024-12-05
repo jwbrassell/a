@@ -175,6 +175,7 @@
                     <div class="row mb-2">
                         <div class="col-sm-12">
                             <ol class="breadcrumb">
+                                {% block breadcrumb %}
                                 {% set breadcrumb = navigation_manager.get_breadcrumb(request.path) %}
                                 {% for item in breadcrumb %}
                                     <li class="breadcrumb-item {% if loop.last %}active{% endif %}">
@@ -185,6 +186,7 @@
                                         {% endif %}
                                     </li>
                                 {% endfor %}
+                                {% endblock %}
                             </ol>
                         </div>
                     </div>
@@ -194,7 +196,7 @@
             <!-- Main Content -->
             <section class="content">
                 <div class="container-fluid">
-                    {% block content %}{% endblock %}
+                    {% block page_content %}{% endblock %}
                 </div>
             </section>
         </div>

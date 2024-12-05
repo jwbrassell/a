@@ -20,3 +20,10 @@ def init_app(app):
         if val is None:
             return ''
         return json.dumps(str(val))[1:-1]  # Remove quotes added by json.dumps
+
+    @app.template_filter('datetime')
+    def format_datetime(value):
+        """Format datetime objects."""
+        if value is None:
+            return ''
+        return value.strftime('%Y-%m-%d %H:%M:%S')

@@ -2,6 +2,7 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from config import config
 from datetime import datetime
 import os
@@ -10,6 +11,7 @@ import os
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
+csrf = CSRFProtect()
 
 def create_app(config_name=None):
     app = Flask(__name__)
@@ -24,6 +26,7 @@ def create_app(config_name=None):
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
+    csrf.init_app(app)  # Initialize CSRF protection
 
     # Configure login
     login_manager.login_view = 'main.login'
@@ -47,8 +50,9 @@ def create_app(config_name=None):
     from app.utils.navigation_manager import NavigationManager
     from app.utils.route_manager import route_to_endpoint
 
-    # Register template filter
-    app.template_filter('route_to_endpoint')(route_to_endpoint)
+    # Initialize template filters
+    from app import template_filters
+    template_filters.init_app(app)
 
     # Make navigation manager available to templates
     @app.context_processor
