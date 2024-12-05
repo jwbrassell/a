@@ -438,6 +438,7 @@ def new_route():
         nav_type = request.form.get('nav_type')
         category_id = request.form.get('category_id') if nav_type == 'category' else None
         role_ids = request.form.getlist('roles')
+        show_in_navbar = request.form.get('show_in_navbar') == 'on'
         
         if PageRouteMapping.query.filter_by(route=route).first():
             flash('A route mapping for this route already exists.', 'danger')
@@ -448,7 +449,8 @@ def new_route():
             route=route,
             icon=icon,
             weight=weight,
-            category_id=category_id
+            category_id=category_id,
+            show_in_navbar=show_in_navbar
         )
         
         # Add allowed roles
@@ -492,6 +494,7 @@ def edit_route(id):
         nav_type = request.form.get('nav_type')
         category_id = request.form.get('category_id') if nav_type == 'category' else None
         role_ids = request.form.getlist('roles')
+        show_in_navbar = request.form.get('show_in_navbar') == 'on'
         
         existing_mapping = PageRouteMapping.query.filter_by(route=route).first()
         if existing_mapping and existing_mapping.id != id:
@@ -504,6 +507,7 @@ def edit_route(id):
             mapping.icon = icon
             mapping.weight = weight
             mapping.category_id = category_id
+            mapping.show_in_navbar = show_in_navbar
             
             # Update allowed roles
             if role_ids:

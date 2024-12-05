@@ -31,6 +31,7 @@
                         <th>Icon</th>
                         <th>Category</th>
                         <th>Roles</th>
+                        <th>Navbar</th>
                         <th>Created</th>
                         <th>Updated</th>
                         <th>Actions</th>
@@ -57,6 +58,13 @@
                             {% for role in mapping.allowed_roles %}
                                 <span class="badge badge-primary">{{ role.name }}</span>
                             {% endfor %}
+                        </td>
+                        <td>
+                            {% if mapping.show_in_navbar %}
+                                <i class="fas fa-eye text-success" title="Visible in navbar"></i>
+                            {% else %}
+                                <i class="fas fa-eye-slash text-muted" title="Hidden from navbar"></i>
+                            {% endif %}
                         </td>
                         <td>{{ mapping.created_at|datetime }}</td>
                         <td>{{ mapping.updated_at|datetime }}</td>
@@ -97,15 +105,16 @@ $(document).ready(function() {
             "search": "Search routes:"
         },
         "columnDefs": [
-            { "width": "5%", "targets": 0 },  // Weight column
-            { "width": "15%", "targets": 1 }, // Page Name column
-            { "width": "15%", "targets": 2 }, // Route column
-            { "width": "5%", "targets": 3 },  // Icon column
-            { "width": "15%", "targets": 4 }, // Category column
-            { "width": "15%", "targets": 5 }, // Roles column
-            { "width": "10%", "targets": 6 }, // Created column
-            { "width": "10%", "targets": 7 }, // Updated column
-            { "width": "10%", "targets": 8 }  // Actions column
+            { "width": "5%", "targets": 0 },   // Weight column
+            { "width": "15%", "targets": 1 },  // Page Name column
+            { "width": "15%", "targets": 2 },  // Route column
+            { "width": "5%", "targets": 3 },   // Icon column
+            { "width": "12%", "targets": 4 },  // Category column
+            { "width": "12%", "targets": 5 },  // Roles column
+            { "width": "5%", "targets": 6 },   // Navbar column
+            { "width": "10%", "targets": 7 },  // Created column
+            { "width": "10%", "targets": 8 },  // Updated column
+            { "width": "10%", "targets": 9 }   // Actions column
         ]
     });
 });
@@ -133,6 +142,9 @@ function confirmDelete(id, name) {
 }
 .badge i {
     margin-right: 3px;
+}
+.fa-eye, .fa-eye-slash {
+    font-size: 1.1em;
 }
 </style>
 {% endblock %}

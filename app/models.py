@@ -165,6 +165,7 @@ class PageRouteMapping(db.Model):
     route = db.Column(db.String(256), nullable=False, unique=True)
     icon = db.Column(db.String(64), nullable=False, default='fa-link')
     weight = db.Column(db.Integer, nullable=False, default=0)
+    show_in_navbar = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

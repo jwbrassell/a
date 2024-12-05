@@ -10,6 +10,7 @@ class NavigationManager:
         1. User's roles (RBAC)
         2. Navigation category weights
         3. Route weights within categories
+        4. Show in navbar setting
         
         Returns:
             dict: Navigation structure with categories and routes
@@ -23,8 +24,8 @@ class NavigationManager:
         # Get all categories ordered by weight
         categories = NavigationCategory.query.order_by(NavigationCategory.weight).all()
         
-        # Get all route mappings ordered by weight
-        route_mappings = PageRouteMapping.query.order_by(PageRouteMapping.weight).all()
+        # Get all visible route mappings ordered by weight
+        route_mappings = PageRouteMapping.query.filter_by(show_in_navbar=True).order_by(PageRouteMapping.weight).all()
         
         # Filter routes based on user roles
         accessible_routes = []
