@@ -3,6 +3,7 @@
 from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required, current_user
 from app.utils.plugin_manager import PluginMetadata
+from app.utils.activity_tracking import track_activity
 from app import db
 
 # Create the blueprint
@@ -26,12 +27,14 @@ plugin_metadata = PluginMetadata(
 # Define routes
 @bp.route('/')
 @login_required
+@track_activity
 def index():
     """User profile page."""
     return render_template('profile/index.html', user=current_user)
 
 @bp.route('/preferences/theme', methods=['POST'])
 @login_required
+@track_activity
 def update_theme():
     """Update user's theme preference."""
     theme = request.json.get('theme')

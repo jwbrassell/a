@@ -11,6 +11,7 @@ from sqlalchemy import func
 from werkzeug.routing import Map
 import json
 import os
+from app.utils.activity_tracking import track_activity
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 @bp.route('/')
 @login_required
 @requires_roles('admin')
+@track_activity
 def index():
     """Admin dashboard main page."""
     # Get counts for stats
@@ -42,6 +44,7 @@ def index():
 @bp.route('/users')
 @login_required
 @requires_roles('admin')
+@track_activity
 def users():
     """List all users and manage their roles."""
     users = User.query.all()
@@ -51,6 +54,7 @@ def users():
 @bp.route('/users/<int:id>/roles', methods=['POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def update_user_roles(id):
     """Update roles for a user."""
     user = User.query.get_or_404(id)
@@ -100,6 +104,7 @@ def update_user_roles(id):
 @bp.route('/roles')
 @login_required
 @requires_roles('admin')
+@track_activity
 def roles():
     """List all roles and their permissions."""
     roles = Role.query.all()
@@ -108,6 +113,7 @@ def roles():
 @bp.route('/roles/new', methods=['GET', 'POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def new_role():
     """Create a new role."""
     if request.method == 'POST':
@@ -147,6 +153,7 @@ def new_role():
 @bp.route('/roles/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def edit_role(id):
     """Edit an existing role."""
     role = Role.query.get_or_404(id)
@@ -187,6 +194,7 @@ def edit_role(id):
 @bp.route('/roles/<int:id>/delete', methods=['POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def delete_role(id):
     """Delete a role."""
     role = Role.query.get_or_404(id)
@@ -213,6 +221,7 @@ def delete_role(id):
 @bp.route('/roles/<int:role_id>/members')
 @login_required
 @requires_roles('admin')
+@track_activity
 def role_members(role_id):
     """View members of a role."""
     role = Role.query.get_or_404(role_id)
@@ -223,6 +232,7 @@ def role_members(role_id):
 @bp.route('/roles/<int:role_id>/members/add', methods=['POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def add_role_member(role_id):
     """Add a user to a role."""
     role = Role.query.get_or_404(role_id)
@@ -252,6 +262,7 @@ def add_role_member(role_id):
 @bp.route('/roles/<int:role_id>/members/<int:user_id>/remove', methods=['POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def remove_role_member(role_id, user_id):
     """Remove a user from a role."""
     role = Role.query.get_or_404(role_id)
@@ -281,6 +292,7 @@ def remove_role_member(role_id, user_id):
 @bp.route('/categories')
 @login_required
 @requires_roles('admin')
+@track_activity
 def categories():
     """List all navigation categories."""
     categories = NavigationCategory.query.all()
@@ -289,6 +301,7 @@ def categories():
 @bp.route('/categories/new', methods=['GET', 'POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def new_category():
     """Create a new navigation category."""
     if request.method == 'POST':
@@ -330,6 +343,7 @@ def new_category():
 @bp.route('/categories/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def edit_category(id):
     """Edit an existing navigation category."""
     category = NavigationCategory.query.get_or_404(id)
@@ -372,6 +386,7 @@ def edit_category(id):
 @bp.route('/categories/<int:id>/delete', methods=['POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def delete_category(id):
     """Delete a navigation category."""
     category = NavigationCategory.query.get_or_404(id)
@@ -403,6 +418,7 @@ def delete_category(id):
 @bp.route('/routes')
 @login_required
 @requires_roles('admin')
+@track_activity
 def routes():
     """List all route mappings."""
     mappings = PageRouteMapping.query.all()
@@ -411,6 +427,7 @@ def routes():
 @bp.route('/routes/new', methods=['GET', 'POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def new_route():
     """Create a new route mapping."""
     if request.method == 'POST':
@@ -462,6 +479,7 @@ def new_route():
 @bp.route('/routes/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def edit_route(id):
     """Edit an existing route mapping."""
     mapping = PageRouteMapping.query.get_or_404(id)
@@ -515,6 +533,7 @@ def edit_route(id):
 @bp.route('/routes/<int:id>/delete', methods=['POST'])
 @login_required
 @requires_roles('admin')
+@track_activity
 def delete_route(id):
     """Delete a route mapping."""
     mapping = PageRouteMapping.query.get_or_404(id)
@@ -542,6 +561,7 @@ def delete_route(id):
 @bp.route('/logs')
 @login_required
 @requires_roles('admin')
+@track_activity
 def logs():
     """View system activity logs."""
     # Get activities from the last 7 days by default
@@ -554,6 +574,7 @@ def logs():
 @bp.route('/icons')
 @login_required
 @requires_roles('admin')
+@track_activity
 def get_icons():
     """Get list of available FontAwesome icons."""
     # This is a simplified list - you might want to expand it
@@ -574,6 +595,7 @@ def get_icons():
 @bp.route('/routes/list')
 @login_required
 @requires_roles('admin')
+@track_activity
 def get_routes():
     """Get list of available routes for Select2."""
     # Get all registered routes from Flask app
@@ -591,6 +613,7 @@ def get_routes():
 @bp.route('/category/<int:id>/icon')
 @login_required
 @requires_roles('admin')
+@track_activity
 def get_category_icon(id):
     """Get icon for a category."""
     category = NavigationCategory.query.get_or_404(id)

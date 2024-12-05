@@ -7,6 +7,7 @@ from app.plugins.dispatch.models import DispatchTeam, DispatchPriority, Dispatch
 from app import db
 from app.logging_utils import log_info, log_error
 from app.models import UserActivity
+from app.utils.activity_tracking import track_activity
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
@@ -58,6 +59,7 @@ def send_dispatch_email(transaction):
 
 @bp.route('/')
 @login_required
+@track_activity
 def index():
     """Main dispatch tool page with form and transactions table"""
     try:
@@ -71,6 +73,7 @@ def index():
 
 @bp.route('/submit', methods=['POST'])
 @login_required
+@track_activity
 def submit():
     """Handle dispatch form submission"""
     try:
@@ -118,6 +121,7 @@ def submit():
 
 @bp.route('/transactions')
 @login_required
+@track_activity
 def get_transactions():
     """DataTables API endpoint for transactions"""
     try:
@@ -132,6 +136,7 @@ def get_transactions():
 
 @bp.route('/manage')
 @login_required
+@track_activity
 def manage():
     """Management interface for teams and priorities"""
     try:
@@ -145,6 +150,7 @@ def manage():
 
 @bp.route('/team', methods=['POST'])
 @login_required
+@track_activity
 def add_team():
     """Add or update team"""
     try:
@@ -181,6 +187,7 @@ def add_team():
 
 @bp.route('/priority', methods=['POST'])
 @login_required
+@track_activity
 def add_priority():
     """Add or update priority"""
     try:

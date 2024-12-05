@@ -4,9 +4,11 @@ from app import db
 from app.models import User, UserActivity
 from app.main import bp
 from app.forms import LoginForm
+from app.utils.activity_tracking import track_activity
 
 @bp.route('/')
 @login_required
+@track_activity
 def index():
     """Landing page after login."""
     return render_template('index.html')
@@ -58,6 +60,7 @@ def logout():
 
 @bp.route('/profile')
 @login_required
+@track_activity
 def profile():
     """User profile page."""
     # Get user's recent activities

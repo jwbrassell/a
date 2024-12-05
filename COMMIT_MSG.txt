@@ -1,28 +1,5 @@
-feat(admin): Enhance route handling and endpoint conversion
+fix: update admin logs template to display activity records
 
-Improve the route handling system with the following enhancements:
-
-- Update route_to_endpoint filter to handle multiple route formats:
-  - Support routes already in endpoint format (e.g., 'dispatch.manage')
-  - Convert URL paths to endpoint format (e.g., '/dispatch/manage' -> 'dispatch.manage')
-  - Handle blueprint prefixes correctly (e.g., 'admin.dispatch.manage')
-  - Add special handling for known blueprint prefixes (admin, dispatch, profile, hello)
-
-- Improve navigation macro to handle:
-  - Full URL paths
-  - Endpoint formats
-  - Blueprint-prefixed routes
-
-This change provides more robust route handling by:
-- Supporting multiple route format inputs
-- Maintaining proper blueprint prefix handling
-- Ensuring consistent endpoint conversion
-- Fixing URL generation issues with admin routes
-
-fix(hello): Update template block names for proper rendering
-
-Fix template rendering issues in the hello plugin:
-- Change content block to page_content in index.html and about.html to match base template
-- Pass complete metadata object to index template
-- Remove redundant title and description parameters from index route
-- Ensure consistent template inheritance across plugin pages
+- Fixed template variable name mismatch (changed from 'logs' to 'activities')
+- Activity logs are now properly displayed in the admin interface
+- Maintains existing styling and DataTables functionality

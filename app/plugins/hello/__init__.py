@@ -4,6 +4,7 @@ from flask import Blueprint, render_template
 from flask_login import login_required
 from app.utils.plugin_manager import PluginMetadata
 from app.utils.rbac import requires_roles
+from app.utils.activity_tracking import track_activity
 
 # Create the blueprint
 bp = Blueprint('hello', __name__, 
@@ -27,6 +28,7 @@ plugin_metadata = PluginMetadata(
 @bp.route('/')
 @login_required
 @requires_roles('user')
+@track_activity
 def index():
     """Main plugin page."""
     return render_template('hello/index.html', 
@@ -35,6 +37,7 @@ def index():
 @bp.route('/about')
 @login_required
 @requires_roles('user')
+@track_activity
 def about():
     """About page showing plugin information."""
     return render_template('hello/about.html',

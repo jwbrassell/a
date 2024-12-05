@@ -13,6 +13,7 @@ from app.mock_ldap import authenticate_ldap
 from app.logging_utils import log_page_visit
 from app.utils.plugin_manager import PluginManager
 from app.utils.init_db import init_roles_and_users
+from app.utils.activity_tracking import track_activity
 
 main = Blueprint('main', __name__)
 
@@ -67,6 +68,7 @@ def after_request(response):
 
 # Authentication Routes
 @main.route('/login', methods=['GET', 'POST'])
+@track_activity
 def login():
     """Handle user login with both LDAP and local authentication."""
     if current_user.is_authenticated:
@@ -150,6 +152,7 @@ def login():
 
 @main.route('/logout')
 @login_required
+@track_activity
 def logout():
     """Handle user logout."""
     log_activity(current_user, 'Logged out')
@@ -160,6 +163,7 @@ def logout():
 
 # General Routes
 @main.route('/')
+@track_activity
 def index():
     """Display main index page."""
     if not current_user.is_authenticated:
