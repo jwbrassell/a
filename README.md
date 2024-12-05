@@ -60,5 +60,3 @@ A Flask-based web application with role-based access control (RBAC), plugin syst
   - Breadcrumb navigation
   - Flash messages
   - Loading animations
-
-[Rest of README remains the same...]
