@@ -57,6 +57,31 @@ def example():
 
 ### 2. Route Management
 
+#### Route Formats
+The application supports multiple route formats:
+
+1. **Endpoint Format** (e.g., 'dispatch.manage')
+   - Used internally for route management
+   - Contains dots to separate blueprint and route names
+   - No leading slashes
+
+2. **URL Path Format** (e.g., '/dispatch/manage')
+   - Used in templates and URLs
+   - Contains slashes to separate path components
+   - Has leading slash
+
+3. **Blueprint-Prefixed Format** (e.g., 'admin.dispatch.manage')
+   - Used for routes within blueprint hierarchies
+   - Preserves blueprint prefix
+   - Contains multiple dot separators
+
+The route_to_endpoint filter automatically handles conversion between these formats:
+```html
+<!-- In templates -->
+<a href="{{ 'admin.dispatch.manage'|route_to_endpoint }}">Link</a>
+<a href="{{ '/dispatch/manage'|route_to_endpoint }}">Also works</a>
+```
+
 #### Route Registration
 All routes must be properly registered using the route_manager:
 

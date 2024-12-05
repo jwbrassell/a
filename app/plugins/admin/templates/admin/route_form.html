@@ -98,7 +98,7 @@
                 <div class="col-md-6">
                     <div class="form-group" id="category_group" style="display: none;">
                         <label for="category_id">Category</label>
-                        <select class="form-control select2" id="category_id" name="category_id">
+                        <select class="form-control" id="category_id" name="category_id">
                             <option value="">Select Category</option>
                             {% for category in categories %}
                             <option value="{{ category.id }}" 
@@ -107,23 +107,6 @@
                             </option>
                             {% endfor %}
                         </select>
-                    </div>
-                    <div class="form-group" id="category_icon_group" style="display: none;">
-                        <label for="category_icon">Category Icon</label>
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">
-                                    <i id="category-icon-preview" class="fas fa-folder"></i>
-                                </span>
-                            </div>
-                            <input type="text" class="form-control" id="category_icon" name="category_icon" 
-                                   value="fa-folder" readonly>
-                            <div class="input-group-append">
-                                <button type="button" class="btn btn-outline-secondary category-icon-picker">
-                                    Choose Icon
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -182,19 +165,17 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    // Initialize Select2 for all selects except category selects
-    $('.form-select:not(#category_id)').select2({
+    // Initialize Select2 for route and roles
+    $('#route, #roles').select2({
         theme: 'bootstrap4',
         width: '100%'
     });
 
-    // Initialize category select with tags enabled
+    // Initialize category select
     $('#category_id').select2({
         theme: 'bootstrap4',
         width: '100%',
-        tags: true,
-        allowClear: true,
-        placeholder: 'Select or type a category'
+        placeholder: 'Select a category'
     });
 
     // Initialize route select with AJAX loading
@@ -227,51 +208,12 @@ $(document).ready(function() {
         placeholder: 'Select a route'
     });
 
-    // Special initialization for icon selects
-    $('.icon-select').select2({
-        theme: 'bootstrap4',
-        width: '100%',
-        templateResult: formatIcon,
-        templateSelection: formatIcon
-    });
-
-    function formatIcon(icon) {
-        if (!icon.id) return icon.text;
-        return $('<span><i class="fas ' + icon.id + '"></i> ' + icon.text + '</span>');
-    }
-
-    // Category handling
-    $('#category_id').on('change', function() {
-        const selectedOption = $(this).select2('data')[0];
-        if (selectedOption && !selectedOption.id.match(/^\d+$/)) {
-            // New category, show icon selector
-            $('#category_icon_group').show();
-        } else {
-            // Existing category, hide icon selector
-            $('#category_icon_group').hide();
-            
-            // If it's an existing category, fetch its icon
-            if (selectedOption && selectedOption.id) {
-                fetch(`/admin/category/${selectedOption.id}/icon`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success && data.icon) {
-                            $('#category_icon').val(data.icon);
-                            $('#category-icon-preview').attr('class', 'fas ' + data.icon);
-                        }
-                    })
-                    .catch(error => console.error('Error fetching category icon:', error));
-            }
-        }
-    });
-
     // Navigation type toggle
     $('input[name="nav_type"]').change(function() {
-        if ($(this).val() === 'category') {
-            $('#category_group').slideDown();
-        } else {
-            $('#category_group').slideUp();
-            $('#category_icon_group').hide();
+        const isCategory = $(this).val() === 'category';
+        $('#category_group').toggle(isCategory);
+        if (!isCategory) {
+            $('#category_id').val('').trigger('change');
         }
     });
 
@@ -279,17 +221,13 @@ $(document).ready(function() {
     $('input[name="nav_type"]:checked').trigger('change');
 
     // Load icons when modal opens
-    $('#icon-picker, .category-icon-picker').click(function() {
-        const isCategory = $(this).hasClass('category-icon-picker');
-        const targetInput = isCategory ? '#category_icon' : '#icon';
-        const targetPreview = isCategory ? '#category-icon-preview' : '#icon-preview';
-        
+    $('#icon-picker').click(function() {
         if ($('#icon-grid').children().length === 0) {
             $.get("{{ url_for('admin.get_icons') }}", function(icons) {
                 icons.forEach(function(icon) {
                     $('#icon-grid').append(`
                         <div class="col-md-2 col-sm-3 col-4 text-center icon-item mb-3">
-                            <div class="p-2 border rounded icon-select" data-icon="${icon}" data-target="${targetInput}">
+                            <div class="p-2 border rounded icon-select" data-icon="${icon}">
                                 <i class="fas ${icon} fa-2x"></i>
                                 <div class="small text-muted mt-1">${icon}</div>
                             </div>
@@ -298,9 +236,6 @@ $(document).ready(function() {
                 });
             });
         }
-        
-        // Store the target elements for this selection
-        $('#iconModal').data('targetInput', targetInput).data('targetPreview', targetPreview);
         $('#iconModal').modal('show');
     });
 
@@ -316,13 +251,9 @@ $(document).ready(function() {
     // Icon selection
     $(document).on('click', '.icon-select', function() {
         const icon = $(this).data('icon');
-        const modal = $('#iconModal');
-        const targetInput = modal.data('targetInput');
-        const targetPreview = modal.data('targetPreview');
-        
-        $(targetInput).val(icon);
-        $(targetPreview).attr('class', 'fas ' + icon);
-        modal.modal('hide');
+        $('#icon').val(icon);
+        $('#icon-preview').attr('class', 'fas ' + icon);
+        $('#iconModal').modal('hide');
     });
 
     // Form validation
@@ -347,7 +278,7 @@ $(document).ready(function() {
                 e.preventDefault();
                 Swal.fire({
                     title: 'Error',
-                    text: 'Please select or enter a category',
+                    text: 'Please select a category',
                     icon: 'error'
                 });
                 return;

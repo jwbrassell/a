@@ -39,6 +39,11 @@ A Flask-based web application with role-based access control (RBAC), plugin syst
   - Customizable menu ordering
   - Icon support for menu items
   - Breadcrumb navigation
+  - Flexible route handling:
+    * Support for multiple route formats (endpoint, URL path, blueprint-prefixed)
+    * Automatic route format conversion
+    * Blueprint prefix preservation
+    * Smart endpoint resolution
 
 - **Activity Tracking**
   - Comprehensive user activity logging

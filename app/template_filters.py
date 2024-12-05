@@ -13,7 +13,25 @@ def init_app(app):
     @app.template_filter('route_to_endpoint')
     def route_to_endpoint(route):
         """Convert route to endpoint format."""
-        return route.replace('/', '.')
+        # If route already contains dots and no slashes, assume it's already an endpoint
+        if '.' in route and '/' not in route:
+            return route
+            
+        # Remove leading slash if present
+        if route.startswith('/'):
+            route = route[1:]
+            
+        # Convert slashes to dots
+        parts = route.split('/')
+        
+        # Handle special cases for blueprint routes
+        if len(parts) >= 2:
+            # If first part is a known blueprint, keep it as prefix
+            if parts[0] in ['admin', 'dispatch', 'profile', 'hello']:
+                return f"{parts[0]}.{'.'.join(parts[1:])}"
+        
+        # Default case: just join with dots
+        return '.'.join(parts)
 
     @app.template_filter('escapejs')
     def escapejs(val):

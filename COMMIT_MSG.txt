@@ -1,20 +1,23 @@
-feat(admin): Enhance user role management with AJAX and SweetAlert2
+feat(admin): Enhance route handling and endpoint conversion
 
-Improve the user role management interface in the admin portal with the following changes:
+Improve the route handling system with the following enhancements:
 
-- Add AJAX form submission for role updates to prevent page reloads
-- Implement SweetAlert2 notifications for better user feedback
-- Update role badges dynamically in the table after successful updates
-- Improve error handling with proper error messages
-- Update modal implementation to use Bootstrap 5 attributes
-- Add proper response format in backend with role information
-- Add activity logging for role changes
+- Update route_to_endpoint filter to handle multiple route formats:
+  - Support routes already in endpoint format (e.g., 'dispatch.manage')
+  - Convert URL paths to endpoint format (e.g., '/dispatch/manage' -> 'dispatch.manage')
+  - Handle blueprint prefixes correctly (e.g., 'admin.dispatch.manage')
+  - Add special handling for known blueprint prefixes (admin, dispatch, profile, hello)
 
-This change provides a smoother user experience when managing user roles by:
-- Keeping the modal open on errors
-- Showing clear success/error notifications
-- Updating the UI without page refresh
-- Maintaining proper activity tracking for auditing
+- Improve navigation macro to handle:
+  - Full URL paths
+  - Endpoint formats
+  - Blueprint-prefixed routes
+
+This change provides more robust route handling by:
+- Supporting multiple route format inputs
+- Maintaining proper blueprint prefix handling
+- Ensuring consistent endpoint conversion
+- Fixing URL generation issues with admin routes
 
 fix(hello): Update template block names for proper rendering
 
