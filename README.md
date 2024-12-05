@@ -1,7 +1,7 @@
 # Flask Portal Application
 
 ## Overview
-A Flask-based web application with role-based access control (RBAC), supporting both LDAP and local authentication.
+A Flask-based web application with role-based access control (RBAC), plugin system, and comprehensive user activity tracking. Supports both LDAP and local authentication.
 
 ## Features
 - **Authentication**
@@ -19,6 +19,27 @@ A Flask-based web application with role-based access control (RBAC), supporting 
   - Dynamic route permission checking
   - All routes accessible by default to both roles
 
+- **Plugin System**
+  - Modular architecture supporting dynamic plugin loading
+  - Each plugin can have its own routes, templates, and static files
+  - Automatic blueprint registration
+  - Plugin-specific configuration and settings
+  - Example plugins included (admin, hello)
+
+- **Navigation System**
+  - Hierarchical navigation with categories
+  - Dynamic menu generation based on user roles
+  - Customizable menu ordering
+  - Icon support for menu items
+  - Breadcrumb navigation
+
+- **Activity Tracking**
+  - Comprehensive user activity logging
+  - Page visit tracking
+  - Action tracking with timestamps
+  - User session monitoring
+  - Activity reports and analytics
+
 - **UI/UX**
   - AdminLTE theme integration
   - Responsive design
@@ -33,12 +54,24 @@ app/
 ├── __init__.py          # Application factory and core setup
 ├── routes.py            # Main application routes
 ├── models.py            # Database models
-├── forms.py            # Form definitions
+├── forms.py             # Form definitions
+├── logging_utils.py     # Logging configuration
+├── mock_ldap.py         # LDAP authentication simulation
+├── template_filters.py  # Custom template filters
+├── plugins/            # Plugin system
+│   ├── admin/          # Admin plugin for system management
+│   │   ├── routes.py   # Admin routes
+│   │   └── templates/  # Admin templates
+│   └── hello/          # Example plugin
+│       ├── routes.py   # Example routes
+│       └── templates/  # Example templates
 ├── utils/              # Utility modules
-│   ├── __init__.py
-│   ├── route_manager.py # Route management and caching
-│   ├── rbac.py         # Role-based access control
-│   └── init_db.py      # Database initialization
+│   ├── activity_tracking.py  # User activity tracking
+│   ├── navigation_manager.py # Menu and navigation management
+│   ├── plugin_manager.py    # Plugin system management
+│   ├── rbac.py             # Role-based access control
+│   ├── route_manager.py    # Route management and caching
+│   └── init_db.py         # Database initialization
 ├── templates/          # HTML templates
 │   ├── base.html       # Base template with AdminLTE theme
 │   ├── index.html      # Main dashboard
@@ -107,6 +140,95 @@ Two default users are created for local development:
    - Password: user123
    - Role: demo
 
+## Plugin System
+
+### Overview
+The application supports a plugin architecture that allows for modular extension of functionality:
+
+1. Plugin Structure:
+```
+plugins/
+└── your_plugin/
+    ├── __init__.py      # Plugin initialization
+    ├── routes.py        # Plugin routes
+    ├── templates/       # Plugin templates
+    └── README.md        # Plugin documentation
+```
+
+2. Plugin Registration:
+- Plugins are automatically discovered and loaded
+- Each plugin is registered as a Flask blueprint
+- Plugin routes are automatically mapped to the navigation system
+
+3. Available Plugins:
+- **Admin Plugin**: System administration interface
+  - User management
+  - Role management
+  - Route mapping
+  - Category management
+  - Activity logs
+- **Hello Plugin**: Example plugin demonstrating basic functionality
+
+## Navigation System
+
+### Categories and Menu Structure
+- Hierarchical navigation with categories
+- Dynamic menu generation based on user roles
+- Customizable menu ordering
+- Support for icons and badges
+
+### Navigation Management
+```python
+from app.utils.navigation_manager import create_category, add_route_to_category
+
+# Create a new category
+category = create_category("My Category", "fa-icon", order=1)
+
+# Add route to category
+add_route_to_category(route_path, category.id, "Page Name", "fa-page-icon")
+```
+
+## Activity Tracking
+
+### Tracked Information
+- Page visits
+- User actions
+- Login/logout events
+- Error occurrences
+- Administrative actions
+
+### Usage
+```python
+from app.utils.activity_tracking import track_activity
+
+@track_activity
+def your_route():
+    # Activity automatically tracked
+    pass
+```
+
+## Utility Functions
+
+### Route Management
+- `register_route`: Register routes for validation
+- `map_route_to_roles`: Map routes to specific roles
+- `get_cached_route`: Get route information from cache
+
+### RBAC Utilities
+- `role_required`: Decorator for role-based access control
+- `has_role`: Check if user has specific role
+- `get_user_roles`: Get all roles for a user
+
+### Logging Utilities
+- `log_info`: Log informational messages
+- `log_warning`: Log warning messages
+- `log_error`: Log error messages with stack traces
+
+### Vault Utility
+- Secure credential storage
+- Environment variable management
+- Secret key rotation
+
 ## Route Access Control
 
 ### How It Works
@@ -134,6 +256,7 @@ Two default users are created for local development:
 ```python
 @main.route('/new-route')
 @login_required
+@track_activity
 def new_route():
     return render_template('new_route.html')
 ```
