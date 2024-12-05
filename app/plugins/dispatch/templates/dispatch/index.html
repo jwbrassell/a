@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Dispatch Tool{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item active">Dispatch Tool</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="row mb-3">
+    <div class="col">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#dispatchModal">
+            <i class="fas fa-plus"></i> New Dispatch
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-paper-plane mr-2"></i>Dispatch Transactions
+                </h3>
+            </div>
+            <div class="card-body">
+                <table id="transactions-table" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Team</th>
+                            <th>Priority</th>
+                            <th>Description</th>
+                            <th>Created By</th>
+                            <th>Created At</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dispatch Modal -->
+<div class="modal fade" id="dispatchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('dispatch.submit') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-paper-plane"></i> New Dispatch
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Team</label>
+                            <select name="team" class="form-select" required>
+                                <option value="">Select Team</option>
+                                {% for team in teams %}
+                                <option value="{{ team.id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Priority</label>
+                            <select name="priority" class="form-select" required>
+                                <option value="">Select Priority</option>
+                                {% for priority in priorities %}
+                                <option value="{{ priority.id }}" data-color="{{ priority.color }}">
+                                    <i class="fas {{ priority.icon }}"></i> {{ priority.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3" required></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_rma" class="form-check-input" id="isRma">
+                                <label class="form-check-label" for="isRma">RMA Required</label>
+                            </div>
+                            <div id="rmaSection" class="mt-2 d-none">
+                                <label class="form-label">RMA Information</label>
+                                <textarea name="rma_info" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_bridge" class="form-check-input" id="isBridge">
+                                <label class="form-check-label" for="isBridge">Bridge Required</label>
+                            </div>
+                            <div id="bridgeSection" class="mt-2 d-none">
+                                <label class="form-label">Bridge Link</label>
+                                <input type="url" name="bridge_link" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#transactions-table').DataTable({
+        ajax: "{{ url_for('dispatch.get_transactions') }}",
+        columns: [
+            { data: 'id' },
+            { data: 'team' },
+            { data: 'priority' },
+            { data: 'description' },
+            { data: 'created_by' },
+            { data: 'created_at' },
+            { 
+                data: 'status',
+                render: function(data, type, row) {
+                    if (data === 'sent') {
+                        return '<span class="badge bg-success">Sent</span>';
+                    } else {
+                        return '<span class="badge bg-danger">Failed</span>';
+                    }
+                }
+            }
+        ],
+        order: [[0, 'desc']],
+        pageLength: 25
+    });
+
+    // Handle RMA checkbox
+    $('#isRma').change(function() {
+        $('#rmaSection').toggleClass('d-none', !this.checked);
+        if (!this.checked) {
+            $('textarea[name="rma_info"]').val('');
+        }
+    });
+
+    // Handle Bridge checkbox
+    $('#isBridge').change(function() {
+        $('#bridgeSection').toggleClass('d-none', !this.checked);
+        if (!this.checked) {
+            $('input[name="bridge_link"]').val('');
+        }
+    });
+});
+</script>
+{% endblock %}

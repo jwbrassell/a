@@ -30,8 +30,7 @@ plugin_metadata = PluginMetadata(
 def index():
     """Main plugin page."""
     return render_template('hello/index.html', 
-                         title="Hello Plugin",
-                         description=plugin_metadata.description)
+                         metadata=plugin_metadata)
 
 @bp.route('/about')
 @login_required

@@ -9,6 +9,23 @@
 
 {% block page_content %}
 <div class="row">
+    <!-- User Management Card -->
+    <div class="col-lg-3 col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-users mr-2"></i>User Management
+                </h3>
+            </div>
+            <div class="card-body">
+                <p>Manage users and their roles.</p>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-primary">
+                    <i class="fas fa-users mr-1"></i> Manage Users
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Role Management Card -->
     <div class="col-lg-3 col-md-6">
         <div class="card">
@@ -20,7 +37,7 @@
             <div class="card-body">
                 <p>Manage user roles and permissions.</p>
                 <a href="{{ url_for('admin.roles') }}" class="btn btn-primary">
-                    <i class="fas fa-users mr-1"></i> Manage Roles
+                    <i class="fas fa-users-cog mr-1"></i> Manage Roles
                 </a>
             </div>
         </div>
@@ -59,9 +76,11 @@
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Activity Logs Card -->
-    <div class="col-lg-3 col-md-6">
+<!-- Activity Logs Card -->
+<div class="row mt-4">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">
@@ -80,11 +99,11 @@
 
 <!-- Quick Stats Row -->
 <div class="row mt-4">
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-info">
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="small-box bg-primary">
             <div class="inner">
-                <h3>{{ roles|length }}</h3>
-                <p>Roles</p>
+                <h3>{{ users|length }}</h3>
+                <p>Users</p>
             </div>
             <div class="icon">
                 <i class="fas fa-users"></i>
@@ -92,7 +111,19 @@
         </div>
     </div>
 
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>{{ roles|length }}</h3>
+                <p>Roles</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-users-cog"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-2 col-md-4 col-6">
         <div class="small-box bg-success">
             <div class="inner">
                 <h3>{{ categories|length }}</h3>
@@ -104,7 +135,7 @@
         </div>
     </div>
 
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-md-4 col-6">
         <div class="small-box bg-warning">
             <div class="inner">
                 <h3>{{ routes|length }}</h3>
@@ -116,7 +147,7 @@
         </div>
     </div>
 
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-md-4 col-6">
         <div class="small-box bg-danger">
             <div class="inner">
                 <h3>{{ recent_activities|length }}</h3>

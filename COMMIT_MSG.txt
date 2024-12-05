@@ -15,3 +15,11 @@ This change provides a smoother user experience when managing user roles by:
 - Showing clear success/error notifications
 - Updating the UI without page refresh
 - Maintaining proper activity tracking for auditing
+
+fix(hello): Update template block names for proper rendering
+
+Fix template rendering issues in the hello plugin:
+- Change content block to page_content in index.html and about.html to match base template
+- Pass complete metadata object to index template
+- Remove redundant title and description parameters from index route
+- Ensure consistent template inheritance across plugin pages
