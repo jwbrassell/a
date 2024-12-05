@@ -1,5 +1,25 @@
 # Release Notes
 
+## Version 1.8
+### Navigation Visibility Control
+- Added ability to control route visibility in navigation bar:
+  - New show/hide toggle in route management interface
+  - Visual indicators showing route visibility status
+  - Default visibility set to "shown" for existing routes
+  - Routes remain accessible via direct URL when hidden
+- Enhanced route management interface:
+  - Added visibility column to routes table
+  - Added eye/eye-slash icons for clear visibility status
+  - Added Bootstrap custom switch for easy toggling
+- Updated navigation system:
+  - Navigation manager now respects visibility settings
+  - Hidden routes excluded from navigation bar
+  - Breadcrumb navigation still works for hidden routes
+- Database changes:
+  - Added show_in_navbar boolean column to route mappings
+  - Added migration with safe SQLite compatibility
+  - Existing routes automatically set to visible
+
 ## Version 1.7
 ### Route Handling System Overhaul
 - Implemented comprehensive route validation system (validate_routes.py):

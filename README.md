@@ -45,6 +45,14 @@ A Flask-based web application with role-based access control (RBAC), plugin syst
     * Blueprint prefix preservation
     * Smart endpoint resolution
 
+- **Image Management**
+  - Centralized image registry system
+  - Organized storage for avatars and loaders
+  - Template helpers for easy image access
+  - Dynamic image scanning and registration
+  - Hot-reload support for new images
+  - Fallback images for missing assets
+
 - **Activity Tracking**
   - Comprehensive user activity logging
   - Page visit tracking

@@ -1,5 +1,12 @@
-fix: update admin logs template to display activity records
+feat: Add image registry system
 
-- Fixed template variable name mismatch (changed from 'logs' to 'activities')
-- Activity logs are now properly displayed in the admin interface
-- Maintains existing styling and DataTables functionality
+- Add ImageRegistry class for centralized image management
+- Organize static images into avatars and loaders directories
+- Add template helpers for accessing images (get_avatar, get_loader)
+- Support dynamic image scanning and hot-reload
+- Update app initialization to include image registry
+- Update documentation with image management features
+
+The image registry provides a structured way to manage and access images 
+throughout the application, with dedicated support for avatars and loaders.
+Template helpers make it easy to use images in templates with proper fallbacks.

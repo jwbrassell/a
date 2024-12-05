@@ -29,6 +29,10 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     csrf.init_app(app)  # Initialize CSRF protection
 
+    # Initialize image registry
+    from app.utils.image_registry import ImageRegistry
+    ImageRegistry.init_app(app)
+
     # Configure login
     login_manager.login_view = 'main.login'
     login_manager.login_message_category = 'info'
