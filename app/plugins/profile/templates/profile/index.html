@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">User Profile</h3>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <label class="col-sm-3 col-form-label">Name</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-plaintext">{{ user.name }}</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label class="col-sm-3 col-form-label">Email</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-plaintext">{{ user.email }}</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label class="col-sm-3 col-form-label">Roles</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-plaintext">
+                            {% for role in user.roles %}
+                                <span class="badge bg-primary">{{ role.name }}</span>
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

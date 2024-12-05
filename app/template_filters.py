@@ -2,6 +2,7 @@
 
 import json
 from markupsafe import escape
+from flask import current_app
 
 def init_app(app):
     """Initialize template filters.
@@ -27,3 +28,11 @@ def init_app(app):
         if value is None:
             return ''
         return value.strftime('%Y-%m-%d %H:%M:%S')
+
+    @app.template_filter('route_exists')
+    def route_exists(endpoint):
+        """Check if a route exists in the application."""
+        try:
+            return endpoint in current_app.view_functions
+        except:
+            return False

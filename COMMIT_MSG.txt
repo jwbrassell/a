@@ -1,21 +1,21 @@
-feat(admin): Implement comprehensive admin dashboard navigation fixes
+feat(plugins): Add user profile plugin
 
-Key Changes:
-- Fixed route mapping issues by storing correct endpoint names (e.g., 'admin.index') in database
-- Created fix_routes.py script for automated admin route handling
-- Updated template inheritance to use consistent block names ('page_content')
-- Added CSRF protection initialization in Flask-WTF forms
-- Implemented datetime template filter for consistent timestamp formatting
-- Fixed user information display using Flask-Login's current_user
-- Enhanced navigation structure with proper category-based organization
+Add a new plugin that provides user profile functionality accessible from both
+the top-right dropdown menu and left sidebar navigation.
 
-Technical Details:
-- Route Storage: Standardized route storage format in database
-- Template Blocks: Unified block naming across base.html and child templates
-- Security: Added proper CSRF token implementation
-- DateTime: Added template filter in template_filters.py
-- User Info: Improved current user data handling
-- Navigation: Implemented role-based access control for admin routes
+Key changes:
+- Create profile plugin with blueprint and metadata
+- Add profile view template showing user information
+- Add route_exists template filter for conditional rendering
+- Update base template to include profile links
+- Add comprehensive plugin documentation
 
-This update significantly improves the admin dashboard's reliability and security
-while maintaining a clean and organized navigation structure.
+Technical details:
+- Plugin follows application's plugin architecture pattern
+- Uses conditional rendering to handle plugin availability
+- Requires only authentication, no specific role requirements
+- Positioned above logout in navigation (weight: 98)
+- Includes detailed README with implementation details
+
+This commit provides a foundation for future profile-related features like
+profile editing, picture upload, and security settings.

@@ -1,0 +1,60 @@
+2024-12-04 21:45:28,272 ERROR: Exception on /login [GET] [in /Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/main/routes.py", line 41, in login
+    return render_template('login.html')
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/jinja2/environment.py", line 1304, in render
+    self.environment.handle_exception()
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/jinja2/environment.py", line 939, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/templates/login.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/templates/base.html", line 1, in top-level template code
+    {% from "macros/navigation.html" import render_nav_item, render_category %}
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/jinja2/environment.py", line 939, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/templates/macros/navigation.html", line 3, in template
+    <a href="{{ url_for(route.route|route_to_endpoint) }}" class="nav-link">
+jinja2.exceptions.TemplateAssertionError: No filter named 'route_to_endpoint'.
+2024-12-04 21:46:44,795 INFO: Application startup [in /Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/__init__.py:57]
+2024-12-04 21:47:02,942 INFO: Application startup [in /Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/__init__.py:57]
+2024-12-04 21:47:06,705 ERROR: Exception on /login [GET] [in /Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/main/routes.py", line 41, in login
+    return render_template('login.html')
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/jinja2/environment.py", line 1304, in render
+    self.environment.handle_exception()
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/jinja2/environment.py", line 939, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/templates/login.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/templates/base.html", line 192, in top-level template code
+    {% block breadcrumb %}
+  File "/Users/justin/Downloads/4th_quarter_2024_flask-blackfridaylunch/app/templates/base.html", line 193, in block 'breadcrumb'
+    {% set breadcrumb = navigation_manager.get_breadcrumb(request.path) %}
+  File "/Users/justin/Projects/flask_portal/venv/lib/python3.10/site-packages/jinja2/environment.py", line 487, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'navigation_manager' is undefined

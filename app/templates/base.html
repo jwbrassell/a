@@ -109,6 +109,13 @@
                         {{ current_user.name }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
+                        {% if 'profile.index'|route_exists %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('profile.index') }}">
+                                <i class="fas fa-user"></i> Profile
+                            </a>
+                        </li>
+                        {% endif %}
                         <li>
                             <a class="dropdown-item" href="{{ url_for('main.logout') }}">
                                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -155,6 +162,14 @@
                 <div class="sidebar-bottom">
                     <div class="sidebar-divider"></div>
                     <ul class="nav nav-pills nav-sidebar flex-column">
+                        {% if 'profile.index'|route_exists %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('profile.index') }}" class="nav-link">
+                                <i class="nav-icon fas fa-user"></i>
+                                <p>Profile</p>
+                            </a>
+                        </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a href="{{ url_for('main.logout') }}" class="nav-link">
                                 <i class="nav-icon fas fa-sign-out-alt"></i>
