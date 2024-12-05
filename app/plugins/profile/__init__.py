@@ -5,6 +5,8 @@ from flask_login import login_required, current_user
 from app.utils.plugin_manager import PluginMetadata
 from app.utils.activity_tracking import track_activity
 from app import db
+from app.models import UserActivity, PageVisit
+from sqlalchemy import func, desc
 
 # Create the blueprint
 bp = Blueprint('profile', __name__,
@@ -30,7 +32,24 @@ plugin_metadata = PluginMetadata(
 @track_activity
 def index():
     """User profile page."""
-    return render_template('profile/index.html', user=current_user)
+    # Get recent activities
+    recent_activities = UserActivity.query.filter_by(user_id=current_user.id)\
+        .order_by(UserActivity.timestamp.desc())\
+        .limit(10).all()
+    
+    # Get popular routes
+    popular_routes = db.session.query(
+        PageVisit.route,
+        func.count(PageVisit.id).label('visit_count')
+    ).filter_by(user_id=current_user.id)\
+    .group_by(PageVisit.route)\
+    .order_by(desc('visit_count'))\
+    .limit(5).all()
+    
+    return render_template('profile/index.html', 
+                         user=current_user,
+                         recent_activities=recent_activities,
+                         popular_routes=popular_routes)
 
 @bp.route('/preferences/theme', methods=['POST'])
 @login_required
