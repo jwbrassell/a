@@ -1,159 +1,83 @@
 {% extends "base.html" %}
 
-{% block title %}Profile{% endblock %}
-
 {% block page_content %}
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">User Profile</h3>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <label class="col-sm-3 col-form-label">Name</label>
-                    <div class="col-sm-9">
-                        <p class="form-control-plaintext">{{ user.name }}</p>
-                    </div>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Profile Settings</h3>
                 </div>
-                <div class="row mb-3">
-                    <label class="col-sm-3 col-form-label">Email</label>
-                    <div class="col-sm-9">
-                        <p class="form-control-plaintext">{{ user.email }}</p>
+                <div class="card-body">
+                    <!-- Current Avatar Display -->
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename=avatar) }}" 
+                             class="img-circle elevation-2" 
+                             alt="User Avatar"
+                             style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover;">
                     </div>
-                </div>
-                <div class="row mb-3">
-                    <label class="col-sm-3 col-form-label">Roles</label>
-                    <div class="col-sm-9">
-                        <p class="form-control-plaintext">
-                            {% for role in user.roles %}
-                                <span class="badge bg-primary">{{ role.name }}</span>
+
+                    <!-- Upload New Avatar -->
+                    <form action="{{ url_for('profile.index') }}" method="POST" enctype="multipart/form-data" class="mb-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            <label>Upload Custom Avatar (PNG/JPG, max 1MB)</label>
+                            <div class="input-group">
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" name="avatar" accept=".png,.jpg,.jpeg">
+                                    <label class="custom-file-label">Choose file</label>
+                                </div>
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-primary">Upload</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Default Avatars -->
+                    <div class="mb-4">
+                        <h5>Select Default Avatar</h5>
+                        <div class="row">
+                            {% for default_avatar in default_avatars %}
+                            <div class="col-3 mb-3">
+                                <form action="{{ url_for('profile.index') }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="default_avatar" value="{{ default_avatar }}">
+                                    <button type="submit" class="btn p-0" style="border: none; background: none;">
+                                        <img src="{{ url_for('static', filename='images/' + default_avatar) }}" 
+                                             class="img-circle elevation-2" 
+                                             alt="Default Avatar"
+                                             style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                                    </button>
+                                </form>
+                            </div>
                             {% endfor %}
-                        </p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <label class="col-sm-3 col-form-label">Theme Preference</label>
-                    <div class="col-sm-9">
-                        <div class="btn-group" role="group">
-                            <input type="radio" class="btn-check" name="theme" id="light-theme" value="light" 
-                                   {% if user.get_preference('theme') == 'light' %}checked{% endif %}>
-                            <label class="btn btn-outline-primary" for="light-theme">
-                                <i class="fas fa-sun"></i> Light
-                            </label>
-                            
-                            <input type="radio" class="btn-check" name="theme" id="dark-theme" value="dark"
-                                   {% if user.get_preference('theme') == 'dark' %}checked{% endif %}>
-                            <label class="btn btn-outline-primary" for="dark-theme">
-                                <i class="fas fa-moon"></i> Dark
-                            </label>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Recent Activity Table -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h3 class="card-title">Recent Activity</h3>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Activity</th>
-                                <th>Timestamp</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for activity in recent_activities %}
-                            <tr>
-                                <td>{{ activity.activity }}</td>
-                                <td>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <!-- Popular Routes Card -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Most Visited Routes</h3>
-            </div>
-            <div class="card-body">
-                <div class="list-group">
-                    {% for route in popular_routes %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>{{ route.route }}</span>
-                        <span class="badge bg-primary rounded-pill">{{ route.visit_count }}</span>
-                    </div>
-                    {% endfor %}
+                    <!-- Theme Selection -->
+                    <form action="{{ url_for('profile.index') }}" method="POST" class="mb-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            <label>Theme Preference</label>
+                            <select name="theme" class="form-control" onchange="this.form.submit()">
+                                <option value="light" {% if theme == 'light' %}selected{% endif %}>Light</option>
+                                <option value="dark" {% if theme == 'dark' %}selected{% endif %}>Dark</option>
+                            </select>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-document.querySelectorAll('input[name="theme"]').forEach(input => {
-    input.addEventListener('change', function() {
-        fetch('/profile/preferences/theme', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({ theme: this.value })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Theme update failed');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                document.documentElement.setAttribute('data-bs-theme', data.theme);
-                if (data.theme === 'dark') {
-                    document.body.classList.add('dark-mode');
-                    document.querySelector('.main-header.navbar').classList.remove('navbar-light', 'navbar-white');
-                    document.querySelector('.main-header.navbar').classList.add('navbar-dark', 'bg-dark');
-                    document.querySelector('#darkModeToggle i').classList.remove('fa-moon');
-                    document.querySelector('#darkModeToggle i').classList.add('fa-sun');
-                } else {
-                    document.body.classList.remove('dark-mode');
-                    document.querySelector('.main-header.navbar').classList.remove('navbar-dark', 'bg-dark');
-                    document.querySelector('.main-header.navbar').classList.add('navbar-light', 'navbar-white');
-                    document.querySelector('#darkModeToggle i').classList.remove('fa-sun');
-                    document.querySelector('#darkModeToggle i').classList.add('fa-moon');
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error updating theme:', error);
-            // Show error message to user
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
-            });
-            Toast.fire({
-                icon: 'error',
-                title: 'Failed to save theme preference'
-            });
-        });
-    });
+// Update file input label with selected filename
+document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+    var fileName = e.target.files[0].name;
+    var nextSibling = e.target.nextElementSibling;
+    nextSibling.innerText = fileName;
 });
 </script>
 {% endblock %}

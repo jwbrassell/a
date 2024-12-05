@@ -275,6 +275,23 @@
             <!-- Sidebar -->
             <div class="sidebar">
                 {% if current_user.is_authenticated %}
+                <!-- User Panel -->
+                <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                    <div class="image">
+                        <img src="{{ url_for('static', filename=current_user.get_preference('avatar', 'images/user_1.jpg')) }}" 
+                             class="img-circle elevation-2" 
+                             alt="User Avatar"
+                             style="width: 40px; height: 40px; object-fit: cover;">
+                    </div>
+                    <div class="info">
+                        {% if 'profile.index'|route_exists %}
+                            <a href="{{ url_for('profile.index') }}" class="d-block">{{ current_user.name }}</a>
+                        {% else %}
+                            <span class="d-block text-light">{{ current_user.name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <!-- Sidebar Menu -->
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
