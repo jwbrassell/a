@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Users</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-users mr-2"></i>User Management
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Employee Number</th>
+                        <th>Roles</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr id="user-row-{{ user.id }}">
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.employee_number }}</td>
+                        <td class="user-roles">
+                            {% for role in user.roles %}
+                            <span class="badge badge-primary">{{ role.name }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editRolesModal{{ user.id }}">
+                                Edit Roles
+                            </button>
+                        </td>
+                    </tr>
+                    <!-- Edit Roles Modal -->
+                    <div class="modal fade" id="editRolesModal{{ user.id }}" tabindex="-1" role="dialog" aria-labelledby="editRolesModalLabel{{ user.id }}" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <form id="editRolesForm{{ user.id }}" action="{{ url_for('admin.update_user_roles', id=user.id) }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="editRolesModalLabel{{ user.id }}">Edit Roles for {{ user.username }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        {% for role in all_roles %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="roles" value="{{ role.id }}" id="role{{ role.id }}_{{ user.id }}"
+                                                {% if role in user.roles %}checked{% endif %}>
+                                            <label class="form-check-label" for="role{{ role.id }}_{{ user.id }}">
+                                                {{ role.name }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary">Save changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#usersTable').DataTable({
+        "pageLength": 10,
+        "order": [[0, "asc"]],
+        "language": {
+            "search": "Search users:"
+        }
+    });
+
+    // Handle role edit form submissions
+    $('form[id^="editRolesForm"]').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const url = form.attr('action');
+        const modal = form.closest('.modal');
+        const userId = modal.attr('id').replace('editRolesModal', '');
+        const userRow = $(`#user-row-${userId}`);
+        
+        $.ajax({
+            url: url,
+            method: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    // Update the roles display in the table
+                    const rolesHtml = response.roles.map(role => 
+                        `<span class="badge badge-primary">${role.name}</span>`
+                    ).join(' ');
+                    userRow.find('.user-roles').html(rolesHtml);
+                    
+                    // Close the modal
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    modalInstance.hide();
+                    
+                    // Show success message
+                    Swal.fire({
+                        title: 'Success!',
+                        text: response.message,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    throw new Error(response.error || 'Unknown error occurred');
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.error || 'Failed to update user roles. Please try again.';
+                // Show error message
+                Swal.fire({
+                    title: 'Error!',
+                    text: errorMsg,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

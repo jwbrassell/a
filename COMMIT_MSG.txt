@@ -1,16 +1,17 @@
-feat: Add user preferences with dark mode support
+feat(admin): Enhance user role management with AJAX and SweetAlert2
 
-- Add UserPreferences model for storing user preferences in JSON format
-- Implement dark/light theme toggle in profile plugin
-- Add real-time theme switching without page reload
-- Add CSRF protection for theme preference updates
-- Update base template with dark mode styles and theme toggle
-- Add dark mode support for all UI components (tables, forms, cards)
-- Update database initialization to create default user preferences
-- Add error handling and visual feedback for theme updates
-- Update documentation with user preferences features
+Improve the user role management interface in the admin portal with the following changes:
 
-This change introduces a flexible user preferences system, starting with
-dark/light theme support. The preferences are stored as JSON in the database,
-making it easy to add more preferences in the future. The theme toggle works
-in real-time and persists across sessions.
+- Add AJAX form submission for role updates to prevent page reloads
+- Implement SweetAlert2 notifications for better user feedback
+- Update role badges dynamically in the table after successful updates
+- Improve error handling with proper error messages
+- Update modal implementation to use Bootstrap 5 attributes
+- Add proper response format in backend with role information
+- Add activity logging for role changes
+
+This change provides a smoother user experience when managing user roles by:
+- Keeping the modal open on errors
+- Showing clear success/error notifications
+- Updating the UI without page refresh
+- Maintaining proper activity tracking for auditing
