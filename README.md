@@ -17,6 +17,7 @@
    - [Profile Plugin](#profile-plugin)
    - [Dispatch Plugin](#dispatch-plugin)
    - [Hello Plugin](#hello-plugin)
+   - [Handoff Plugin](#handoff-plugin)
 
 ## Overview
 A Flask-based web application with role-based access control (RBAC), plugin system, comprehensive user activity tracking, and user preferences. Supports both LDAP and local authentication.
@@ -253,3 +254,21 @@ An example plugin demonstrating the Flask plugin system functionality.
 - Shows plugin information display
 
 [View Full Hello Plugin Documentation](app/plugins/hello/README.md)
+
+### Handoff Plugin
+
+A Flask plugin for managing shift handoffs between teams with comprehensive tracking and analytics.
+
+#### Features
+- Create and manage shift handoffs with priority levels
+- Track tickets, hostnames, and KIRKE references
+- Support for bridge links and due dates
+- Detailed metrics and analytics dashboard
+- Shift-based assignment system (1st, 2nd, 3rd shifts)
+- Real-time status updates
+- Comprehensive activity tracking
+- DataTables integration for handoff management
+- Advanced metrics visualization
+- Time-based analytics and reporting
+
+[View Full Handoff Plugin Documentation](app/plugins/handoffs/README.md)
