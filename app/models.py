@@ -2,6 +2,7 @@ from datetime import datetime
 from flask_login import UserMixin
 from app import db, login_manager
 from werkzeug.security import generate_password_hash, check_password_hash
+import json
 
 # Association Tables
 user_role = db.Table('user_role',
@@ -13,6 +14,45 @@ page_route_roles = db.Table('page_route_roles',
     db.Column('page_route_id', db.Integer, db.ForeignKey('page_route_mapping.id'), primary_key=True),
     db.Column('role_id', db.Integer, db.ForeignKey('role.id'), primary_key=True)
 )
+
+class UserPreferences(db.Model):
+    """Model for storing user preferences in JSON format."""
+    __tablename__ = 'user_preferences'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    _preferences = db.Column('preferences', db.Text, nullable=False, 
+                           default='{"theme": "light"}')
+    
+    def __init__(self, user_id, preferences=None):
+        self.user_id = user_id
+        if preferences is None:
+            preferences = {'theme': 'light'}
+        self.preferences = preferences
+
+    @property
+    def preferences(self):
+        """Get preferences as dictionary."""
+        return json.loads(self._preferences)
+
+    @preferences.setter
+    def preferences(self, value):
+        """Store preferences as JSON string."""
+        self._preferences = json.dumps(value)
+
+    def get_preference(self, key, default=None):
+        """Get a specific preference value."""
+        return self.preferences.get(key, default)
+
+    def set_preference(self, key, value):
+        """Set a specific preference value."""
+        prefs = self.preferences
+        prefs[key] = value
+        self.preferences = prefs
+        db.session.commit()
+
+    def __repr__(self):
+        return f'<UserPreferences user_id={self.user_id}>'
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -33,6 +73,8 @@ class User(db.Model, UserMixin):
     # Relationships
     roles = db.relationship('Role', secondary=user_role, backref=db.backref('users', lazy=True))
     page_visits = db.relationship('PageVisit', backref='user', lazy=True)
+    preferences = db.relationship('UserPreferences', uselist=False, backref='user', lazy=True,
+                                cascade='all, delete-orphan')
 
     def __init__(self, username, employee_number, name, email, vzid, roles=None, cngroup=None, password=None):
         self.username = username
@@ -58,6 +100,21 @@ class User(db.Model, UserMixin):
     def has_role(self, role_name):
         """Check if user has a specific role."""
         return any(role.name == role_name for role in self.roles)
+
+    def get_preference(self, key, default=None):
+        """Get a user preference value."""
+        if not self.preferences:
+            self.preferences = UserPreferences(user_id=self.id)
+            db.session.add(self.preferences)
+            db.session.commit()
+        return self.preferences.get_preference(key, default)
+
+    def set_preference(self, key, value):
+        """Set a user preference value."""
+        if not self.preferences:
+            self.preferences = UserPreferences(user_id=self.id)
+            db.session.add(self.preferences)
+        self.preferences.set_preference(key, value)
 
     def __repr__(self):
         return f'<User {self.username}>'

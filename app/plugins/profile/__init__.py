@@ -1,8 +1,9 @@
 """User profile management plugin."""
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required, current_user
 from app.utils.plugin_manager import PluginMetadata
+from app import db
 
 # Create the blueprint
 bp = Blueprint('profile', __name__,
@@ -28,3 +29,15 @@ plugin_metadata = PluginMetadata(
 def index():
     """User profile page."""
     return render_template('profile/index.html', user=current_user)
+
+@bp.route('/preferences/theme', methods=['POST'])
+@login_required
+def update_theme():
+    """Update user's theme preference."""
+    theme = request.json.get('theme')
+    if theme not in ['light', 'dark']:
+        return jsonify({'error': 'Invalid theme'}), 400
+    
+    current_user.set_preference('theme', theme)
+    
+    return jsonify({'success': True, 'theme': theme})

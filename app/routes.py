@@ -7,7 +7,7 @@ import logging
 import os
 
 from app import db
-from app.models import User, UserActivity
+from app.models import User, UserActivity, UserPreferences
 from app.forms import LoginForm
 from app.mock_ldap import authenticate_ldap
 from app.logging_utils import log_page_visit
@@ -81,6 +81,11 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user)
+            # Create default preferences if not exists
+            if not UserPreferences.query.filter_by(user_id=user.id).first():
+                prefs = UserPreferences(user_id=user.id)
+                db.session.add(prefs)
+                db.session.commit()
             flash(f'Welcome, {user.name}!', 'success')
             log_activity(user, 'Logged in (local auth)')
             next_page = session.pop('next_page', None)
@@ -103,6 +108,10 @@ def login():
                 )
                 db.session.add(user)
                 db.session.commit()
+                # Create default preferences for new user
+                prefs = UserPreferences(user_id=user.id)
+                db.session.add(prefs)
+                db.session.commit()
             else:
                 # Update existing user information
                 updated = False
@@ -119,6 +128,12 @@ def login():
                         updated = True
 
                 if updated:
+                    db.session.commit()
+
+                # Create preferences if not exists
+                if not UserPreferences.query.filter_by(user_id=user.id).first():
+                    prefs = UserPreferences(user_id=user.id)
+                    db.session.add(prefs)
                     db.session.commit()
 
             login_user(user)

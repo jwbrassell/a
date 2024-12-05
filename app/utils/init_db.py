@@ -1,5 +1,5 @@
 from app import db
-from app.models import User, Role
+from app.models import User, Role, UserPreferences
 from werkzeug.security import generate_password_hash
 
 def init_roles_and_users():
@@ -57,6 +57,21 @@ def init_roles_and_users():
     try:
         db.session.commit()
         print("Successfully initialized default roles and users")
+        
+        # Initialize user preferences for existing users
+        for user in User.query.all():
+            if not UserPreferences.query.filter_by(user_id=user.id).first():
+                default_preferences = {
+                    'theme': 'light',
+                    'notifications': True,
+                    'language': 'en'
+                }
+                user_prefs = UserPreferences(user_id=user.id, preferences=default_preferences)
+                db.session.add(user_prefs)
+        
+        db.session.commit()
+        print("Successfully initialized user preferences")
+        
     except Exception as e:
         db.session.rollback()
         print(f"Error initializing defaults: {str(e)}")

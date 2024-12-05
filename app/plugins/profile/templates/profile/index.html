@@ -32,8 +32,82 @@
                         </p>
                     </div>
                 </div>
+                <div class="row mb-3">
+                    <label class="col-sm-3 col-form-label">Theme Preference</label>
+                    <div class="col-sm-9">
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="theme" id="light-theme" value="light" 
+                                   {% if user.get_preference('theme') == 'light' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="light-theme">
+                                <i class="fas fa-sun"></i> Light
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="theme" id="dark-theme" value="dark"
+                                   {% if user.get_preference('theme') == 'dark' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="dark-theme">
+                                <i class="fas fa-moon"></i> Dark
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('input[name="theme"]').forEach(input => {
+    input.addEventListener('change', function() {
+        fetch('/profile/preferences/theme', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ theme: this.value })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Theme update failed');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                document.documentElement.setAttribute('data-bs-theme', data.theme);
+                if (data.theme === 'dark') {
+                    document.body.classList.add('dark-mode');
+                    document.querySelector('.main-header.navbar').classList.remove('navbar-light', 'navbar-white');
+                    document.querySelector('.main-header.navbar').classList.add('navbar-dark', 'bg-dark');
+                    document.querySelector('#darkModeToggle i').classList.remove('fa-moon');
+                    document.querySelector('#darkModeToggle i').classList.add('fa-sun');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                    document.querySelector('.main-header.navbar').classList.remove('navbar-dark', 'bg-dark');
+                    document.querySelector('.main-header.navbar').classList.add('navbar-light', 'navbar-white');
+                    document.querySelector('#darkModeToggle i').classList.remove('fa-sun');
+                    document.querySelector('#darkModeToggle i').classList.add('fa-moon');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating theme:', error);
+            // Show error message to user
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+            Toast.fire({
+                icon: 'error',
+                title: 'Failed to save theme preference'
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

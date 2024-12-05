@@ -6,6 +6,7 @@ from flask_wtf.csrf import CSRFProtect
 from config import config
 from datetime import datetime
 import os
+import click
 
 # Initialize Flask extensions
 db = SQLAlchemy()
@@ -79,5 +80,13 @@ def create_app(config_name=None):
     @app.errorhandler(400)
     def bad_request_error(error):
         return render_template('400.html'), 400
+
+    # Register init-db command
+    @app.cli.command('init-db')
+    def init_db_command():
+        """Initialize the database with default data."""
+        from app.utils.init_db import init_roles_and_users
+        init_roles_and_users()
+        click.echo('Initialized the database.')
 
     return app
