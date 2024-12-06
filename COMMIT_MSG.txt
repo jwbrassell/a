@@ -1,15 +1,14 @@
-docs: enhance documents plugin documentation
+fix: project settings page and update documentation
 
-- Add detailed database schema documentation
-- Document frontend implementations and templates
-- Add comprehensive API endpoint documentation
-- Include search functionality implementation details
-- Document version control system with timeline
-- Add category and tag management documentation
-- Include code examples and implementation features
-- Document form validation rules and error handling
-- Add transaction management details
-- Include security considerations
+- Fix project settings page not displaying by correcting template block name
+- Add complete breadcrumb navigation to settings page
+- Implement project details form with AJAX updates
+- Add project roles management with Select2 integration
+- Add notification settings with toggle switches
+- Implement danger zone for archive/delete actions
+- Add Projects plugin documentation to README
+- Document project management features and capabilities
+- Add mermaid flowchart for project management workflow
 
-This commit significantly improves the documentation of the documents plugin,
-making it easier for developers to understand and work with the codebase.
+This commit fixes the project settings functionality and enhances the
+documentation with comprehensive details about the Projects plugin features.
