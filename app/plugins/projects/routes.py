@@ -228,6 +228,7 @@ def create():
 def view(project_id):
     """View project details"""
     project = Project.query.get_or_404(project_id)
+    users = User.query.all()  # Get users for task/todo assignment
     completed_tasks = Task.query.filter_by(
         project_id=project_id, 
         status='completed'
@@ -245,6 +246,7 @@ def view(project_id):
 
     return render_template('projects/view.html',
                          project=project,
+                         users=users,
                          completed_tasks=completed_tasks,
                          due_soon_tasks=due_soon_tasks,
                          overdue_tasks=overdue_tasks)
@@ -275,9 +277,11 @@ def get_task(task_id):
 def update_task(task_id):
     """Update task details"""
     task = Task.query.get_or_404(task_id)
-    form = TaskForm(obj=task)
+    form = TaskForm()
+    users = User.query.all()
+    form.assigned_to_id.choices = [(u.id, u.name) for u in users]
     
-    if form.validate():
+    if form.validate_on_submit():
         old_status = task.status
         old_assigned = task.assigned_to_id
         

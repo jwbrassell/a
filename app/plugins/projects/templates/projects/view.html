@@ -123,17 +123,18 @@
             </div>
             <div class="modal-body">
                 <form id="create-task-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label for="task-name">Task Name</label>
-                        <input type="text" class="form-control" id="task-name" required>
+                        <input type="text" class="form-control" id="task-name" name="name" required>
                     </div>
                     <div class="form-group">
                         <label for="task-description">Description</label>
-                        <textarea id="task-description" class="form-control"></textarea>
+                        <textarea id="task-description" name="description" class="form-control"></textarea>
                     </div>
                     <div class="form-group">
                         <label for="task-assigned">Assign To</label>
-                        <select id="task-assigned" class="form-control select2">
+                        <select id="task-assigned" name="assigned_to_id" class="form-control select2">
                             <option value="">Unassigned</option>
                             {% for user in users %}
                             <option value="{{ user.id }}">{{ user.username }}</option>
@@ -142,12 +143,12 @@
                     </div>
                     <div class="form-group">
                         <label for="task-due-date">Due Date</label>
-                        <input type="date" class="form-control" id="task-due-date">
+                        <input type="date" class="form-control" id="task-due-date" name="due_date">
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">
                             <label for="task-priority">Priority</label>
-                            <select id="task-priority" class="form-control">
+                            <select id="task-priority" name="priority" class="form-control">
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
                                 <option value="high">High</option>
@@ -155,7 +156,7 @@
                         </div>
                         <div class="form-group col-md-6">
                             <label for="task-status">Status</label>
-                            <select id="task-status" class="form-control">
+                            <select id="task-status" name="status" class="form-control">
                                 <option value="todo">To Do</option>
                                 <option value="in_progress">In Progress</option>
                                 <option value="review">Review</option>
@@ -185,13 +186,14 @@
             </div>
             <div class="modal-body">
                 <form id="add-todo-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label for="todo-description">Description</label>
-                        <input type="text" class="form-control" id="todo-description" required>
+                        <input type="text" class="form-control" id="todo-description" name="description" required>
                     </div>
                     <div class="form-group">
                         <label for="todo-assigned">Assign To</label>
-                        <select id="todo-assigned" class="form-control select2">
+                        <select id="todo-assigned" name="assigned_to_id" class="form-control select2">
                             <option value="">Unassigned</option>
                             {% for user in users %}
                             <option value="{{ user.id }}">{{ user.username }}</option>
@@ -215,6 +217,15 @@
 {% block scripts %}
 {{ super() }}
 <script>
+// Set up CSRF token for all AJAX requests
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", $('meta[name="csrf-token"]').attr('content'));
+        }
+    }
+});
+
 $(document).ready(function() {
     // Initialize Select2
     $('.select2').select2({
@@ -227,14 +238,33 @@ $(document).ready(function() {
         selector: '#task-description',
         height: 300,
         menubar: false,
-        plugins: [
-            'advlist autolink lists link image charmap print preview anchor',
-            'searchreplace visualblocks code fullscreen',
-            'insertdatetime media table paste code help wordcount'
-        ],
-        toolbar: 'undo redo | formatselect | bold italic backcolor | \
-                alignleft aligncenter alignright alignjustify | \
-                bullist numlist outdent indent | removeformat | help'
+        plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste code help wordcount',
+        toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
+        relative_urls: false,
+        remove_script_host: false,
+        convert_urls: true,
+        // Add base URL for plugins
+        plugin_base_urls: {
+            'advlist': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'autolink': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'lists': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'link': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'image': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'charmap': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'preview': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'anchor': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'searchreplace': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'visualblocks': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'code': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'fullscreen': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'insertdatetime': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'media': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'table': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'paste': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'help': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}",
+            'wordcount': "{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/plugins/') }}"
+        }
     });
 
     // Handle flash messages
@@ -252,19 +282,16 @@ $(document).ready(function() {
 
 // Task Management Functions
 function createTask() {
-    const taskData = {
-        name: $('#task-name').val(),
-        description: tinymce.get('task-description').getContent(),
-        assigned_to_id: $('#task-assigned').val(),
-        due_date: $('#task-due-date').val(),
-        priority: $('#task-priority').val(),
-        status: $('#task-status').val()
-    };
+    const form = $('#create-task-form');
+    const formData = new FormData(form[0]);
+    formData.append('description', tinymce.get('task-description').getContent());
 
     $.ajax({
         url: "{{ url_for('projects.create_task', project_id=project.id) }}",
         method: 'POST',
-        data: taskData,
+        data: formData,
+        processData: false,
+        contentType: false,
         success: function(response) {
             if (response.status === 'success') {
                 Swal.fire({
@@ -314,19 +341,16 @@ function editTask(taskId) {
 }
 
 function updateTask(taskId) {
-    const taskData = {
-        name: $('#task-name').val(),
-        description: tinymce.get('task-description').getContent(),
-        assigned_to_id: $('#task-assigned').val(),
-        due_date: $('#task-due-date').val(),
-        priority: $('#task-priority').val(),
-        status: $('#task-status').val()
-    };
+    const form = $('#create-task-form');
+    const formData = new FormData(form[0]);
+    formData.append('description', tinymce.get('task-description').getContent());
 
     $.ajax({
         url: "{{ url_for('projects.update_task', task_id=0) }}".replace('0', taskId),
         method: 'PUT',
-        data: taskData,
+        data: formData,
+        processData: false,
+        contentType: false,
         success: function(response) {
             if (response.status === 'success') {
                 Swal.fire({
@@ -378,15 +402,15 @@ function viewTask(taskId) {
 
 // Todo Management Functions
 function createTodo() {
-    const todoData = {
-        description: $('#todo-description').val(),
-        assigned_to_id: $('#todo-assigned').val()
-    };
+    const form = $('#add-todo-form');
+    const formData = new FormData(form[0]);
 
     $.ajax({
         url: "{{ url_for('projects.create_todo', project_id=project.id) }}",
         method: 'POST',
-        data: todoData,
+        data: formData,
+        processData: false,
+        contentType: false,
         success: function(response) {
             if (response.status === 'success') {
                 Swal.fire({

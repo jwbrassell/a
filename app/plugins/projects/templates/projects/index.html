@@ -116,9 +116,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <form id="deleteProjectForm" method="POST" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">Delete</button>
             </div>
         </div>
     </div>
@@ -133,6 +131,17 @@
 {% block scripts %}
 {{ super() }}
 <script>
+// Set up CSRF token for all AJAX requests
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", $('meta[name="csrf-token"]').attr('content'));
+        }
+    }
+});
+
+let projectToDelete = null;
+
 $(document).ready(function() {
     // Initialize DataTable with AJAX
     $('#projects-table').DataTable({
@@ -179,10 +188,51 @@ $(document).ready(function() {
     });
 });
 
-// Function to handle project deletion
+// Function to show delete confirmation modal
 function deleteProject(projectId) {
-    $('#deleteProjectForm').attr('action', '/projects/' + projectId + '/delete');
+    projectToDelete = projectId;
     $('#deleteProjectModal').modal('show');
 }
+
+// Function to handle project deletion
+function confirmDelete() {
+    if (!projectToDelete) return;
+
+    $.ajax({
+        url: "{{ url_for('projects.delete_project', project_id=0) }}".replace('0', projectToDelete),
+        method: 'POST',
+        success: function(response) {
+            if (response.status === 'success') {
+                $('#deleteProjectModal').modal('hide');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Project deleted successfully',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(function() {
+                    $('#projects-table').DataTable().ajax.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error deleting project',
+                    text: response.message
+                });
+            }
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to delete project. Please try again.'
+            });
+        }
+    });
+}
+
+// Reset projectToDelete when modal is closed
+$('#deleteProjectModal').on('hidden.bs.modal', function() {
+    projectToDelete = null;
+});
 </script>
 {% endblock %}
