@@ -1,8 +1,10 @@
-fix(documents): Fix blueprint registration and template blocks
+fix(documents): Fix blueprint registration and TinyMCE integration
 
 - Add URL prefix to documents blueprint for proper route handling
 - Update all document templates to use page_content block instead of content
 - Add proper plugin metadata for plugin manager registration
 - Fix route registration to match blueprint URL structure
+- Fix TinyMCE path in base template to match actual file location (src/tinymce/tinymce/js/tinymce/tinymce.min.js)
+- Update document templates to use TinyMCE from base template
 
-The documents plugin now properly integrates with the main application's navigation and routing system.
+The documents plugin now properly integrates with the main application's navigation, routing system, and rich text editing functionality.

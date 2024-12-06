@@ -111,9 +111,8 @@
 {% block scripts %}
 {{ super() }}
 <script src="{{ url_for('static', filename='src/select2/select2.min.js') }}"></script>
-<script src="{{ url_for('static', filename='src/tinymce/tinymce/tinymce.min.js') }}"></script>
 <script>
-(function() {
+$(document).ready(function() {
     // Initialize Select2
     $('.select2').select2({
         theme: 'bootstrap4',
@@ -151,18 +150,18 @@
     });
 
     // Clear buttons functionality
-    document.getElementById('clearNewCategory').addEventListener('click', function() {
-        document.getElementById('new_category').value = '';
+    $('#clearNewCategory').click(function() {
+        $('#new_category').val('');
     });
 
-    document.getElementById('clearNewTags').addEventListener('click', function() {
-        document.getElementById('new_tags').value = '';
+    $('#clearNewTags').click(function() {
+        $('#new_tags').val('');
     });
 
     // Form submission handling
-    document.querySelector('form').addEventListener('submit', function() {
+    $('form').on('submit', function() {
         tinymce.triggerSave();
     });
-})();
+});
 </script>
 {% endblock %}
