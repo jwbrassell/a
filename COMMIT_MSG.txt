@@ -1,10 +1,7 @@
-fix(documents): Fix blueprint registration and TinyMCE integration
+refactor: Move JavaScript from base.html to separate theme.js file
 
-- Add URL prefix to documents blueprint for proper route handling
-- Update all document templates to use page_content block instead of content
-- Add proper plugin metadata for plugin manager registration
-- Fix route registration to match blueprint URL structure
-- Fix TinyMCE path in base template to match actual file location (src/tinymce/tinymce/js/tinymce/tinymce.min.js)
-- Update document templates to use TinyMCE from base template
-
-The documents plugin now properly integrates with the main application's navigation, routing system, and rich text editing functionality.
+- Created new file app/static/src/js/theme.js to contain dark mode and flash message functionality
+- Removed inline JavaScript from base.html template
+- Added script tag to load theme.js in base.html
+- Improves code modularity and maintainability by separating concerns
+- Makes JavaScript functionality easier to update independently of HTML template

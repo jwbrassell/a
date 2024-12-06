@@ -195,6 +195,15 @@ flowchart TD
 6. Initialize database: `flask db upgrade`
 7. Run the application: `flask run`
 
+### Frontend Assets Structure
+The application follows a modular approach for frontend assets:
+- **CSS**: Located in `app/static/src/css/`
+  - `theme.css` - Main theme and styling
+- **JavaScript**: Located in `app/static/src/js/`
+  - `theme.js` - Dark mode toggle and flash message functionality
+- All frontend functionality is organized into separate files for better maintainability
+- JavaScript is loaded after the main content to optimize page loading
+
 ## Contributing
 1. Fork the repository
 2. Create a feature branch
