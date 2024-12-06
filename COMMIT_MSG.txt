@@ -1,7 +1,15 @@
-refactor: Move JavaScript from base.html to separate theme.js file
+docs: enhance documents plugin documentation
 
-- Created new file app/static/src/js/theme.js to contain dark mode and flash message functionality
-- Removed inline JavaScript from base.html template
-- Added script tag to load theme.js in base.html
-- Improves code modularity and maintainability by separating concerns
-- Makes JavaScript functionality easier to update independently of HTML template
+- Add detailed database schema documentation
+- Document frontend implementations and templates
+- Add comprehensive API endpoint documentation
+- Include search functionality implementation details
+- Document version control system with timeline
+- Add category and tag management documentation
+- Include code examples and implementation features
+- Document form validation rules and error handling
+- Add transaction management details
+- Include security considerations
+
+This commit significantly improves the documentation of the documents plugin,
+making it easier for developers to understand and work with the codebase.
