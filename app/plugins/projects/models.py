@@ -30,6 +30,8 @@ class Project(db.Model):
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
     status = db.Column(db.String(50), default='active')
+    priority = db.Column(db.String(50), default='medium')  # Added priority field
+    percent_complete = db.Column(db.Integer, default=0)  # Added percent complete field
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -64,6 +66,16 @@ class Project(db.Model):
             'archived': 'dark'
         }
         return status_classes.get(self.status, 'secondary')
+
+    @property
+    def priority_class(self):
+        """Return Bootstrap class based on priority"""
+        priority_classes = {
+            'low': 'success',
+            'medium': 'warning',
+            'high': 'danger'
+        }
+        return priority_classes.get(self.priority, 'secondary')
 
 class Task(db.Model):
     """Task model for project tasks"""

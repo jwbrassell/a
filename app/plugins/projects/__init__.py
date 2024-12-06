@@ -4,7 +4,7 @@ from flask import Blueprint
 from app.utils.plugin_manager import PluginMetadata
 
 # Create blueprint
-bp = Blueprint('projects', __name__,
+bp = Blueprint('projects', __name__, 
               template_folder='templates',
               static_folder='static',
               url_prefix='/projects')

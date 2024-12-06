@@ -1,14 +1,11 @@
-fix: project settings page and update documentation
+fix: restore correct route structure in Projects plugin
 
-- Fix project settings page not displaying by correcting template block name
-- Add complete breadcrumb navigation to settings page
-- Implement project details form with AJAX updates
-- Add project roles management with Select2 integration
-- Add notification settings with toggle switches
-- Implement danger zone for archive/delete actions
-- Add Projects plugin documentation to README
-- Document project management features and capabilities
-- Add mermaid flowchart for project management workflow
+- Move index route from __init__.py back to routes.py
+- Simplify __init__.py to match dispatch plugin structure
+- Fix navigation system's ability to find 'projects.index' endpoint
+- Resolve 500 error in base template rendering
 
-This commit fixes the project settings functionality and enhances the
-documentation with comprehensive details about the Projects plugin features.
+This commit fixes the routing issue by restoring the correct plugin structure
+where all routes are defined in routes.py. The __init__.py file now follows
+the standard plugin pattern, matching the structure used by the dispatch
+plugin. This ensures proper route registration and navigation functionality.

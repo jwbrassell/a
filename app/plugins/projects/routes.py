@@ -23,7 +23,6 @@ from .forms import (
 import logging
 logger = logging.getLogger(__name__)
 
-# Project Routes
 @bp.route('/')
 @bp.route('/index')
 @login_required
@@ -446,7 +445,6 @@ def settings(project_id):
                          project=project,
                          users=users)
 
-# Task Routes
 @bp.route('/<int:project_id>/tasks/create', methods=['POST'])
 @login_required
 @requires_roles('user')
@@ -513,7 +511,6 @@ def create_task(project_id):
         'errors': form.errors
     }), 400
 
-# Todo Routes
 @bp.route('/<int:project_id>/todos/create', methods=['POST'])
 @login_required
 @requires_roles('user')
@@ -585,7 +582,6 @@ def toggle_todo(todo_id):
         'completed_at': todo.completed_at.strftime('%Y-%m-%d %H:%M:%S') if todo.completed_at else None
     })
 
-# Comment Routes
 @bp.route('/<int:project_id>/comments/create', methods=['POST'])
 @login_required
 @requires_roles('user')
@@ -630,7 +626,6 @@ def create_comment(project_id):
         'errors': form.errors
     }), 400
 
-# Project Management Routes
 @bp.route('/<int:project_id>/archive', methods=['POST'])
 @login_required
 @requires_roles('user')

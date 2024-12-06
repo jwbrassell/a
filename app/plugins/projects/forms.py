@@ -1,9 +1,9 @@
 from flask_wtf import FlaskForm
 from wtforms import (
     StringField, TextAreaField, SelectField, SelectMultipleField,
-    DateField, BooleanField
+    DateField, BooleanField, IntegerField
 )
-from wtforms.validators import DataRequired, Length, Optional
+from wtforms.validators import DataRequired, Length, Optional, NumberRange
 
 class ProjectForm(FlaskForm):
     """Form for creating and editing projects"""
@@ -17,6 +17,16 @@ class ProjectForm(FlaskForm):
                             ('on_hold', 'On Hold'),
                             ('completed', 'Completed')
                         ])
+    priority = SelectField('Priority',
+                         choices=[
+                             ('low', 'Low'),
+                             ('medium', 'Medium'),
+                             ('high', 'High')
+                         ],
+                         default='medium')
+    percent_complete = IntegerField('Percent Complete',
+                                  validators=[NumberRange(min=0, max=100)],
+                                  default=0)
     lead_id = SelectField('Project Lead', 
                          validators=[DataRequired()],
                          coerce=int)

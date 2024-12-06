@@ -12,11 +12,11 @@
 {% block page_content %}
 <div class="container-fluid">
     <!-- Page header -->
-    <div class="row mb-4">
-        <div class="col-sm-6">
-            <h1 class="m-0">Projects</h1>
+    <div class="row align-items-center mb-4">
+        <div class="col">
+            <h1 class="m-0 d-inline-block">Projects</h1>
         </div>
-        <div class="col-sm-6 text-right">
+        <div class="col text-right">
             <a href="{{ url_for('projects.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Create Project
             </a>
@@ -27,10 +27,10 @@
     <div class="row mb-4">
         <!-- Active Projects -->
         <div class="col-lg-3 col-6">
-            <div class="small-box bg-info">
+            <div class="small-box bg-info py-2">
                 <div class="inner">
                     <h3>{{ active_projects }}</h3>
-                    <p>Active Projects</p>
+                    <p class="mb-0">Active Projects</p>
                 </div>
                 <div class="icon">
                     <i class="fas fa-project-diagram"></i>
@@ -40,10 +40,10 @@
 
         <!-- Tasks Due Today -->
         <div class="col-lg-3 col-6">
-            <div class="small-box bg-warning">
+            <div class="small-box bg-warning py-2">
                 <div class="inner">
                     <h3>{{ tasks_due_today }}</h3>
-                    <p>Tasks Due Today</p>
+                    <p class="mb-0">Tasks Due Today</p>
                 </div>
                 <div class="icon">
                     <i class="fas fa-clock"></i>
@@ -53,10 +53,10 @@
 
         <!-- Open Tasks -->
         <div class="col-lg-3 col-6">
-            <div class="small-box bg-success">
+            <div class="small-box bg-success py-2">
                 <div class="inner">
                     <h3>{{ open_tasks }}</h3>
-                    <p>Open Tasks</p>
+                    <p class="mb-0">Open Tasks</p>
                 </div>
                 <div class="icon">
                     <i class="fas fa-tasks"></i>
@@ -66,10 +66,10 @@
 
         <!-- My Assigned Tasks -->
         <div class="col-lg-3 col-6">
-            <div class="small-box bg-danger">
+            <div class="small-box bg-danger py-2">
                 <div class="inner">
                     <h3>{{ my_tasks }}</h3>
-                    <p>My Assigned Tasks</p>
+                    <p class="mb-0">My Assigned Tasks</p>
                 </div>
                 <div class="icon">
                     <i class="fas fa-user-clock"></i>
@@ -78,13 +78,67 @@
         </div>
     </div>
 
-    <!-- Project listing card -->
+    <!-- Active Projects -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">All Projects</h3>
+            <h3 class="card-title">Active Projects</h3>
         </div>
         <div class="card-body">
-            <table id="projects-table" class="table table-bordered table-striped">
+            <table id="active-projects-table" class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Lead</th>
+                        <th>Status</th>
+                        <th>Team Size</th>
+                        <th>Tasks</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+
+    <!-- Archived Projects -->
+    <div class="card collapsed-card">
+        <div class="card-header">
+            <h3 class="card-title">Archived Projects</h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body" style="display: none;">
+            <table id="archived-projects-table" class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Lead</th>
+                        <th>Status</th>
+                        <th>Team Size</th>
+                        <th>Tasks</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+
+    <!-- Completed Projects -->
+    <div class="card collapsed-card">
+        <div class="card-header">
+            <h3 class="card-title">Completed Projects</h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body" style="display: none;">
+            <table id="completed-projects-table" class="table table-bordered table-striped">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -142,36 +196,105 @@ $.ajaxSetup({
 
 let projectToDelete = null;
 
-$(document).ready(function() {
-    // Initialize DataTable with AJAX
-    $('#projects-table').DataTable({
+function initializeDataTable(tableId, projectStatus) {
+    const buttons = [
+        {
+            extend: 'copy',
+            exportOptions: {
+                columns: [0, 1, 2, 3, 4, 5]
+            }
+        },
+        {
+            extend: 'csv',
+            exportOptions: {
+                columns: [0, 1, 2, 3, 4, 5]
+            }
+        },
+        {
+            extend: 'excel',
+            title: 'Projects_Export_' + projectStatus,
+            exportOptions: {
+                columns: [0, 1, 2, 3, 4, 5]
+            }
+        }
+    ];
+
+    return $(tableId).DataTable({
         "processing": true,
         "serverSide": true,
-        "ajax": "{{ url_for('projects.get_projects') }}",
+        "ajax": {
+            "url": "{{ url_for('projects.get_projects') }}",
+            "data": function(d) {
+                d.status = projectStatus;
+            },
+            "error": function(xhr, error, thrown) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Loading Data',
+                    text: 'Failed to load project data. Please try refreshing the page.'
+                });
+            }
+        },
         "columns": [
-            { "data": "name", "name": "name" },
-            { "data": "lead", "name": "lead_id" },
-            { "data": "status", "name": "status" },
-            { "data": "team_size", "name": "team_members" },
-            { "data": "tasks", "name": "tasks" },
-            { "data": "created", "name": "created_at" },
+            { 
+                "data": "name",
+                "render": function(data, type, row) {
+                    return type === 'display' ? data : $(data).text();
+                }
+            },
+            { "data": "lead" },
+            { 
+                "data": "status",
+                "render": function(data, type, row) {
+                    return type === 'display' ? data : $(data).text();
+                }
+            },
+            { "data": "team_size" },
+            { "data": "tasks" },
+            { "data": "created" },
             { 
                 "data": "actions",
                 "orderable": false,
                 "searchable": false
             }
         ],
-        "order": [[5, 'desc']],  // Sort by created date by default
+        "order": [[5, 'desc']],
         "pageLength": 10,
         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
         "responsive": true,
         "autoWidth": false,
+        "dom": "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+               "<'row'<'col-sm-12'tr>>" +
+               "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>" +
+               "<'row'<'col-sm-12'B>>",
+        "buttons": buttons,
         "language": {
-            "emptyTable": "No projects available",
+            "emptyTable": "No " + projectStatus + " projects available",
             "zeroRecords": "No matching projects found",
             "info": "Showing _START_ to _END_ of _TOTAL_ projects",
             "infoEmpty": "Showing 0 to 0 of 0 projects",
-            "infoFiltered": "(filtered from _MAX_ total projects)"
+            "infoFiltered": "(filtered from _MAX_ total projects)",
+            "processing": '<i class="fas fa-spinner fa-spin"></i> Loading...'
+        },
+        "createdRow": function(row, data, dataIndex) {
+            $(row).attr('data-project-id', data.id);
+        }
+    });
+}
+
+$(document).ready(function() {
+    // Initialize DataTables
+    const activeTable = initializeDataTable('#active-projects-table', 'active');
+    const archivedTable = initializeDataTable('#archived-projects-table', 'archived');
+    const completedTable = initializeDataTable('#completed-projects-table', 'completed');
+
+    // Reload tables when cards are expanded
+    $('.card').on('expanded.lte.cardwidget', function() {
+        const tableId = $(this).find('table').attr('id');
+        if (tableId === 'archived-projects-table') {
+            archivedTable.ajax.reload();
+        } else if (tableId === 'completed-projects-table') {
+            completedTable.ajax.reload();
         }
     });
 
@@ -198,34 +321,43 @@ function deleteProject(projectId) {
 function confirmDelete() {
     if (!projectToDelete) return;
 
+    const btn = $('#deleteProjectModal .btn-danger').prop('disabled', true);
+    
     $.ajax({
         url: "{{ url_for('projects.delete_project', project_id=0) }}".replace('0', projectToDelete),
         method: 'POST',
         success: function(response) {
+            $('#deleteProjectModal').modal('hide');
             if (response.status === 'success') {
-                $('#deleteProjectModal').modal('hide');
                 Swal.fire({
                     icon: 'success',
                     title: 'Project deleted successfully',
                     showConfirmButton: false,
                     timer: 1500
                 }).then(function() {
-                    $('#projects-table').DataTable().ajax.reload();
+                    // Reload all tables
+                    $('#active-projects-table').DataTable().ajax.reload();
+                    $('#archived-projects-table').DataTable().ajax.reload();
+                    $('#completed-projects-table').DataTable().ajax.reload();
                 });
             } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error deleting project',
-                    text: response.message
+                    text: response.message || 'An unknown error occurred'
                 });
             }
         },
         error: function(xhr) {
+            $('#deleteProjectModal').modal('hide');
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Failed to delete project. Please try again.'
+                text: xhr.responseJSON?.message || 'Failed to delete project. Please try again.'
             });
+        },
+        complete: function() {
+            btn.prop('disabled', false);
         }
     });
 }
@@ -235,4 +367,36 @@ $('#deleteProjectModal').on('hidden.bs.modal', function() {
     projectToDelete = null;
 });
 </script>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.small-box .icon {
+    font-size: 50px;
+    right: 15px;
+    top: 10px;
+}
+.small-box .inner {
+    padding: 10px;
+}
+.small-box .inner h3 {
+    font-size: 25px;
+    margin-bottom: 5px;
+}
+.small-box .inner p {
+    font-size: 14px;
+}
+.dt-buttons {
+    margin-top: 1rem;
+}
+.dt-button {
+    margin-right: 0.5rem;
+}
+.dataTables_processing {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+</style>
 {% endblock %}

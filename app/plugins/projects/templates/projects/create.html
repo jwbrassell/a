@@ -67,6 +67,37 @@
                     {% endif %}
                 </div>
 
+                <!-- Project Settings -->
+                <h4 class="mt-4">Project Settings</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.priority.label(class="form-label") }}
+                            {{ form.priority(class="form-control" + (" is-invalid" if form.priority.errors else "")) }}
+                            {% if form.priority.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.priority.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.percent_complete.label(class="form-label") }}
+                            {{ form.percent_complete(class="form-control" + (" is-invalid" if form.percent_complete.errors else ""), type="number", min="0", max="100") }}
+                            {% if form.percent_complete.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.percent_complete.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Project Roles -->
                 <h4 class="mt-4">Project Roles</h4>
                 <div class="row">
@@ -184,15 +215,6 @@ $(document).ready(function() {
         toolbar: 'undo redo | formatselect | bold italic backcolor | \
                 alignleft aligncenter alignright alignjustify | \
                 bullist numlist outdent indent | removeformat | help'
-    });
-
-    // Handle flash messages
-        Swal.fire({
-            icon: category === 'success' ? 'success' : 'error',
-            title: text,
-            showConfirmButton: false,
-            timer: 3000
-        });
     });
 });
 </script>

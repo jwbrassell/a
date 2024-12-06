@@ -10,6 +10,26 @@ A comprehensive Flask plugin for managing projects, tasks, and team collaboratio
 - Base templates extending base.html ✓
 - Navigation system integration ✓
 
+### Plugin Structure
+The plugin follows a standardized structure for optimal organization and maintainability:
+
+- `__init__.py`: Contains only blueprint creation and metadata
+  ```python
+  bp = Blueprint('projects', __name__, 
+                template_folder='templates',
+                static_folder='static',
+                url_prefix='/projects')
+  ```
+
+- `routes.py`: Contains all route definitions including:
+  - Index route ('/projects/' and '/projects/index')
+  - Project management routes
+  - Task management routes
+  - Todo management routes
+  - Comment management routes
+
+This structure ensures proper route registration and navigation functionality, following the same pattern as other plugins like the dispatch tool.
+
 ### ✅ Phase 2: Project Features (Completed)
 - Project CRUD operations ✓
 - Role management system ✓
