@@ -15,7 +15,10 @@ from app.plugins.projects import bp
 def get_project_comments(project_id):
     """Get all comments for a project"""
     project = Project.query.get_or_404(project_id)
-    return jsonify([comment.to_dict() for comment in project.comments])
+    return jsonify({
+        'success': True,
+        'comments': [comment.to_dict() for comment in project.comments]
+    })
 
 @bp.route('/<int:project_id>/comment', methods=['POST'])
 @login_required
@@ -54,7 +57,7 @@ def create_comment(project_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Comment added successfully',
         'comment': comment.to_dict()
     })
@@ -65,7 +68,10 @@ def create_comment(project_id):
 def get_comment(comment_id):
     """Get a specific comment"""
     comment = Comment.query.get_or_404(comment_id)
-    return jsonify(comment.to_dict())
+    return jsonify({
+        'success': True,
+        'comment': comment.to_dict()
+    })
 
 @bp.route('/comment/<int:comment_id>', methods=['PUT'])
 @login_required
@@ -78,7 +84,7 @@ def update_comment(comment_id):
     # Only allow the comment creator or admin to update
     if comment.user_id != current_user.id and not current_user.has_role('admin'):
         return jsonify({
-            'status': 'error',
+            'success': False,
             'message': 'Unauthorized to update this comment'
         }), 403
     
@@ -110,7 +116,7 @@ def update_comment(comment_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Comment updated successfully',
         'comment': comment.to_dict()
     })
@@ -126,7 +132,7 @@ def delete_comment(comment_id):
     # Only allow the comment creator or admin to delete
     if comment.user_id != current_user.id and not current_user.has_role('admin'):
         return jsonify({
-            'status': 'error',
+            'success': False,
             'message': 'Unauthorized to delete this comment'
         }), 403
     
@@ -154,6 +160,6 @@ def delete_comment(comment_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Comment deleted successfully'
     })

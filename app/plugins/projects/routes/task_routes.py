@@ -8,6 +8,7 @@ from app.extensions import db
 from app.models import UserActivity
 from ..models import Project, Task, History
 from app.plugins.projects import bp
+from datetime import datetime
 
 @bp.route('/<int:project_id>/tasks', methods=['GET'])
 @login_required
@@ -15,7 +16,10 @@ from app.plugins.projects import bp
 def get_project_tasks(project_id):
     """Get all tasks for a project"""
     project = Project.query.get_or_404(project_id)
-    return jsonify([task.to_dict() for task in project.tasks])
+    return jsonify({
+        'success': True,
+        'tasks': [task.to_dict() for task in project.tasks]
+    })
 
 @bp.route('/<int:project_id>/task', methods=['POST'])
 @login_required
@@ -26,14 +30,31 @@ def create_task(project_id):
     project = Project.query.get_or_404(project_id)
     data = request.get_json()
     
+    # Validate required fields
+    if not data.get('name'):
+        return jsonify({
+            'success': False,
+            'message': 'Task name is required'
+        }), 400
+    
+    # Parse due date if provided
+    due_date = None
+    if data.get('due_date'):
+        try:
+            due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid due date format. Use YYYY-MM-DD'
+            }), 400
+    
     task = Task(
         name=data['name'],
         description=data.get('description', ''),
-        status=data.get('status', 'new'),
+        status=data.get('status', 'open'),
         priority=data.get('priority', 'medium'),
-        due_date=data.get('due_date'),
-        assigned_to=data.get('assigned_to'),
-        created_by=current_user.id,
+        due_date=due_date,
+        assigned_to_id=data.get('assigned_to_id'),
         project_id=project_id
     )
     
@@ -43,7 +64,14 @@ def create_task(project_id):
         action='created',
         user_id=current_user.id,
         project_id=project.id,
-        details=data
+        details={
+            'name': task.name,
+            'description': task.description,
+            'status': task.status,
+            'priority': task.priority,
+            'due_date': task.due_date.isoformat() if task.due_date else None,
+            'assigned_to_id': task.assigned_to_id
+        }
     )
     project.history.append(history)
     
@@ -59,7 +87,7 @@ def create_task(project_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Task created successfully',
         'task': task.to_dict()
     })
@@ -70,7 +98,10 @@ def create_task(project_id):
 def get_task(task_id):
     """Get a specific task"""
     task = Task.query.get_or_404(task_id)
-    return jsonify(task.to_dict())
+    return jsonify({
+        'success': True,
+        'task': task.to_dict()
+    })
 
 @bp.route('/task/<int:task_id>', methods=['PUT'])
 @login_required
@@ -80,6 +111,23 @@ def update_task(task_id):
     """Update a task"""
     task = Task.query.get_or_404(task_id)
     data = request.get_json()
+    
+    # Validate required fields if provided
+    if 'name' in data and not data['name']:
+        return jsonify({
+            'success': False,
+            'message': 'Task name cannot be empty'
+        }), 400
+    
+    # Parse due date if provided
+    if 'due_date' in data:
+        try:
+            data['due_date'] = datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data['due_date'] else None
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid due date format. Use YYYY-MM-DD'
+            }), 400
     
     # Track changes for history
     changes = {}
@@ -110,7 +158,7 @@ def update_task(task_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Task updated successfully',
         'task': task.to_dict()
     })
@@ -147,7 +195,7 @@ def delete_task(task_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Task deleted successfully'
     })
 
@@ -181,7 +229,7 @@ def complete_task(task_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Task marked as complete',
         'task': task.to_dict()
     })

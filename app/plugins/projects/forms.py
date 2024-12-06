@@ -9,6 +9,10 @@ class ProjectForm(FlaskForm):
     """Form for creating and editing projects"""
     name = StringField('Project Name', 
                       validators=[DataRequired(), Length(min=1, max=200)])
+    summary = TextAreaField('Summary',
+                          validators=[Optional(), Length(max=500)])
+    icon = StringField('Font Awesome Icon',
+                      validators=[Optional(), Length(max=50)])
     description = TextAreaField('Description')
     status = SelectField('Status', 
                         choices=[

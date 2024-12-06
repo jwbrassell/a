@@ -66,10 +66,12 @@ class Project(db.Model):
     __tablename__ = 'project'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
+    summary = db.Column(db.String(500))  # Added summary field
+    icon = db.Column(db.String(50))  # Added icon field
     description = db.Column(db.Text)
     status = db.Column(db.String(50), default='active')
-    priority = db.Column(db.String(50), default='medium')  # Added priority field
-    percent_complete = db.Column(db.Integer, default=0)  # Added percent complete field
+    priority = db.Column(db.String(50), default='medium')
+    percent_complete = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -119,6 +121,8 @@ class Project(db.Model):
         return {
             'id': self.id,
             'name': self.name,
+            'summary': self.summary,
+            'icon': self.icon,
             'description': self.description,
             'status': self.status,
             'priority': self.priority,
@@ -197,6 +201,7 @@ class Todo(db.Model):
     completed = db.Column(db.Boolean, default=False)
     completed_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    order = db.Column(db.Integer, default=0)  # Added order field for sorting
     
     # Relationships
     assigned_to_id = db.Column(db.Integer, db.ForeignKey('user.id'))

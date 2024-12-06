@@ -2,6 +2,24 @@
 
 {% block title %}Create Project{% endblock %}
 
+{% block styles %}
+{{ super() }}
+<!-- TinyMCE -->
+<script src="{{ url_for('static', filename='src/tinymce/tinymce.min.js') }}"></script>
+<!-- Font Awesome Icon Picker -->
+<link href="{{ url_for('static', filename='src/fontawesome/css/all.min.css') }}" rel="stylesheet">
+<style>
+.icon-option {
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 4px;
+}
+.icon-option:hover {
+    background: #f8f9fa;
+}
+</style>
+{% endblock %}
+
 {% block breadcrumb %}
 <ol class="breadcrumb float-sm-right">
     <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
@@ -13,7 +31,8 @@
 {% block page_content %}
 <div class="container-fluid">
     <div class="row">
-        <div class="col-md-12">
+        <!-- Left Column -->
+        <div class="col-md-8">
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Create New Project</h3>
@@ -22,16 +41,65 @@
                     <form id="projectForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
+                        <!-- Project Name -->
                         <div class="form-group">
                             <label for="name">Project Name</label>
                             <input type="text" class="form-control" id="name" name="name" required>
                         </div>
 
+                        <!-- Project Summary -->
                         <div class="form-group">
-                            <label for="description">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            <label for="summary">Summary</label>
+                            <textarea class="form-control" id="summary" name="summary" rows="2"></textarea>
                         </div>
 
+                        <!-- Icon Selector -->
+                        <div class="form-group">
+                            <label>Icon</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-project-diagram" id="selected-icon"></i></span>
+                                </div>
+                                <input type="text" class="form-control" id="icon" name="icon" placeholder="fas fa-project-diagram">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" data-toggle="modal" data-target="#icon-picker-modal">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description Editor -->
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <textarea id="description" name="description"></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Project Details</h3>
+                </div>
+                <div class="card-body">
+                    <form id="projectDetailsForm">
+                        <!-- Project Lead -->
+                        <div class="form-group">
+                            <label for="lead_id">Project Lead</label>
+                            <select class="form-control" id="lead_id" name="lead_id">
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {% if user.id == current_user.id %}selected{% endif %}>
+                                    {{ user.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Status -->
                         <div class="form-group">
                             <label for="status">Status</label>
                             <select class="form-control" id="status" name="status">
@@ -41,6 +109,7 @@
                             </select>
                         </div>
 
+                        <!-- Priority -->
                         <div class="form-group">
                             <label for="priority">Priority</label>
                             <select class="form-control" id="priority" name="priority">
@@ -50,15 +119,41 @@
                             </select>
                         </div>
 
+                        <!-- Percent Complete -->
                         <div class="form-group">
                             <label for="percent_complete">Percent Complete</label>
                             <input type="number" class="form-control" id="percent_complete" name="percent_complete" 
                                    min="0" max="100" value="0">
                         </div>
 
-                        <button type="submit" class="btn btn-primary">Create Project</button>
-                        <a href="{{ url_for('projects.list_projects') }}" class="btn btn-secondary">Cancel</a>
+                        <!-- Submit Buttons -->
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary btn-block">Create Project</button>
+                            <a href="{{ url_for('projects.list_projects') }}" class="btn btn-secondary btn-block">Cancel</a>
+                        </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Icon Picker Modal -->
+<div class="modal fade" id="icon-picker-modal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Icon</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" class="form-control" id="icon-search" placeholder="Search icons...">
+                </div>
+                <div class="row" id="icon-grid">
+                    <!-- Icons will be populated here via JavaScript -->
                 </div>
             </div>
         </div>
@@ -69,29 +164,122 @@
 {% block scripts %}
 {{ super() }}
 <script>
+// Initialize TinyMCE
+tinymce.init({
+    selector: '#description',
+    height: 300,
+    menubar: false,
+    plugins: [
+        'advlist autolink lists link image charmap print preview anchor',
+        'searchreplace visualblocks code fullscreen',
+        'insertdatetime media table paste code help wordcount'
+    ],
+    toolbar: 'undo redo | formatselect | bold italic backcolor | \
+             alignleft aligncenter alignright alignjustify | \
+             bullist numlist outdent indent | removeformat | help'
+});
+
+// Icon picker functionality
+const ICON_CATEGORIES = {
+    'Solid': 'fas',
+    'Regular': 'far',
+    'Brands': 'fab'
+};
+
+function loadIcons() {
+    const iconGrid = document.getElementById('icon-grid');
+    Object.entries(ICON_CATEGORIES).forEach(([category, prefix]) => {
+        // Add category header
+        const header = document.createElement('div');
+        header.className = 'col-12 mt-3 mb-2';
+        header.innerHTML = `<h5>${category}</h5>`;
+        iconGrid.appendChild(header);
+
+        // Add icons (this is a simplified list - you should load the full FA icon list)
+        const commonIcons = [
+            'project-diagram', 'tasks', 'clipboard-list', 'calendar', 'chart-line',
+            'users', 'cog', 'bell', 'envelope', 'star', 'heart', 'bookmark',
+            'file', 'folder', 'image', 'video', 'music', 'camera', 'phone',
+            'home', 'building', 'car', 'plane', 'ship', 'truck', 'bicycle',
+            'user', 'users', 'user-circle', 'user-plus', 'user-minus',
+            'check', 'times', 'plus', 'minus', 'search', 'cog', 'wrench'
+        ];
+
+        commonIcons.forEach(icon => {
+            const div = document.createElement('div');
+            div.className = 'col-2 text-center mb-3';
+            div.innerHTML = `
+                <div class="icon-option p-2" data-icon="${prefix} fa-${icon}">
+                    <i class="${prefix} fa-${icon} fa-2x"></i>
+                    <div class="small text-muted mt-1">${icon}</div>
+                </div>
+            `;
+            iconGrid.appendChild(div);
+        });
+    });
+}
+
+// Initialize icon picker when modal is shown
+$('#icon-picker-modal').on('show.bs.modal', function () {
+    if (!document.querySelector('#icon-grid .icon-option')) {
+        loadIcons();
+    }
+});
+
+// Icon search functionality
+document.getElementById('icon-search').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    document.querySelectorAll('#icon-grid .icon-option').forEach(option => {
+        const iconName = option.dataset.icon.toLowerCase();
+        option.closest('.col-2').style.display = 
+            iconName.includes(searchTerm) ? 'block' : 'none';
+    });
+});
+
+// Icon selection
+document.getElementById('icon-grid').addEventListener('click', function(e) {
+    if (e.target.closest('.icon-option')) {
+        const iconClass = e.target.closest('.icon-option').dataset.icon;
+        document.getElementById('icon').value = iconClass;
+        document.getElementById('selected-icon').className = iconClass;
+        $('#icon-picker-modal').modal('hide');
+    }
+});
+
+// Form submission
 document.getElementById('projectForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
-    const formData = new FormData(this);
-    const data = {
-        name: formData.get('name'),
-        description: formData.get('description'),
-        status: formData.get('status'),
-        priority: formData.get('priority'),
-        percent_complete: parseInt(formData.get('percent_complete'))
+    submitProject();
+});
+
+document.getElementById('projectDetailsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    submitProject();
+});
+
+function submitProject() {
+    const formData = {
+        name: document.getElementById('name').value,
+        summary: document.getElementById('summary').value,
+        icon: document.getElementById('icon').value,
+        description: tinymce.get('description').getContent(),
+        status: document.getElementById('status').value,
+        priority: document.getElementById('priority').value,
+        lead_id: parseInt(document.getElementById('lead_id').value),
+        percent_complete: parseInt(document.getElementById('percent_complete').value)
     };
 
     fetch("{{ url_for('projects.create_project') }}", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': formData.get('csrf_token')
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(formData)
     })
     .then(response => response.json())
     .then(data => {
-        if (data.status === 'success') {
+        if (data.success) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
@@ -114,6 +302,6 @@ document.getElementById('projectForm').addEventListener('submit', function(e) {
             text: 'An error occurred while creating the project'
         });
     });
-});
+}
 </script>
 {% endblock %}

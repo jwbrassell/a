@@ -1,11 +1,10 @@
-fix: restore correct route structure in Projects plugin
+fix: project edit functionality improvements
 
-- Move index route from __init__.py back to routes.py
-- Simplify __init__.py to match dispatch plugin structure
-- Fix navigation system's ability to find 'projects.index' endpoint
-- Resolve 500 error in base template rendering
+- Fixed comment submission by updating the API endpoint URL
+- Enhanced icon picker with proper styling and floating save/cancel buttons
+- Made todo and task creation buttons more prominent
+- Added icon selection functionality with visual feedback
+- Fixed browser compatibility by removing optional chaining
+- Added proper clearing of comment input after submission
 
-This commit fixes the routing issue by restoring the correct plugin structure
-where all routes are defined in routes.py. The __init__.py file now follows
-the standard plugin pattern, matching the structure used by the dispatch
-plugin. This ensures proper route registration and navigation functionality.
+These changes improve the overall usability and functionality of the project edit page.

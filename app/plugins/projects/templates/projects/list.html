@@ -1,12 +1,11 @@
 {% extends 'base.html' %}
 
-{% block title %}Projects List{% endblock %}
+{% block title %}Projects{% endblock %}
 
 {% block breadcrumb %}
 <ol class="breadcrumb float-sm-right">
     <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
-    <li class="breadcrumb-item"><a href="{{ url_for('projects.index') }}">Projects</a></li>
-    <li class="breadcrumb-item active">List</li>
+    <li class="breadcrumb-item active">Projects</li>
 </ol>
 {% endblock %}
 
@@ -14,60 +13,27 @@
 <div class="container-fluid">
     <!-- Header -->
     <div class="row mb-4">
-        <div class="col-6">
-            <h1 class="m-0">Projects</h1>
+        <div class="col-md-6">
+            <h1>Projects</h1>
         </div>
-        <div class="col-6 text-right">
+        <div class="col-md-6 text-right">
             <a href="{{ url_for('projects.new_project') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Create Project
             </a>
         </div>
     </div>
 
-    {% if not statuses %}
-    <div class="row">
+    <!-- Projects List -->
+    {% for status in statuses %}
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="alert alert-info">
-                <h5><i class="icon fas fa-info"></i> No Project Statuses</h5>
-                Please create project statuses in the <a href="{{ url_for('projects.index') }}">dashboard</a> first.
-            </div>
-        </div>
-    </div>
-    {% else %}
-        {% set has_projects = false %}
-        {% for status in statuses %}
-            {% if projects_by_status[status.name]|length > 0 %}
-                {% set has_projects = true %}
-            {% endif %}
-        {% endfor %}
-
-        {% if not has_projects %}
-        <div class="row">
-            <div class="col-12">
-                <div class="alert alert-info">
-                    <h5><i class="icon fas fa-info"></i> No Projects</h5>
-                    Get started by creating your first project using the "Create Project" button above.
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">{{ status.name|title }} Projects</h3>
                 </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Project Tables by Status -->
-        {% for status in statuses %}
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <span class="badge badge-{{ status.color }}">{{ status.name }}</span>
-                            Projects
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        {% if projects_by_status[status.name]|length == 0 %}
-                        <p class="text-muted">No projects with this status.</p>
-                        {% else %}
-                        <table class="table table-bordered table-hover">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -81,7 +47,14 @@
                             <tbody>
                                 {% for project in projects_by_status[status.name] %}
                                 <tr>
-                                    <td>{{ project.name }}</td>
+                                    <td>
+                                        {% if project.icon %}
+                                        <i class="{{ project.icon }} mr-2"></i>
+                                        {% endif %}
+                                        <a href="{{ url_for('projects.view_project', project_id=project.id) }}">
+                                            {{ project.name }}
+                                        </a>
+                                    </td>
                                     <td>
                                         <span class="badge badge-{{ project.priority_class }}">
                                             {{ project.priority }}
@@ -90,8 +63,7 @@
                                     <td>{{ project.lead.username if project.lead else 'Unassigned' }}</td>
                                     <td>
                                         <div class="progress">
-                                            <div class="progress-bar bg-{{ project.status_class }}" 
-                                                 role="progressbar" 
+                                            <div class="progress-bar" role="progressbar" 
                                                  style="width: {{ project.percent_complete }}%"
                                                  aria-valuenow="{{ project.percent_complete }}" 
                                                  aria-valuemin="0" 
@@ -100,87 +72,91 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>{{ project.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ project.created_at|datetime }}</td>
                                     <td>
                                         <div class="btn-group">
-                                            <button type="button" class="btn btn-sm btn-info" onclick="editProject({{ project.id }})">
+                                            <a href="{{ url_for('projects.view_project', project_id=project.id) }}" 
+                                               class="btn btn-sm btn-info" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if current_user.has_role('admin') or project.lead_id == current_user.id %}
+                                            <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" 
+                                               class="btn btn-sm btn-primary" title="Edit">
                                                 <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteProject({{ project.id }})">
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger" 
+                                                    onclick="deleteProject({{ project.id }})" title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
+                                {% if not projects_by_status[status.name] %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No projects in this status</td>
+                                </tr>
+                                {% endif %}
                             </tbody>
                         </table>
-                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
-        {% endfor %}
-    {% endif %}
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
-function editProject(projectId) {
-    // TODO: Implement project editing
-    window.location.href = `{{ url_for('projects.index') }}${projectId}/edit`;
-}
-
 function deleteProject(projectId) {
     Swal.fire({
-        title: 'Delete Project?',
-        text: 'This action cannot be undone.',
+        title: 'Are you sure?',
+        text: "This action cannot be undone!",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Delete'
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch(`{{ url_for('projects.index') }}${projectId}/delete`, {
+            fetch(`/projects/${projectId}/delete`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': "{{ csrf_token() }}"
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
                 }
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: data.message
-                    }).then(() => {
+                if (data.success) {
+                    Swal.fire(
+                        'Deleted!',
+                        data.message,
+                        'success'
+                    ).then(() => {
                         location.reload();
                     });
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message
-                    });
+                    Swal.fire(
+                        'Error!',
+                        data.message,
+                        'error'
+                    );
                 }
+            })
+            .catch(error => {
+                Swal.fire(
+                    'Error!',
+                    'An error occurred while deleting the project',
+                    'error'
+                );
             });
         }
     });
 }
 </script>
-{% endblock %}
-
-{% block styles %}
-{{ super() }}
-<style>
-.progress {
-    height: 20px;
-}
-.progress-bar {
-    min-width: 2em;
-}
-</style>
 {% endblock %}

@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from app.utils.rbac import requires_roles
 from app.utils.activity_tracking import track_activity
 from app.extensions import db
-from app.models import UserActivity
+from app.models import UserActivity, User
 from ..models import Project, Task, Todo, History
 from app.plugins.projects import bp
 from datetime import datetime
@@ -52,7 +52,8 @@ def create_project_todo(project_id):
     todo = Todo(
         description=data['description'],
         project_id=project_id,
-        assigned_to_id=data.get('assigned_to_id')
+        assigned_to_id=data.get('assigned_to_id'),
+        order=len(project.todos)  # Set order to end of list
     )
     
     # Create history entry
@@ -77,7 +78,7 @@ def create_project_todo(project_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Todo created successfully',
         'todo': {
             'id': todo.id,
@@ -101,7 +102,8 @@ def create_task_todo(task_id):
         description=data['description'],
         task_id=task_id,
         project_id=task.project_id,
-        assigned_to_id=data.get('assigned_to_id')
+        assigned_to_id=data.get('assigned_to_id'),
+        order=len(task.todos)  # Set order to end of list
     )
     
     # Create history entry
@@ -127,7 +129,7 @@ def create_task_todo(task_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Todo created successfully',
         'todo': {
             'id': todo.id,
@@ -189,7 +191,7 @@ def update_todo(todo_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Todo updated successfully',
         'todo': {
             'id': todo.id,
@@ -201,24 +203,24 @@ def update_todo(todo_id):
         }
     })
 
-@bp.route('/todo/<int:todo_id>/complete', methods=['POST'])
+@bp.route('/todo/<int:todo_id>/toggle', methods=['POST'])
 @login_required
 @requires_roles('user')
 @track_activity
-def complete_todo(todo_id):
-    """Mark a todo as complete"""
+def toggle_todo(todo_id):
+    """Toggle a todo's completion status"""
     todo = Todo.query.get_or_404(todo_id)
-    todo.completed = True
-    todo.completed_at = datetime.utcnow()
+    todo.completed = not todo.completed
+    todo.completed_at = datetime.utcnow() if todo.completed else None
     
     # Create history entry
     history = History(
         entity_type='todo',
-        action='completed',
+        action='completed' if todo.completed else 'uncompleted',
         user_id=current_user.id,
         project_id=todo.project_id,
         task_id=todo.task_id,
-        details={'completed_at': todo.completed_at.isoformat()}
+        details={'completed_at': todo.completed_at.isoformat() if todo.completed_at else None}
     )
     if todo.task:
         todo.task.project.history.append(history)
@@ -229,23 +231,40 @@ def complete_todo(todo_id):
     activity = UserActivity(
         user_id=current_user.id,
         username=current_user.username,
-        activity=f"Completed todo in {'task: ' + todo.task.name if todo.task else 'project: ' + todo.project.name}"
+        activity=f"{'Completed' if todo.completed else 'Uncompleted'} todo in {'task: ' + todo.task.name if todo.task else 'project: ' + todo.project.name}"
     )
     
     db.session.add(activity)
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
-        'message': 'Todo marked as complete',
+        'success': True,
+        'message': f'Todo {"completed" if todo.completed else "uncompleted"}',
         'todo': {
             'id': todo.id,
-            'description': todo.description,
             'completed': todo.completed,
-            'completed_at': todo.completed_at.isoformat(),
-            'assigned_to': todo.assigned_to.username if todo.assigned_to else None,
-            'created_at': todo.created_at.isoformat()
+            'completed_at': todo.completed_at.isoformat() if todo.completed_at else None
         }
+    })
+
+@bp.route('/todo/reorder', methods=['POST'])
+@login_required
+@requires_roles('user')
+def reorder_todos():
+    """Update the order of todos"""
+    data = request.get_json()
+    todos = data.get('todos', [])
+    
+    for todo_data in todos:
+        todo = Todo.query.get(todo_data['id'])
+        if todo:
+            todo.order = todo_data['order']
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Todo order updated successfully'
     })
 
 @bp.route('/todo/<int:todo_id>', methods=['DELETE'])
@@ -281,6 +300,6 @@ def delete_todo(todo_id):
     db.session.commit()
     
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'Todo deleted successfully'
     })

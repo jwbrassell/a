@@ -2,6 +2,43 @@
 
 {% block title %}{{ project.name }}{% endblock %}
 
+{% block styles %}
+{{ super() }}
+<!-- TinyMCE -->
+<script src="{{ url_for('static', filename='src/tinymce/tinymce.min.js') }}"></script>
+<!-- Font Awesome Icon Picker -->
+<link href="{{ url_for('static', filename='src/fontawesome/css/all.min.css') }}" rel="stylesheet">
+<!-- Custom Styles -->
+<style>
+.todo-list {
+    min-height: 100px;
+}
+.todo-item {
+    padding: 8px;
+    margin: 4px 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.todo-item:hover {
+    background: #f8f9fa;
+}
+.todo-content {
+    flex-grow: 1;
+    margin: 0 8px;
+}
+.history-table th {
+    background: #f8f9fa;
+}
+.direct-chat-messages {
+    height: 400px;
+}
+.direct-chat-text {
+    margin: 5px 0 0 10px;
+}
+</style>
+{% endblock %}
+
 {% block breadcrumb %}
 <ol class="breadcrumb float-sm-right">
     <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
@@ -13,44 +50,69 @@
 {% block page_content %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Main Content -->
-        <div class="col-md-9">
-            <!-- Project Header -->
-            <div class="card mb-4">
+        <!-- Left Column -->
+        <div class="col-md-8">
+            <!-- Project Details Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Project Details</h3>
+                    {% if can_edit %}
+                    <div class="card-tools">
+                        <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-edit"></i> Edit Project
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
                 <div class="card-body">
-                    <h1 class="card-title">{{ project.name }}</h1>
-                    <div class="summary-section">
-                        <h5>Summary</h5>
-                        <p class="text-muted">{{ project.description }}</p>
+                    <!-- Project Name -->
+                    <div class="form-group">
+                        <label>Project Name</label>
+                        <p class="form-control-static">{{ project.name }}</p>
+                    </div>
+
+                    <!-- Project Summary -->
+                    <div class="form-group">
+                        <label>Summary</label>
+                        <p class="form-control-static">{{ project.summary }}</p>
+                    </div>
+
+                    <!-- Icon -->
+                    <div class="form-group">
+                        <label>Icon</label>
+                        <div>
+                            <i class="{{ project.icon or 'fas fa-project-diagram' }} fa-2x"></i>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-group">
+                        <label>Description</label>
+                        <div class="form-control-static">{{ project.description|safe }}</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Todos Section -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0">Todos</h5>
-                    <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#add-todo-modal">
-                        <i class="fas fa-plus"></i>
-                    </button>
+            <!-- Todo List Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-tasks mr-1"></i>
+                        Todo List
+                    </h3>
                 </div>
                 <div class="card-body">
                     <div class="todo-list">
-                        {% for todo in project.todos %}
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="icheck-primary d-inline mr-2">
+                        {% for todo in project.todos|sort(attribute='order') %}
+                        <div class="todo-item d-flex align-items-center">
+                            <div class="icheck-primary d-inline">
                                 <input type="checkbox" id="todo-{{ todo.id }}" 
                                        {% if todo.completed %}checked{% endif %}
-                                       onchange="toggleTodo({{ todo.id }})">
+                                       disabled>
                                 <label for="todo-{{ todo.id }}"></label>
                             </div>
-                            <span class="text {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
+                            <div class="todo-content {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
                                 {{ todo.description }}
-                            </span>
-                            <div class="ml-auto">
-                                <button class="btn btn-sm btn-danger" onclick="deleteTodo({{ todo.id }})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
                             </div>
                         </div>
                         {% endfor %}
@@ -58,45 +120,39 @@
                 </div>
             </div>
 
-            <!-- Tasks Section -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0">Tasks</h5>
-                    <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#create-task-modal">
-                        <i class="fas fa-plus"></i>
-                    </button>
+            <!-- Tasks Table -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-clipboard-list mr-1"></i>
+                        Tasks
+                    </h3>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Task</th>
-                                    <th>Summary</th>
-                                    <th>Lead</th>
+                                    <th>Assigned To</th>
                                     <th>Status</th>
-                                    <th>Action</th>
+                                    <th>Priority</th>
+                                    <th>Due Date</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for task in project.tasks %}
                                 <tr>
                                     <td>{{ task.name }}</td>
-                                    <td>{{ task.description|striptags|truncate(50) }}</td>
                                     <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
                                     <td><span class="badge badge-{{ task.status_class }}">{{ task.status }}</span></td>
+                                    <td><span class="badge badge-{{ task.priority_class }}">{{ task.priority }}</span></td>
+                                    <td>{{ task.due_date|datetime if task.due_date else 'No due date' }}</td>
                                     <td>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
+                                        <button class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -107,283 +163,152 @@
             </div>
 
             <!-- Comments Section -->
-            <div class="card mb-4">
+            <div class="card mt-4 direct-chat direct-chat-primary">
                 <div class="card-header">
-                    <h5 class="m-0">Comments</h5>
+                    <h3 class="card-title">
+                        <i class="fas fa-comments mr-1"></i>
+                        Comments
+                    </h3>
                 </div>
                 <div class="card-body">
-                    <div class="comments-list">
-                        {% if project.comments %}
-                            {% for comment in project.comments %}
-                            <div class="comment mb-3">
-                                <div class="d-flex">
-                                    <div class="mr-3">
-                                        <img src="{{ comment.user.avatar_url }}" class="rounded-circle" width="40" height="40">
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-1">{{ comment.user.username }}</h6>
-                                        <p class="mb-1">{{ comment.content }}</p>
-                                        <small class="text-muted">{{ comment.created_at|datetime }}</small>
-                                    </div>
-                                    {% if comment.user_id == current_user.id %}
-                                    <div class="ml-2">
-                                        <button class="btn btn-sm btn-danger" onclick="deleteComment({{ comment.id }})">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                    {% endif %}
-                                </div>
+                    <div class="direct-chat-messages">
+                        {% for comment in project.comments %}
+                        <div class="direct-chat-msg {% if comment.user_id == current_user.id %}right{% endif %}">
+                            <div class="direct-chat-infos clearfix">
+                                <span class="direct-chat-name {% if comment.user_id == current_user.id %}float-right{% else %}float-left{% endif %}">
+                                    {{ comment.user.username }}
+                                </span>
+                                <span class="direct-chat-timestamp {% if comment.user_id == current_user.id %}float-left{% else %}float-right{% endif %}">
+                                    {{ comment.created_at|datetime }}
+                                </span>
                             </div>
-                            {% endfor %}
-                        {% else %}
-                            <p class="text-muted">No comments yet</p>
-                        {% endif %}
-                    </div>
-                    <form class="mt-3" id="comment-form" onsubmit="submitComment(event)">
-                        <div class="form-group">
-                            <textarea class="form-control" id="comment-content" rows="3" placeholder="Add a comment..."></textarea>
+                            <img class="direct-chat-img" src="{{ comment.user.avatar_url }}" alt="User Image">
+                            <div class="direct-chat-text">
+                                {{ comment.content }}
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary">Post Comment</button>
-                    </form>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- History Section -->
+        <!-- Right Column -->
+        <div class="col-md-4">
+            <!-- Project Metadata -->
             <div class="card">
                 <div class="card-header">
-                    <h5 class="m-0">History</h5>
+                    <h3 class="card-title">Project Details</h3>
                 </div>
                 <div class="card-body">
-                    <div class="timeline">
-                        {% if project.history %}
-                            {% for event in project.history %}
-                            <div class="timeline-item">
-                                <div class="timeline-marker"></div>
-                                <div class="timeline-content">
-                                    <h6 class="mb-1">{{ event.action }}</h6>
-                                    <p class="mb-0">{{ event.description }}</p>
-                                    <small class="text-muted">{{ event.created_at|datetime }}</small>
-                                </div>
+                    <!-- Lead -->
+                    <div class="form-group">
+                        <label>Project Lead</label>
+                        <p class="form-control-static">{{ project.lead.username if project.lead else 'Unassigned' }}</p>
+                    </div>
+
+                    <!-- Priority -->
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <p class="form-control-static">
+                            <span class="badge badge-{{ project.priority_class }}">{{ project.priority }}</span>
+                        </p>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="form-group">
+                        <label>Status</label>
+                        <p class="form-control-static">
+                            <span class="badge badge-{{ project.status_class }}">{{ project.status }}</span>
+                        </p>
+                    </div>
+
+                    <!-- Last Update -->
+                    <div class="form-group">
+                        <label>Last Update</label>
+                        <p class="form-control-static">{{ project.updated_at|datetime }}</p>
+                    </div>
+
+                    <!-- Percent Complete -->
+                    <div class="form-group">
+                        <label>Percent Complete</label>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ project.percent_complete }}%"
+                                 aria-valuenow="{{ project.percent_complete }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ project.percent_complete }}%
                             </div>
-                            {% endfor %}
-                        {% else %}
-                            <p class="text-muted">No history available</p>
-                        {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Right Sidebar -->
-        <div class="col-md-3">
+    <!-- History Table -->
+    <div class="row mt-4">
+        <div class="col-12">
             <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-history mr-1"></i>
+                        Project History
+                    </h3>
+                </div>
                 <div class="card-body">
-                    <div class="project-meta">
-                        <div class="meta-item mb-3">
-                            <label class="text-muted">Lead</label>
-                            <div>{{ project.lead.username if project.lead else 'Unassigned' }}</div>
-                        </div>
-                        <div class="meta-item mb-3">
-                            <label class="text-muted">Priority</label>
-                            <div><span class="badge badge-{{ project.priority_class }}">{{ project.priority }}</span></div>
-                        </div>
-                        <div class="meta-item mb-3">
-                            <label class="text-muted">Status</label>
-                            <div><span class="badge badge-{{ project.status_class }}">{{ project.status }}</span></div>
-                        </div>
-                        <div class="meta-item mb-3">
-                            <label class="text-muted">Last Update</label>
-                            <div>{{ project.updated_at|datetime }}</div>
-                        </div>
-                        <div class="meta-item">
-                            <label class="text-muted">Percent Complete</label>
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" style="width: {{ project.percent_complete }}%">
-                                    {{ project.percent_complete }}%
-                                </div>
-                            </div>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped history-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Entity</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in project.history|sort(attribute='created_at', reverse=true) %}
+                                <tr>
+                                    <td>{{ event.created_at|datetime }}</td>
+                                    <td>{{ event.user.username }}</td>
+                                    <td>
+                                        <span class="badge badge-{{ event.color }}">
+                                            <i class="fas fa-{{ event.icon }} mr-1"></i>
+                                            {{ event.action }}
+                                        </span>
+                                    </td>
+                                    <td>{{ event.entity_type }}</td>
+                                    <td>{{ event.details|tojson if event.details else '' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Add Todo Modal -->
-<div class="modal fade" id="add-todo-modal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Todo</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="todo-form">
-                    <div class="form-group">
-                        <label for="todo-description">Description</label>
-                        <input type="text" class="form-control" id="todo-description" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="todo-assigned-to">Assign To</label>
-                        <select class="form-control" id="todo-assigned-to">
-                            <option value="">Unassigned</option>
-                            {% for member in project.team_members %}
-                            <option value="{{ member.id }}">{{ member.username }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="createTodo()">Add Todo</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Create Task Modal -->
-<div class="modal fade" id="create-task-modal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create Task</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="task-form">
-                    <div class="form-group">
-                        <label for="task-name">Name</label>
-                        <input type="text" class="form-control" id="task-name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-description">Description</label>
-                        <textarea class="form-control" id="task-description" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-status">Status</label>
-                        <select class="form-control" id="task-status">
-                            <option value="open">Open</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="review">Review</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-priority">Priority</label>
-                        <select class="form-control" id="task-priority">
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-assigned-to">Assign To</label>
-                        <select class="form-control" id="task-assigned-to">
-                            <option value="">Unassigned</option>
-                            {% for member in project.team_members %}
-                            <option value="{{ member.id }}">{{ member.username }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-due-date">Due Date</label>
-                        <input type="date" class="form-control" id="task-due-date">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="createTask()">Create Task</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- View Task Modal -->
-<div class="modal fade" id="view-task-modal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="view-task-title"></h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div id="view-task-content"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block styles %}
-{{ super() }}
-<style>
-.timeline {
-    position: relative;
-    padding: 20px 0;
-}
-
-.timeline-item {
-    position: relative;
-    padding-left: 40px;
-    margin-bottom: 20px;
-}
-
-.timeline-marker {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #007bff;
-    border: 2px solid #fff;
-}
-
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: 5px;
-    top: 12px;
-    bottom: -20px;
-    width: 2px;
-    background: #e9ecef;
-}
-
-.timeline-item:last-child::before {
-    display: none;
-}
-
-.meta-item label {
-    font-size: 0.875rem;
-    margin-bottom: 0.25rem;
-    display: block;
-}
-
-.progress {
-    height: 0.5rem;
-}
-
-.todo-list .btn {
-    visibility: hidden;
-}
-
-.todo-list .d-flex:hover .btn {
-    visibility: visible;
-}
-</style>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('projects.static', filename='js/project.js') }}"></script>
+<script>
+// Initialize TinyMCE in read-only mode
+tinymce.init({
+    selector: '#description-editor',
+    height: 300,
+    menubar: false,
+    readonly: true,
+    plugins: [
+        'advlist autolink lists link image charmap print preview anchor',
+        'searchreplace visualblocks code fullscreen',
+        'insertdatetime media table paste code help wordcount'
+    ],
+    toolbar: false
+});
+</script>
 {% endblock %}
