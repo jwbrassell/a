@@ -28,6 +28,7 @@ from app.plugins.projects.routes import (
     status_routes,
     priority_routes,
     task_routes,
+    todo_routes,
     comment_routes
 )
 from app.plugins.projects import models
