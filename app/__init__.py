@@ -1,5 +1,4 @@
 from flask import Flask, render_template
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
@@ -8,10 +7,10 @@ from datetime import datetime
 import os
 import click
 
-# Initialize Flask extensions
-db = SQLAlchemy()
-login_manager = LoginManager()
-migrate = Migrate()
+# Import extensions
+from app.extensions import db, login_manager, migrate
+
+# Initialize CSRF protection
 csrf = CSRFProtect()
 
 def create_app(config_name=None):

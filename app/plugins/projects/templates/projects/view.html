@@ -1,0 +1,475 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+{% block breadcrumb %}
+<ol class="breadcrumb float-sm-right">
+    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('projects.index') }}">Projects</a></li>
+    <li class="breadcrumb-item active">{{ project.name }}</li>
+</ol>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <!-- Project Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h1 class="m-0">{{ project.name }}</h1>
+                        <div>
+                            <button class="btn btn-primary" data-toggle="modal" data-target="#create-task-modal">
+                                <i class="fas fa-plus"></i> New Task
+                            </button>
+                            <button class="btn btn-success" data-toggle="modal" data-target="#add-todo-modal">
+                                <i class="fas fa-check"></i> New Todo
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-muted mt-3 mb-0">{{ project.description }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks and Todos Section -->
+    <div class="row">
+        <!-- Tasks Column -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Tasks</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Assigned To</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Due Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in project.tasks %}
+                                <tr>
+                                    <td>{{ task.name }}</td>
+                                    <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
+                                    <td><span class="badge badge-{{ task.status_class }}">{{ task.status }}</span></td>
+                                    <td><span class="badge badge-{{ task.priority_class }}">{{ task.priority }}</span></td>
+                                    <td>{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else 'No due date' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Todos Column -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Todo List</h3>
+                </div>
+                <div class="card-body">
+                    <div class="todo-list">
+                        {% for todo in project.todos %}
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="icheck-primary d-inline mr-2">
+                                <input type="checkbox" id="todo-{{ todo.id }}" 
+                                       {% if todo.completed %}checked{% endif %}
+                                       onchange="toggleTodo({{ todo.id }})">
+                                <label for="todo-{{ todo.id }}"></label>
+                            </div>
+                            <span class="text {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
+                                {{ todo.description }}
+                            </span>
+                            <small class="ml-auto text-muted">
+                                {{ todo.assigned_to.username if todo.assigned_to else 'Unassigned' }}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Task Modal -->
+<div class="modal fade" id="create-task-modal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Task</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="create-task-form">
+                    <div class="form-group">
+                        <label for="task-name">Task Name</label>
+                        <input type="text" class="form-control" id="task-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-description">Description</label>
+                        <textarea id="task-description" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-assigned">Assign To</label>
+                        <select id="task-assigned" class="form-control select2">
+                            <option value="">Unassigned</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-due-date">Due Date</label>
+                        <input type="date" class="form-control" id="task-due-date">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="task-priority">Priority</label>
+                            <select id="task-priority" class="form-control">
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="task-status">Status</label>
+                            <select id="task-status" class="form-control">
+                                <option value="todo">To Do</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="review">Review</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createTask()">Create Task</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Todo Modal -->
+<div class="modal fade" id="add-todo-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Todo</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="add-todo-form">
+                    <div class="form-group">
+                        <label for="todo-description">Description</label>
+                        <input type="text" class="form-control" id="todo-description" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="todo-assigned">Assign To</label>
+                        <select id="todo-assigned" class="form-control select2">
+                            <option value="">Unassigned</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createTodo()">Add Todo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Flash Messages Container -->
+<div id="flash-messages" data-messages="{{ get_flashed_messages(with_categories=true)|tojson|safe }}"></div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+
+    // Initialize TinyMCE for task description
+    tinymce.init({
+        selector: '#task-description',
+        height: 300,
+        menubar: false,
+        plugins: [
+            'advlist autolink lists link image charmap print preview anchor',
+            'searchreplace visualblocks code fullscreen',
+            'insertdatetime media table paste code help wordcount'
+        ],
+        toolbar: 'undo redo | formatselect | bold italic backcolor | \
+                alignleft aligncenter alignright alignjustify | \
+                bullist numlist outdent indent | removeformat | help'
+    });
+
+    // Handle flash messages
+    const flashMessages = JSON.parse($('#flash-messages').attr('data-messages') || '[]');
+    flashMessages.forEach(function(message) {
+        const [category, text] = message;
+        Swal.fire({
+            icon: category === 'success' ? 'success' : 'error',
+            title: text,
+            showConfirmButton: false,
+            timer: 3000
+        });
+    });
+});
+
+// Task Management Functions
+function createTask() {
+    const taskData = {
+        name: $('#task-name').val(),
+        description: tinymce.get('task-description').getContent(),
+        assigned_to_id: $('#task-assigned').val(),
+        due_date: $('#task-due-date').val(),
+        priority: $('#task-priority').val(),
+        status: $('#task-status').val()
+    };
+
+    $.ajax({
+        url: "{{ url_for('projects.create_task', project_id=project.id) }}",
+        method: 'POST',
+        data: taskData,
+        success: function(response) {
+            if (response.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Task created successfully',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(function() {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error creating task',
+                    text: response.message
+                });
+            }
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to create task. Please try again.'
+            });
+        }
+    });
+}
+
+function editTask(taskId) {
+    // Load task details
+    $.get("{{ url_for('projects.get_task', task_id=0) }}".replace('0', taskId), function(task) {
+        $('#task-name').val(task.name);
+        tinymce.get('task-description').setContent(task.description);
+        $('#task-assigned').val(task.assigned_to_id).trigger('change');
+        $('#task-due-date').val(task.due_date);
+        $('#task-priority').val(task.priority);
+        $('#task-status').val(task.status);
+        
+        // Update modal for editing
+        $('#create-task-modal .modal-title').text('Edit Task');
+        $('#create-task-modal .btn-primary')
+            .text('Update Task')
+            .attr('onclick', `updateTask(${taskId})`);
+        
+        $('#create-task-modal').modal('show');
+    });
+}
+
+function updateTask(taskId) {
+    const taskData = {
+        name: $('#task-name').val(),
+        description: tinymce.get('task-description').getContent(),
+        assigned_to_id: $('#task-assigned').val(),
+        due_date: $('#task-due-date').val(),
+        priority: $('#task-priority').val(),
+        status: $('#task-status').val()
+    };
+
+    $.ajax({
+        url: "{{ url_for('projects.update_task', task_id=0) }}".replace('0', taskId),
+        method: 'PUT',
+        data: taskData,
+        success: function(response) {
+            if (response.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Task updated successfully',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(function() {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error updating task',
+                    text: response.message
+                });
+            }
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to update task. Please try again.'
+            });
+        }
+    });
+}
+
+function viewTask(taskId) {
+    $.get("{{ url_for('projects.get_task', task_id=0) }}".replace('0', taskId), function(task) {
+        Swal.fire({
+            title: task.name,
+            html: `
+                <div class="text-left">
+                    <p><strong>Description:</strong></p>
+                    <div class="mb-3">${task.description}</div>
+                    <p><strong>Assigned to:</strong> ${task.assigned_to || 'Unassigned'}</p>
+                    <p><strong>Status:</strong> <span class="badge badge-${task.status_class}">${task.status}</span></p>
+                    <p><strong>Priority:</strong> <span class="badge badge-${task.priority_class}">${task.priority}</span></p>
+                    <p><strong>Due Date:</strong> ${task.due_date || 'No due date'}</p>
+                </div>
+            `,
+            width: '600px',
+            showCloseButton: true,
+            showConfirmButton: false
+        });
+    });
+}
+
+// Todo Management Functions
+function createTodo() {
+    const todoData = {
+        description: $('#todo-description').val(),
+        assigned_to_id: $('#todo-assigned').val()
+    };
+
+    $.ajax({
+        url: "{{ url_for('projects.create_todo', project_id=project.id) }}",
+        method: 'POST',
+        data: todoData,
+        success: function(response) {
+            if (response.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Todo created successfully',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(function() {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error creating todo',
+                    text: response.message
+                });
+            }
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to create todo. Please try again.'
+            });
+        }
+    });
+}
+
+function toggleTodo(todoId) {
+    $.ajax({
+        url: "{{ url_for('projects.toggle_todo', todo_id=0) }}".replace('0', todoId),
+        method: 'POST',
+        success: function(response) {
+            if (response.status === 'success') {
+                // Update the checkbox state
+                $(`#todo-${todoId}`).prop('checked', response.completed);
+                
+                // Show a brief success message
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: `Todo ${response.completed ? 'completed' : 'uncompleted'}`
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error updating todo',
+                    text: response.message
+                });
+            }
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to update todo. Please try again.'
+            });
+            // Revert the checkbox state
+            $(`#todo-${todoId}`).prop('checked', !$(`#todo-${todoId}`).prop('checked'));
+        }
+    });
+}
+
+// Reset task modal when closed
+$('#create-task-modal').on('hidden.bs.modal', function() {
+    $('#create-task-form')[0].reset();
+    tinymce.get('task-description').setContent('');
+    $('#task-assigned').val('').trigger('change');
+    $(this).find('.modal-title').text('Create New Task');
+    $(this).find('.btn-primary')
+        .text('Create Task')
+        .attr('onclick', 'createTask()');
+});
+
+// Reset todo modal when closed
+$('#add-todo-modal').on('hidden.bs.modal', function() {
+    $('#add-todo-form')[0].reset();
+    $('#todo-assigned').val('').trigger('change');
+});
+</script>
+{% endblock %}

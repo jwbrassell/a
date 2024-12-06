@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Projects{% endblock %}
+
+{% block breadcrumb %}
+<ol class="breadcrumb float-sm-right">
+    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+    <li class="breadcrumb-item active">Projects</li>
+</ol>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <!-- Page header -->
+    <div class="row mb-4">
+        <div class="col-sm-6">
+            <h1 class="m-0">Projects</h1>
+        </div>
+        <div class="col-sm-6 text-right">
+            <a href="{{ url_for('projects.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Project
+            </a>
+        </div>
+    </div>
+
+    <!-- Project statistics cards -->
+    <div class="row mb-4">
+        <!-- Active Projects -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>{{ active_projects }}</h3>
+                    <p>Active Projects</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Due Today -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>{{ tasks_due_today }}</h3>
+                    <p>Tasks Due Today</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Open Tasks -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>{{ open_tasks }}</h3>
+                    <p>Open Tasks</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Assigned Tasks -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>{{ my_tasks }}</h3>
+                    <p>My Assigned Tasks</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-user-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project listing card -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">All Projects</h3>
+        </div>
+        <div class="card-body">
+            <table id="projects-table" class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Lead</th>
+                        <th>Status</th>
+                        <th>Team Size</th>
+                        <th>Tasks</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Project Modal -->
+<div class="modal fade" id="deleteProjectModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Project</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this project? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <form id="deleteProjectForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Flash Messages Data -->
+<div id="flash-messages" style="display: none;"
+     data-messages="{{ get_flashed_messages(with_categories=true) | tojson }}">
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Initialize DataTable with AJAX
+    $('#projects-table').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "ajax": "{{ url_for('projects.get_projects') }}",
+        "columns": [
+            { "data": "name", "name": "name" },
+            { "data": "lead", "name": "lead_id" },
+            { "data": "status", "name": "status" },
+            { "data": "team_size", "name": "team_members" },
+            { "data": "tasks", "name": "tasks" },
+            { "data": "created", "name": "created_at" },
+            { 
+                "data": "actions",
+                "orderable": false,
+                "searchable": false
+            }
+        ],
+        "order": [[5, 'desc']],  // Sort by created date by default
+        "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        "responsive": true,
+        "autoWidth": false,
+        "language": {
+            "emptyTable": "No projects available",
+            "zeroRecords": "No matching projects found",
+            "info": "Showing _START_ to _END_ of _TOTAL_ projects",
+            "infoEmpty": "Showing 0 to 0 of 0 projects",
+            "infoFiltered": "(filtered from _MAX_ total projects)"
+        }
+    });
+
+    // Handle flash messages
+    const flashMessages = JSON.parse($('#flash-messages').attr('data-messages') || '[]');
+    flashMessages.forEach(function(message) {
+        const [category, text] = message;
+        Swal.fire({
+            icon: category === 'success' ? 'success' : 'error',
+            title: text,
+            showConfirmButton: false,
+            timer: 3000
+        });
+    });
+});
+
+// Function to handle project deletion
+function deleteProject(projectId) {
+    $('#deleteProjectForm').attr('action', '/projects/' + projectId + '/delete');
+    $('#deleteProjectModal').modal('show');
+}
+</script>
+{% endblock %}
