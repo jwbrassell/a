@@ -12,181 +12,55 @@
 
 {% block page_content %}
 <div class="container-fluid">
-    <!-- Page header -->
-    <div class="row mb-4">
-        <div class="col-sm-6">
-            <h1 class="m-0">Create Project</h1>
-        </div>
-    </div>
-
-    <!-- Project creation form -->
-    <div class="card">
-        <div class="card-body">
-            <form method="POST">
-                {{ form.hidden_tag() }}
-                
-                <!-- Basic Information -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.name.label(class="form-label") }}
-                            {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
-                            {% if form.name.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.name.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.status.label(class="form-label") }}
-                            {{ form.status(class="form-control" + (" is-invalid" if form.status.errors else "")) }}
-                            {% if form.status.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.status.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Create New Project</h3>
                 </div>
-
-                <div class="form-group">
-                    {{ form.description.label(class="form-label") }}
-                    {{ form.description(class="form-control tinymce" + (" is-invalid" if form.description.errors else "")) }}
-                    {% if form.description.errors %}
-                        <div class="invalid-feedback">
-                            {% for error in form.description.errors %}
-                                {{ error }}
-                            {% endfor %}
+                <div class="card-body">
+                    <form id="projectForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="form-group">
+                            <label for="name">Project Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
                         </div>
-                    {% endif %}
+
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select class="form-control" id="status" name="status">
+                                {% for status in statuses %}
+                                <option value="{{ status.name }}">{{ status.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="priority">Priority</label>
+                            <select class="form-control" id="priority" name="priority">
+                                {% for priority in priorities %}
+                                <option value="{{ priority.name }}">{{ priority.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="percent_complete">Percent Complete</label>
+                            <input type="number" class="form-control" id="percent_complete" name="percent_complete" 
+                                   min="0" max="100" value="0">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Create Project</button>
+                        <a href="{{ url_for('projects.list_projects') }}" class="btn btn-secondary">Cancel</a>
+                    </form>
                 </div>
-
-                <!-- Project Settings -->
-                <h4 class="mt-4">Project Settings</h4>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.priority.label(class="form-label") }}
-                            {{ form.priority(class="form-control" + (" is-invalid" if form.priority.errors else "")) }}
-                            {% if form.priority.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.priority.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.percent_complete.label(class="form-label") }}
-                            {{ form.percent_complete(class="form-control" + (" is-invalid" if form.percent_complete.errors else ""), type="number", min="0", max="100") }}
-                            {% if form.percent_complete.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.percent_complete.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Project Roles -->
-                <h4 class="mt-4">Project Roles</h4>
-                <div class="row">
-                    <!-- Project Lead -->
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.lead_id.label(class="form-label") }}
-                            {{ form.lead_id(class="form-control select2" + (" is-invalid" if form.lead_id.errors else "")) }}
-                            {% if form.lead_id.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.lead_id.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Team Members -->
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form.team_members.label(class="form-label") }}
-                            {{ form.team_members(class="form-control select2" + (" is-invalid" if form.team_members.errors else "")) }}
-                            {% if form.team_members.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.team_members.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <!-- Watchers -->
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form.watchers.label(class="form-label") }}
-                            {{ form.watchers(class="form-control select2" + (" is-invalid" if form.watchers.errors else "")) }}
-                            {% if form.watchers.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.watchers.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Stakeholders -->
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form.stakeholders.label(class="form-label") }}
-                            {{ form.stakeholders(class="form-control select2" + (" is-invalid" if form.stakeholders.errors else "")) }}
-                            {% if form.stakeholders.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.stakeholders.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Shareholders -->
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            {{ form.shareholders.label(class="form-label") }}
-                            {{ form.shareholders(class="form-control select2" + (" is-invalid" if form.shareholders.errors else "")) }}
-                            {% if form.shareholders.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.shareholders.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Form Actions -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <a href="{{ url_for('projects.index') }}" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary float-right">Create Project</button>
-                    </div>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -195,26 +69,50 @@
 {% block scripts %}
 {{ super() }}
 <script>
-$(document).ready(function() {
-    // Initialize Select2 for all select fields
-    $('.select2').select2({
-        theme: 'bootstrap4',
-        width: '100%'
-    });
+document.getElementById('projectForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        status: formData.get('status'),
+        priority: formData.get('priority'),
+        percent_complete: parseInt(formData.get('percent_complete'))
+    };
 
-    // Initialize TinyMCE for description
-    tinymce.init({
-        selector: '.tinymce',
-        height: 300,
-        menubar: false,
-        plugins: [
-            'advlist autolink lists link image charmap print preview anchor',
-            'searchreplace visualblocks code fullscreen',
-            'insertdatetime media table paste code help wordcount'
-        ],
-        toolbar: 'undo redo | formatselect | bold italic backcolor | \
-                alignleft aligncenter alignright alignjustify | \
-                bullist numlist outdent indent | removeformat | help'
+    fetch("{{ url_for('projects.create_project') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': formData.get('csrf_token')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: data.message
+            }).then(() => {
+                window.location.href = "{{ url_for('projects.list_projects') }}";
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'An error occurred while creating the project'
+        });
     });
 });
 </script>

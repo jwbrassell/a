@@ -23,6 +23,44 @@ project_shareholders = db.Table('project_shareholders',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
 )
 
+class ProjectStatus(db.Model):
+    """Status configuration for projects"""
+    __tablename__ = 'project_status'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    color = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<ProjectStatus {self.name}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'color': self.color
+        }
+
+class ProjectPriority(db.Model):
+    """Priority configuration for projects"""
+    __tablename__ = 'project_priority'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    color = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<ProjectPriority {self.name}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'color': self.color
+        }
+
 class Project(db.Model):
     """Project model for managing projects"""
     __tablename__ = 'project'
@@ -76,6 +114,20 @@ class Project(db.Model):
             'high': 'danger'
         }
         return priority_classes.get(self.priority, 'secondary')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'status': self.status,
+            'priority': self.priority,
+            'percent_complete': self.percent_complete,
+            'lead': self.lead.username if self.lead else None,
+            'team_members': [user.username for user in self.team_members],
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 class Task(db.Model):
     """Task model for project tasks"""
@@ -120,6 +172,20 @@ class Task(db.Model):
             'high': 'danger'
         }
         return priority_classes.get(self.priority, 'secondary')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'project_id': self.project_id,
+            'name': self.name,
+            'description': self.description,
+            'status': self.status,
+            'priority': self.priority,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'assigned_to': self.assigned_to.username if self.assigned_to else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 class Todo(db.Model):
     """Todo model for checklist items"""

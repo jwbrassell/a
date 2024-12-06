@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}Projects List{% endblock %}
+
+{% block breadcrumb %}
+<ol class="breadcrumb float-sm-right">
+    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('projects.index') }}">Projects</a></li>
+    <li class="breadcrumb-item active">List</li>
+</ol>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-6">
+            <h1 class="m-0">Projects</h1>
+        </div>
+        <div class="col-6 text-right">
+            <a href="{{ url_for('projects.new_project') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Project
+            </a>
+        </div>
+    </div>
+
+    {% if not statuses %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5><i class="icon fas fa-info"></i> No Project Statuses</h5>
+                Please create project statuses in the <a href="{{ url_for('projects.index') }}">dashboard</a> first.
+            </div>
+        </div>
+    </div>
+    {% else %}
+        {% set has_projects = false %}
+        {% for status in statuses %}
+            {% if projects_by_status[status.name]|length > 0 %}
+                {% set has_projects = true %}
+            {% endif %}
+        {% endfor %}
+
+        {% if not has_projects %}
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h5><i class="icon fas fa-info"></i> No Projects</h5>
+                    Get started by creating your first project using the "Create Project" button above.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Project Tables by Status -->
+        {% for status in statuses %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="badge badge-{{ status.color }}">{{ status.name }}</span>
+                            Projects
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        {% if projects_by_status[status.name]|length == 0 %}
+                        <p class="text-muted">No projects with this status.</p>
+                        {% else %}
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Priority</th>
+                                    <th>Lead</th>
+                                    <th>Progress</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for project in projects_by_status[status.name] %}
+                                <tr>
+                                    <td>{{ project.name }}</td>
+                                    <td>
+                                        <span class="badge badge-{{ project.priority_class }}">
+                                            {{ project.priority }}
+                                        </span>
+                                    </td>
+                                    <td>{{ project.lead.username if project.lead else 'Unassigned' }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-{{ project.status_class }}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ project.percent_complete }}%"
+                                                 aria-valuenow="{{ project.percent_complete }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ project.percent_complete }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ project.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-info" onclick="editProject({{ project.id }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteProject({{ project.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+function editProject(projectId) {
+    // TODO: Implement project editing
+    window.location.href = `{{ url_for('projects.index') }}${projectId}/edit`;
+}
+
+function deleteProject(projectId) {
+    Swal.fire({
+        title: 'Delete Project?',
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Delete'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`{{ url_for('projects.index') }}${projectId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: data.message
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
+                }
+            });
+        }
+    });
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.progress {
+    height: 20px;
+}
+.progress-bar {
+    min-width: 2em;
+}
+</style>
+{% endblock %}
