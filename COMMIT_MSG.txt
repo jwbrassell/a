@@ -1,15 +1,8 @@
-docs: add comprehensive handoff plugin documentation
+fix(documents): Fix blueprint registration and template blocks
 
-- Create detailed README for handoff plugin with:
-  - Feature overview and architecture diagrams
-  - Data flow sequences and metrics visualization
-  - Installation and usage instructions
-  - API endpoint documentation
-  - Database schema diagrams using Mermaid
+- Add URL prefix to documents blueprint for proper route handling
+- Update all document templates to use page_content block instead of content
+- Add proper plugin metadata for plugin manager registration
+- Fix route registration to match blueprint URL structure
 
-- Update main README to include handoff plugin:
-  - Add to Table of Contents
-  - Add plugin description and key features
-  - Link to full documentation
-
-This documentation provides clear understanding of the handoff plugin's functionality, architecture, and integration with the main application.
+The documents plugin now properly integrates with the main application's navigation and routing system.

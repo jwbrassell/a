@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link href="{{ url_for('static', filename='src/select2/select2.min.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='src/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Edit Document</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Documents
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            {{ form.title(class="form-control", value=document.title) }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Content</label>
+                            {{ form.content(class="form-control tinymce") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Category</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.category(class="form-select") }}
+                        </div>
+                        <div class="mb-3">
+                            <div class="input-group">
+                                {{ form.new_category(class="form-control", placeholder="Or create new category") }}
+                                <button type="button" class="btn btn-outline-secondary" id="clearNewCategory">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Tags</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.tags(class="form-select select2", multiple="multiple") }}
+                        </div>
+                        <div class="mb-3">
+                            <div class="input-group">
+                                {{ form.new_tags(class="form-control", placeholder="Add new tags (comma separated)") }}
+                                <button type="button" class="btn btn-outline-secondary" id="clearNewTags">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Document Info</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-1"><strong>Created by:</strong> {{ document.creator.username }}</p>
+                        <p class="mb-1"><strong>Created at:</strong> {{ document.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                        <p class="mb-0"><strong>Last updated:</strong> {{ document.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+                <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+                <a href="{{ url_for('documents.history', id=document.id) }}" class="btn btn-outline-info float-end">
+                    <i class="fas fa-history"></i> View History
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='src/select2/select2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/tinymce/tinymce/tinymce.min.js') }}"></script>
+<script>
+(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        placeholder: 'Select tags',
+        allowClear: true
+    });
+
+    // Initialize TinyMCE
+    tinymce.init({
+        selector: '.tinymce',
+        height: 500,
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'media', 'table', 'help', 'wordcount'
+        ],
+        toolbar: 'undo redo | formatselect | ' +
+            'bold italic backcolor | alignleft aligncenter ' +
+            'alignright alignjustify | bullist numlist outdent indent | ' +
+            'removeformat | image table | help',
+        menubar: 'file edit view insert format tools table help',
+        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }',
+        images_upload_url: '/upload',
+        automatic_uploads: true,
+        images_reuse_filename: true,
+        paste_data_images: true,
+        relative_urls: false,
+        remove_script_host: false,
+        convert_urls: true,
+        setup: function(editor) {
+            editor.on('init', function() {
+                editor.setContent({{ document.content|tojson|safe }});
+            });
+        }
+    });
+
+    // Clear buttons functionality
+    document.getElementById('clearNewCategory').addEventListener('click', function() {
+        document.getElementById('new_category').value = '';
+    });
+
+    document.getElementById('clearNewTags').addEventListener('click', function() {
+        document.getElementById('new_tags').value = '';
+    });
+
+    // Form submission handling
+    document.querySelector('form').addEventListener('submit', function() {
+        tinymce.triggerSave();
+    });
+})();
+</script>
+{% endblock %}
