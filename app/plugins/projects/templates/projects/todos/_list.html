@@ -1,0 +1,113 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="card-title mb-0">
+    <i class="ion ion-clipboard mr-1"></i>
+    Todo List
+  </h3>
+  <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modal-new-todo">
+    <i class="fas fa-plus"></i> Add Todo
+  </button>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th style="width: 10px">#</th>
+        <th>Description</th>
+        <th style="width: 100px">Due</th>
+        <th style="width: 100px">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for todo in project.todos %}
+      <tr>
+        <td>
+          <div class="icheck-primary">
+            <input type="checkbox" value="" id="todoCheck{{ todo.id }}" 
+                   {% if todo.completed %}checked{% endif %}
+                   onchange="toggleTodo({{ todo.id }}, this.checked)">
+            <label for="todoCheck{{ todo.id }}"></label>
+          </div>
+        </td>
+        <td>
+          <span {% if todo.completed %}class="text-muted text-decoration-line-through"{% endif %}>
+            {{ todo.description }}
+          </span>
+        </td>
+        <td>
+          <small class="badge badge-{{ todo.badge_color }}">
+            <i class="far fa-clock"></i> {{ todo.due_text }}
+          </small>
+        </td>
+        <td>
+          <div class="btn-group">
+            <button type="button" class="btn btn-default btn-xs" title="Edit"
+                    onclick="editTodo({{ todo.id }})">
+              <i class="fas fa-pencil-alt text-warning"></i>
+            </button>
+            <button type="button" class="btn btn-default btn-xs" title="Delete"
+                    onclick="deleteTodo({{ todo.id }})">
+              <i class="fas fa-trash text-danger"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Todo Modal -->
+<div class="modal fade" id="modal-new-todo">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">New Todo Item</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="new-todo-form">
+          <div class="form-group">
+            <label for="todo-description">Description</label>
+            <input type="text" class="form-control" id="todo-description" required>
+          </div>
+          <div class="form-group">
+            <label for="todo-due-date">Due Date</label>
+            <input type="datetime-local" class="form-control" id="todo-due-date" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="saveTodo()">Save Item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleTodo(todoId, checked) {
+  // Implement toggle todo completion logic
+  console.log('Toggle todo:', todoId, checked);
+}
+
+function editTodo(todoId) {
+  // Implement edit todo logic
+  console.log('Edit todo:', todoId);
+}
+
+function deleteTodo(todoId) {
+  // Implement delete todo logic
+  if (confirm('Are you sure you want to delete this todo item?')) {
+    console.log('Delete todo:', todoId);
+  }
+}
+
+function saveTodo() {
+  // Implement save todo logic
+  console.log('Save new todo');
+  $('#modal-new-todo').modal('hide');
+}
+</script>
