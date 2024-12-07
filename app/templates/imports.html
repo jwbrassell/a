@@ -36,8 +36,14 @@
 <script src="{{ url_for('static', filename='src/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/select2/select2.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/sweetalert2/sweetalert2.all.min.js') }}"></script>
-<script src="{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/tinymce.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/toastr/toastr.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/sortablejs/Sortable.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/tinymce/tinymce.min.js') }}"></script>
+
+<!-- Project Scripts -->
+{% if request.endpoint and request.endpoint.startswith('projects.') %}
+<script src="{{ url_for('projects.static', filename='js/project.js') }}"></script>
+{% endif %}
 
 <!-- Initialize Toastr -->
 <script>
@@ -47,4 +53,21 @@ toastr.options = {
     positionClass: "toast-top-right",
     timeOut: 3000
 };
+</script>
+
+<!-- Initialize Bootstrap 5 Tooltips and Popovers -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize all popovers
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl);
+    });
+});
 </script>

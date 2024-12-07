@@ -142,7 +142,7 @@ class Task(db.Model):
     description = db.Column(db.Text)
     status = db.Column(db.String(50), default='open')
     priority = db.Column(db.String(50), default='medium')
-    due_date = db.Column(db.DateTime)
+    due_date = db.Column(db.Date)  # Changed from DateTime to Date
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

@@ -75,6 +75,12 @@
 </style>
 {% endblock %}
 
+{% block head %}
+{{ super() }}
+<!-- TinyMCE -->
+<script src="{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/tinymce.min.js') }}"></script>
+{% endblock %}
+
 {% block breadcrumb %}
 <ol class="breadcrumb float-sm-right">
     <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
@@ -85,22 +91,21 @@
 {% endblock %}
 
 {% block page_content %}
-<script>
-    window.canEdit = true;  // Always true in edit mode
-    window.projectId = {{ project.id }};  // Add project ID for JavaScript use
-</script>
-
-<!-- Toast Container -->
-<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
-
-<!-- Floating Save Button -->
-<div class="floating-buttons">
-    <button type="button" class="btn btn-primary btn-lg floating-save-button" onclick="saveProject()">
-        <i class="fas fa-save"></i> Save Changes
-    </button>
-</div>
-
 <div class="container-fluid">
+    <!-- Project Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Edit {{ project.name }}</h1>
+        </div>
+    </div>
+
+    <!-- Floating Save Button -->
+    <div class="floating-buttons">
+        <button type="button" class="btn btn-primary btn-lg floating-save-button" onclick="saveProject()">
+            <i class="fas fa-save"></i> Save Changes
+        </button>
+    </div>
+
     <div class="row">
         <!-- Left Column -->
         <div class="col-md-8">
@@ -147,124 +152,6 @@
                     <div class="form-group mb-3">
                         <label>Description</label>
                         <textarea id="description-editor">{{ project.description }}</textarea>
-                    </div>
-
-                    <!-- Todo List -->
-                    <div class="form-group mb-3">
-                        <label>Todo List</label>
-                        <div class="d-flex justify-content-end mb-2">
-                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#add-todo-modal">
-                                <i class="fas fa-plus"></i> Add Todo
-                            </button>
-                        </div>
-                        <div class="todo-list" id="sortable-todos">
-                            {% for todo in project.todos|sort(attribute='order') %}
-                            <div class="todo-item d-flex align-items-center" data-id="{{ todo.id }}">
-                                <div class="todo-handle">
-                                    <i class="fas fa-grip-vertical text-muted"></i>
-                                </div>
-                                <div class="icheck-primary d-inline">
-                                    <input type="checkbox" id="todo-{{ todo.id }}" 
-                                           {% if todo.completed %}checked{% endif %}
-                                           onchange="toggleTodo({{ todo.id }})">
-                                    <label for="todo-{{ todo.id }}"></label>
-                                </div>
-                                <div class="todo-content {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
-                                    {{ todo.description }}
-                                </div>
-                                <div class="todo-actions">
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTodo({{ todo.id }})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tasks Table -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-clipboard-list me-1"></i>
-                        Tasks
-                    </h3>
-                    <div class="card-tools">
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-task-modal">
-                            <i class="fas fa-plus"></i> Add Task
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Task</th>
-                                    <th>Assigned To</th>
-                                    <th>Status</th>
-                                    <th>Priority</th>
-                                    <th>Due Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for task in project.tasks %}
-                                <tr>
-                                    <td>{{ task.name }}</td>
-                                    <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
-                                    <td><span class="badge bg-{{ task.status_class }}">{{ task.status }}</span></td>
-                                    <td><span class="badge bg-{{ task.priority_class }}">{{ task.priority }}</span></td>
-                                    <td>{{ task.due_date|datetime if task.due_date else 'No due date' }}</td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Comments Section -->
-            <div class="card mt-4 direct-chat direct-chat-primary">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-comments me-1"></i>
-                        Comments
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <div class="direct-chat-messages">
-                        {% for comment in project.comments %}
-                        <div class="direct-chat-msg {% if comment.user_id == current_user.id %}right{% endif %}">
-                            <div class="direct-chat-infos clearfix">
-                                <span class="direct-chat-name {% if comment.user_id == current_user.id %}float-end{% else %}float-start{% endif %}">
-                                    {{ comment.user.username }}
-                                </span>
-                                <span class="direct-chat-timestamp {% if comment.user_id == current_user.id %}float-start{% else %}float-end{% endif %}">
-                                    {{ comment.created_at|datetime }}
-                                </span>
-                            </div>
-                            <img class="direct-chat-img" src="{{ comment.user.avatar_url }}" alt="User Image">
-                            <div class="direct-chat-text">
-                                {{ comment.content }}
-                            </div>
-                        </div>
-                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -340,106 +227,12 @@
     </div>
 </div>
 
-<!-- Add Todo Modal -->
-<div class="modal fade" id="add-todo-modal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Todo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="todo-form">
-                    <div class="form-group mb-3">
-                        <label for="todo-description">Description</label>
-                        <input type="text" class="form-control" id="todo-description" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="todo-assigned-to">Assign To</label>
-                        <select class="form-control" id="todo-assigned-to">
-                            <option value="">Unassigned</option>
-                            {% for member in project.team_members %}
-                            <option value="{{ member.id }}">{{ member.username }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="createTodo()">Add Todo</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Create/Edit Task Modal -->
-<div class="modal fade" id="create-task-modal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create Task</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="task-form">
-                    <!-- Hidden task ID field for edit mode -->
-                    <input type="hidden" id="task-id" value="">
-                    
-                    <div class="form-group mb-3">
-                        <label for="task-name">Name</label>
-                        <input type="text" class="form-control" id="task-name" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="task-description">Description</label>
-                        <textarea class="form-control" id="task-description" rows="3"></textarea>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="task-status">Status</label>
-                        <select class="form-control" id="task-status">
-                            <option value="open">Open</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="review">Review</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="task-priority">Priority</label>
-                        <select class="form-control" id="task-priority">
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                        </select>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="task-assigned-to">Assign To</label>
-                        <select class="form-control" id="task-assigned-to">
-                            <option value="">Unassigned</option>
-                            {% for member in project.team_members %}
-                            <option value="{{ member.id }}">{{ member.username }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="task-due-date">Due Date</label>
-                        <input type="date" class="form-control" id="task-due-date">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="createTask()">Create Task</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Icon Picker Modal -->
-<div class="modal fade" id="icon-picker-modal" tabindex="-1">
+<div class="modal fade" id="icon-picker-modal" tabindex="-1" aria-labelledby="icon-picker-modal-label" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Select Icon</h5>
+                <h5 class="modal-title" id="icon-picker-modal-label">Select Icon</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -458,124 +251,10 @@
     </div>
 </div>
 
-<!-- View Task Modal -->
-<div class="modal fade" id="view-task-modal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="view-task-name"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <!-- Left Column -->
-                    <div class="col-md-8">
-                        <!-- Task Description -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Description</h3>
-                            </div>
-                            <div class="card-body">
-                                <div id="view-task-description"></div>
-                            </div>
-                        </div>
-
-                        <!-- Task Comments -->
-                        <div class="card mt-4 direct-chat direct-chat-primary">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-comments me-1"></i>
-                                    Comments
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="direct-chat-messages" id="view-task-comments">
-                                    <!-- Task comments will be populated here -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Task History -->
-                        <div class="card mt-4">
-                            <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#task-history-collapse">
-                                <h3 class="card-title">
-                                    <i class="fas fa-history me-1"></i>
-                                    Task History
-                                    <i class="fas fa-chevron-down ms-2"></i>
-                                </h3>
-                            </div>
-                            <div id="task-history-collapse" class="collapse">
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover">
-                                            <thead>
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>User</th>
-                                                    <th>Action</th>
-                                                    <th>Details</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="view-task-history">
-                                                <!-- Task history will be populated here -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Column -->
-                    <div class="col-md-4">
-                        <!-- Task Details -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Task Details</h3>
-                            </div>
-                            <div class="card-body">
-                                <dl class="row">
-                                    <dt class="col-sm-4">Status</dt>
-                                    <dd class="col-sm-8" id="view-task-status"></dd>
-
-                                    <dt class="col-sm-4">Priority</dt>
-                                    <dd class="col-sm-8" id="view-task-priority"></dd>
-
-                                    <dt class="col-sm-4">Assigned To</dt>
-                                    <dd class="col-sm-8" id="view-task-assigned"></dd>
-
-                                    <dt class="col-sm-4">Due Date</dt>
-                                    <dd class="col-sm-8" id="view-task-due-date"></dd>
-
-                                    <dt class="col-sm-4">Created</dt>
-                                    <dd class="col-sm-8" id="view-task-created"></dd>
-
-                                    <dt class="col-sm-4">Updated</dt>
-                                    <dd class="col-sm-8" id="view-task-updated"></dd>
-                                </dl>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                {% if can_edit %}
-                <button type="button" class="btn btn-primary" onclick="editTask(currentTaskId)">Edit Task</button>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<!-- SortableJS -->
-<script src="{{ url_for('static', filename='src/sortablejs/Sortable.min.js') }}"></script>
-<!-- Project JS -->
-<script src="{{ url_for('projects.static', filename='js/project.js') }}"></script>
 <script>
 // Initialize TinyMCE
 tinymce.init({
@@ -592,30 +271,9 @@ tinymce.init({
              bullist numlist outdent indent | removeformat | help'
 });
 
-// Initialize Sortable for todos
-var todoList = document.getElementById('sortable-todos');
-if (todoList) {
-    new Sortable(todoList, {
-        animation: 150,
-        handle: '.todo-handle',
-        ghostClass: 'bg-light',
-        onEnd: function(evt) {
-            var todos = Array.from(todoList.children).map((item, index) => ({
-                id: item.dataset.id,
-                order: index
-            }));
-            updateTodoOrder(todos);
-        }
-    });
-}
-
-// Initialize Bootstrap tooltips
-var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl);
-});
-
-// Track current task ID for edit button in view modal
-let currentTaskId = null;
+// Make project ID available to JavaScript
+window.projectId = {{ project.id }};
+window.canEdit = true;  // Always true in edit mode
+window.currentUserId = {{ current_user.id }};
 </script>
 {% endblock %}

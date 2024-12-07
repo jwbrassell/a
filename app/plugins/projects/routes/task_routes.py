@@ -8,7 +8,13 @@ from app.extensions import db
 from app.models import UserActivity
 from ..models import Project, Task, History, Comment
 from app.plugins.projects import bp
-from datetime import datetime
+from datetime import datetime, date
+
+def serialize_date(date_obj):
+    """Helper function to serialize date/datetime objects to ISO format strings"""
+    if hasattr(date_obj, 'isoformat'):
+        return date_obj.isoformat()
+    return None
 
 @bp.route('/<int:project_id>/tasks', methods=['GET'])
 @login_required
@@ -69,7 +75,7 @@ def create_task(project_id):
             'description': task.description,
             'status': task.status,
             'priority': task.priority,
-            'due_date': task.due_date.isoformat() if task.due_date else None,
+            'due_date': serialize_date(task.due_date),
             'assigned_to_id': task.assigned_to_id
         }
     )
@@ -97,11 +103,30 @@ def create_task(project_id):
 @requires_roles('user')
 def get_task(task_id):
     """Get a specific task"""
-    task = Task.query.get_or_404(task_id)
-    return jsonify({
-        'success': True,
-        'task': task.to_dict()
-    })
+    try:
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({
+                'success': False,
+                'message': 'Task not found'
+            }), 404
+            
+        # Check if user has access to the project this task belongs to
+        if not task.project:
+            return jsonify({
+                'success': False,
+                'message': 'Task has no associated project'
+            }), 400
+            
+        return jsonify({
+            'success': True,
+            'task': task.to_dict()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error loading task: {str(e)}'
+        }), 500
 
 @bp.route('/task/<int:task_id>', methods=['PUT'])
 @login_required
@@ -122,7 +147,8 @@ def update_task(task_id):
     # Parse due date if provided
     if 'due_date' in data:
         try:
-            data['due_date'] = datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data['due_date'] else None
+            if isinstance(data['due_date'], str):
+                data['due_date'] = datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data['due_date'] else None
         except ValueError:
             return jsonify({
                 'success': False,
@@ -133,7 +159,12 @@ def update_task(task_id):
     changes = {}
     for key, value in data.items():
         if hasattr(task, key) and getattr(task, key) != value:
-            changes[key] = {'old': getattr(task, key), 'new': value}
+            old_value = getattr(task, key)
+            # Convert date objects to ISO format strings
+            changes[key] = {
+                'old': serialize_date(old_value) if isinstance(old_value, (datetime, date)) else old_value,
+                'new': serialize_date(value) if isinstance(value, (datetime, date)) else value
+            }
             setattr(task, key, value)
     
     if changes:

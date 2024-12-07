@@ -4,11 +4,6 @@
 
 {% block styles %}
 {{ super() }}
-<!-- TinyMCE -->
-<script src="{{ url_for('static', filename='src/tinymce/tinymce.min.js') }}"></script>
-<!-- Font Awesome Icon Picker -->
-<link href="{{ url_for('static', filename='src/fontawesome/css/all.min.css') }}" rel="stylesheet">
-<!-- Custom Styles -->
 <style>
 .todo-list {
     min-height: 100px;
@@ -32,9 +27,43 @@
 }
 .direct-chat-messages {
     height: 400px;
+    overflow-y: auto;
 }
 .direct-chat-text {
     margin: 5px 0 0 10px;
+}
+/* Rich text content styling */
+.rich-text-content {
+    line-height: 1.6;
+}
+.rich-text-content p {
+    margin-bottom: 1rem;
+}
+.rich-text-content ul, 
+.rich-text-content ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+.rich-text-content img {
+    max-width: 100%;
+    height: auto;
+}
+.rich-text-content table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+.rich-text-content table td,
+.rich-text-content table th {
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+/* Task modal styles */
+.task-modal-content {
+    min-height: 600px;
+}
+.task-description-editor {
+    min-height: 200px;
 }
 </style>
 {% endblock %}
@@ -49,77 +78,66 @@
 
 {% block page_content %}
 <div class="container-fluid">
+    <!-- Project Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1>{{ project.name }}</h1>
+            {% if can_edit %}
+            <div class="float-end">
+                <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Edit Project
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="row">
         <!-- Left Column -->
         <div class="col-md-8">
-            <!-- Project Details Card -->
-            <div class="card">
+            <!-- Project Details -->
+            <div class="card mb-4">
                 <div class="card-header">
                     <h3 class="card-title">Project Details</h3>
-                    {% if can_edit %}
-                    <div class="card-tools">
-                        <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-edit"></i> Edit Project
-                        </a>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="card-body">
-                    <!-- Project Name -->
-                    <div class="form-group">
-                        <label>Project Name</label>
-                        <p class="form-control-static">{{ project.name }}</p>
+                    <!-- Project Icon -->
+                    <div class="mb-4">
+                        <i class="{{ project.icon or 'fas fa-project-diagram' }} fa-2x"></i>
                     </div>
 
                     <!-- Project Summary -->
-                    <div class="form-group">
-                        <label>Summary</label>
-                        <p class="form-control-static">{{ project.summary }}</p>
+                    {% if project.summary %}
+                    <div class="mb-4">
+                        <h4>Summary</h4>
+                        <p>{{ project.summary }}</p>
                     </div>
+                    {% endif %}
 
-                    <!-- Icon -->
-                    <div class="form-group">
-                        <label>Icon</label>
-                        <div>
-                            <i class="{{ project.icon or 'fas fa-project-diagram' }} fa-2x"></i>
-                        </div>
+                    <!-- Project Description -->
+                    {% if project.description %}
+                    <div class="mb-4">
+                        <h4>Description</h4>
+                        <div class="rich-text-content">{{ project.description|safe }}</div>
                     </div>
-
-                    <!-- Description -->
-                    <div class="form-group">
-                        <label>Description</label>
-                        <div class="form-control-static">{{ project.description|safe }}</div>
-                    </div>
-
-                    <!-- Todo Section -->
-                    <div class="form-group">
-                        <label>Todo</label>
-                        <div class="todo-list">
-                            {% for todo in project.todos|sort(attribute='order') %}
-                            <div class="todo-item d-flex align-items-center">
-                                <div class="icheck-primary d-inline">
-                                    <input type="checkbox" id="todo-{{ todo.id }}" 
-                                           {% if todo.completed %}checked{% endif %}
-                                           disabled>
-                                    <label for="todo-{{ todo.id }}"></label>
-                                </div>
-                                <div class="todo-content {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
-                                    {{ todo.description }}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
 
             <!-- Tasks Table -->
-            <div class="card mt-4">
+            <div class="card mb-4">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="fas fa-clipboard-list mr-1"></i>
+                        <i class="fas fa-tasks me-1"></i>
                         Tasks
                     </h3>
+                    {% if can_edit %}
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#create-task-modal">
+                            <i class="fas fa-plus"></i> Add Task
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -139,13 +157,21 @@
                                 <tr>
                                     <td>{{ task.name }}</td>
                                     <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
-                                    <td><span class="badge badge-{{ task.status_class }}">{{ task.status }}</span></td>
-                                    <td><span class="badge badge-{{ task.priority_class }}">{{ task.priority }}</span></td>
+                                    <td><span class="badge bg-{{ task.status_class }}">{{ task.status }}</span></td>
+                                    <td><span class="badge bg-{{ task.priority_class }}">{{ task.priority }}</span></td>
                                     <td>{{ task.due_date|datetime if task.due_date else 'No due date' }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})">
+                                        <button type="button" class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})">
                                             <i class="fas fa-eye"></i>
                                         </button>
+                                        {% if can_edit %}
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -155,11 +181,51 @@
                 </div>
             </div>
 
-            <!-- Comments Section -->
-            <div class="card mt-4 direct-chat direct-chat-primary">
+            <!-- Todo List -->
+            <div class="card mb-4">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="fas fa-comments mr-1"></i>
+                        <i class="fas fa-check-square me-1"></i>
+                        Todo List
+                    </h3>
+                    {% if can_edit %}
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#add-todo-modal">
+                            <i class="fas fa-plus"></i> Add Todo
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="todo-list">
+                        {% for todo in project.todos|sort(attribute='order') %}
+                        <div class="todo-item d-flex align-items-center">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="todo-{{ todo.id }}" 
+                                       {% if todo.completed %}checked{% endif %}
+                                       {% if not can_edit %}disabled{% endif %}
+                                       onchange="toggleTodo({{ todo.id }})">
+                                <label class="form-check-label" for="todo-{{ todo.id }}"></label>
+                            </div>
+                            <div class="todo-content {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
+                                {{ todo.description }}
+                            </div>
+                            {% if can_edit %}
+                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteTodo({{ todo.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-comments me-1"></i>
                         Comments
                     </h3>
                 </div>
@@ -168,10 +234,10 @@
                         {% for comment in project.comments %}
                         <div class="direct-chat-msg {% if comment.user_id == current_user.id %}right{% endif %}">
                             <div class="direct-chat-infos clearfix">
-                                <span class="direct-chat-name {% if comment.user_id == current_user.id %}float-right{% else %}float-left{% endif %}">
+                                <span class="direct-chat-name {% if comment.user_id == current_user.id %}float-end{% else %}float-start{% endif %}">
                                     {{ comment.user.username }}
                                 </span>
-                                <span class="direct-chat-timestamp {% if comment.user_id == current_user.id %}float-left{% else %}float-right{% endif %}">
+                                <span class="direct-chat-timestamp {% if comment.user_id == current_user.id %}float-start{% else %}float-end{% endif %}">
                                     {{ comment.created_at|datetime }}
                                 </span>
                             </div>
@@ -183,13 +249,23 @@
                         {% endfor %}
                     </div>
                 </div>
+                {% if can_edit %}
+                <div class="card-footer">
+                    <form onsubmit="return submitComment();">
+                        <div class="input-group">
+                            <input type="text" id="comment-content" class="form-control" placeholder="Type Message ...">
+                            <button type="submit" class="btn btn-primary">Send</button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
             </div>
 
             <!-- History Table -->
-            <div class="card mt-4">
+            <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="fas fa-history mr-1"></i>
+                        <i class="fas fa-history me-1"></i>
                         Project History
                     </h3>
                 </div>
@@ -211,8 +287,8 @@
                                     <td>{{ event.created_at|datetime }}</td>
                                     <td>{{ event.user.username }}</td>
                                     <td>
-                                        <span class="badge badge-{{ event.color }}">
-                                            <i class="fas fa-{{ event.icon }} mr-1"></i>
+                                        <span class="badge bg-{{ event.color }}">
+                                            <i class="fas fa-{{ event.icon }} me-1"></i>
                                             {{ event.action }}
                                         </span>
                                     </td>
@@ -229,78 +305,323 @@
 
         <!-- Right Column -->
         <div class="col-md-4">
-            <!-- Project Metadata -->
-            <div class="card">
+            <!-- Project Info -->
+            <div class="card mb-4">
                 <div class="card-header">
-                    <h3 class="card-title">Project Details</h3>
+                    <h3 class="card-title">Project Info</h3>
                 </div>
                 <div class="card-body">
-                    <!-- Lead -->
-                    <div class="form-group">
-                        <label>Project Lead</label>
-                        <p class="form-control-static">{{ project.lead.username if project.lead else 'Unassigned' }}</p>
-                    </div>
+                    <dl class="row">
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-{{ project.status_class }}">{{ project.status }}</span>
+                        </dd>
 
-                    <!-- Priority -->
-                    <div class="form-group">
-                        <label>Priority</label>
-                        <p class="form-control-static">
-                            <span class="badge badge-{{ project.priority_class }}">{{ project.priority }}</span>
-                        </p>
-                    </div>
+                        <dt class="col-sm-4">Priority</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-{{ project.priority_class }}">{{ project.priority }}</span>
+                        </dd>
 
-                    <!-- Status -->
-                    <div class="form-group">
-                        <label>Status</label>
-                        <p class="form-control-static">
-                            <span class="badge badge-{{ project.status_class }}">{{ project.status }}</span>
-                        </p>
-                    </div>
+                        <dt class="col-sm-4">Lead</dt>
+                        <dd class="col-sm-8">{{ project.lead.username if project.lead else 'Unassigned' }}</dd>
 
-                    <!-- Last Update -->
-                    <div class="form-group">
-                        <label>Last Update</label>
-                        <p class="form-control-static">{{ project.updated_at|datetime }}</p>
-                    </div>
+                        <dt class="col-sm-4">Created</dt>
+                        <dd class="col-sm-8">{{ project.created_at|datetime }}</dd>
 
-                    <!-- Percent Complete -->
-                    <div class="form-group">
-                        <label>Percent Complete</label>
-                        <div class="progress">
-                            <div class="progress-bar" role="progressbar" 
-                                 style="width: {{ project.percent_complete }}%"
-                                 aria-valuenow="{{ project.percent_complete }}" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
-                                {{ project.percent_complete }}%
-                            </div>
-                        </div>
-                    </div>
+                        <dt class="col-sm-4">Updated</dt>
+                        <dd class="col-sm-8">{{ project.updated_at|datetime }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Team Members -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">Team Members</h3>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        {% for member in project.team_members %}
+                        <li class="mb-2">
+                            <img src="{{ member.avatar_url }}" alt="{{ member.username }}" class="img-circle" width="32">
+                            {{ member.username }}
+                        </li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Create/Edit Task Modal -->
+<div class="modal fade" id="create-task-modal" tabindex="-1" aria-labelledby="create-task-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content task-modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="create-task-modal-label">Create Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Left Column -->
+                    <div class="col-md-8">
+                        <!-- Task Details Card -->
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <form id="task-form">
+                                    <input type="hidden" id="task-id" value="">
+                                    <div class="form-group mb-3">
+                                        <label for="task-name">Task Name</label>
+                                        <input type="text" class="form-control" id="task-name" required>
+                                    </div>
+                                    <div class="form-group mb-3">
+                                        <label for="task-description">Description</label>
+                                        <textarea class="form-control task-description-editor" id="task-description" rows="10"></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Task Comments -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h3 class="card-title">Comments</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="direct-chat-messages" id="edit-task-comments">
+                                    <!-- Comments will be loaded dynamically -->
+                                </div>
+                                {% if can_edit %}
+                                <div class="card-footer p-0 mt-3">
+                                    <div class="input-group">
+                                        <input type="text" id="edit-task-comment" class="form-control" placeholder="Type Message ...">
+                                        <button type="button" class="btn btn-primary" onclick="addTaskComment()">Send</button>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Task History -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">History</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>User</th>
+                                                <th>Action</th>
+                                                <th>Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="edit-task-history">
+                                            <!-- History will be loaded dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Task Details</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group mb-3">
+                                    <label for="task-status">Status</label>
+                                    <select class="form-control" id="task-status">
+                                        <option value="open">Open</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="review">Review</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="task-priority">Priority</label>
+                                    <select class="form-control" id="task-priority">
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="task-assigned-to">Assign To</label>
+                                    <select class="form-control" id="task-assigned-to">
+                                        <option value="">Unassigned</option>
+                                        {% for member in project.team_members %}
+                                        <option value="{{ member.id }}">{{ member.username }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="task-due-date">Due Date</label>
+                                    <input type="date" class="form-control" id="task-due-date">
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label>Created</label>
+                                    <p class="form-control-static" id="task-created"></p>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label>Updated</label>
+                                    <p class="form-control-static" id="task-updated"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createTask()">Create Task</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Task Modal -->
+<div class="modal fade" id="view-task-modal" tabindex="-1" aria-labelledby="view-task-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content task-modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="view-task-name"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Description</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="view-task-description" class="rich-text-content"></div>
+                            </div>
+                        </div>
+
+                        <!-- Task Comments -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h3 class="card-title">Comments</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="view-task-comments" class="direct-chat-messages"></div>
+                            </div>
+                        </div>
+
+                        <!-- Task History -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h3 class="card-title">History</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>User</th>
+                                                <th>Action</th>
+                                                <th>Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="view-task-history"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Details</h3>
+                            </div>
+                            <div class="card-body">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Status</dt>
+                                    <dd class="col-sm-8" id="view-task-status"></dd>
+
+                                    <dt class="col-sm-4">Priority</dt>
+                                    <dd class="col-sm-8" id="view-task-priority"></dd>
+
+                                    <dt class="col-sm-4">Assigned</dt>
+                                    <dd class="col-sm-8" id="view-task-assigned"></dd>
+
+                                    <dt class="col-sm-4">Due Date</dt>
+                                    <dd class="col-sm-8" id="view-task-due-date"></dd>
+
+                                    <dt class="col-sm-4">Created</dt>
+                                    <dd class="col-sm-8" id="view-task-created"></dd>
+
+                                    <dt class="col-sm-4">Updated</dt>
+                                    <dd class="col-sm-8" id="view-task-updated"></dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                {% if can_edit %}
+                <button type="button" class="btn btn-primary" onclick="editTask(currentTaskId)">Edit Task</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Todo Modal -->
+<div class="modal fade" id="add-todo-modal" tabindex="-1" aria-labelledby="add-todo-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="add-todo-modal-label">Add Todo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="todo-form">
+                    <div class="form-group mb-3">
+                        <label for="todo-description">Description</label>
+                        <input type="text" class="form-control" id="todo-description" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="todo-assigned-to">Assign To</label>
+                        <select class="form-control" id="todo-assigned-to">
+                            <option value="">Unassigned</option>
+                            {% for member in project.team_members %}
+                            <option value="{{ member.id }}">{{ member.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="createTodo()">Add Todo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
-// Initialize TinyMCE in read-only mode
-tinymce.init({
-    selector: '#description-editor',
-    height: 300,
-    menubar: false,
-    readonly: true,
-    plugins: [
-        'advlist autolink lists link image charmap print preview anchor',
-        'searchreplace visualblocks code fullscreen',
-        'insertdatetime media table paste code help wordcount'
-    ],
-    toolbar: false
-});
+// Store current task ID for edit button
+let currentTaskId = null;
 
-// Disable comment submission
-window.submitComment = function() { return false; };
+// Make project ID available to JavaScript
+window.projectId = {{ project.id }};
+window.canEdit = {{ can_edit|tojson }};
+window.currentUserId = {{ current_user.id }};
 </script>
 {% endblock %}

@@ -1,12 +1,14 @@
-feat: enhanced task viewing and project layout improvements
+feat: restored project functionality and enhanced task management
 
-- Moved task history below comments in task view modal and made it collapsible
-- Removed ability to add comments in view mode
-- Moved todo section below description in project details
-- Reorganized project edit layout for better usability
+- Restored project.js with complete task and todo management functionality
+- Added create-task-modal to view.html for task creation/editing
+- Updated imports.html to properly include project.js and dependencies
+- Added Sortable.js for todo list drag-and-drop functionality
+- Added TinyMCE for rich text editing support
 
-These changes improve the user experience by:
-- Providing a cleaner, more organized layout
-- Making task history accessible but not obtrusive
-- Ensuring comments are read-only in view mode
-- Keeping related functionality (description and todos) together
+These changes restore and improve functionality by:
+- Enabling full task management (view, create, edit, delete)
+- Supporting todo list features (create, toggle, delete, reorder)
+- Providing proper modal handling for task operations
+- Ensuring all JavaScript dependencies are properly loaded
+- Maintaining proper separation of concerns between view and edit modes
