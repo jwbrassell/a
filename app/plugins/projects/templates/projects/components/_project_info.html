@@ -4,14 +4,15 @@
         <h3 class="card-title">Project Info</h3>
     </div>
     <div class="card-body">
+        <!-- Status -->
         <div class="form-group mb-3">
             <label for="project-status">Status</label>
             {% if readonly %}
                 <input type="text" class="form-control" value="{{ project.status|title }}" readonly>
             {% else %}
-                <select class="form-control" id="project-status" name="status">
+                <select class="form-control select2" id="project-status" name="status">
                     {% for status in statuses %}
-                    <option value="{{ status.name }}" {% if project.status == status.name %}selected{% endif %}>
+                    <option value="{{ status.name }}" data-color="{{ status.color }}" {% if project.status == status.name %}selected{% endif %}>
                         {{ status.name|title }}
                     </option>
                     {% endfor %}
@@ -19,14 +20,32 @@
             {% endif %}
         </div>
 
+        <!-- Lead -->
+        <div class="form-group mb-3">
+            <label for="project-lead">Lead</label>
+            {% if readonly %}
+                <input type="text" class="form-control" value="{{ project.lead.username if project.lead else 'Unassigned' }}" readonly>
+            {% else %}
+                <select class="form-control select2" id="project-lead" name="lead_id">
+                    <option value="">Unassigned</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if project.lead and project.lead.id == user.id %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <!-- Priority -->
         <div class="form-group mb-3">
             <label for="project-priority">Priority</label>
             {% if readonly %}
                 <input type="text" class="form-control" value="{{ project.priority|title }}" readonly>
             {% else %}
-                <select class="form-control" id="project-priority" name="priority">
+                <select class="form-control select2" id="project-priority" name="priority">
                     {% for priority in priorities %}
-                    <option value="{{ priority.name }}" {% if project.priority == priority.name %}selected{% endif %}>
+                    <option value="{{ priority.name }}" data-color="{{ priority.color }}" {% if project.priority == priority.name %}selected{% endif %}>
                         {{ priority.name|title }}
                     </option>
                     {% endfor %}
@@ -34,42 +53,147 @@
             {% endif %}
         </div>
 
-        <div class="form-group mb-3">
-            <label for="project-lead">Lead</label>
-            {% if readonly %}
-                <input type="text" class="form-control" value="{{ project.lead.username if project.lead else 'Unassigned' }}" readonly>
-            {% else %}
-                <select class="form-control" id="project-lead" name="lead_id">
-                    <option value="">Unassigned</option>
-                    {% for member in project.team_members %}
-                    <option value="{{ member.id }}" {% if project.lead and project.lead.id == member.id %}selected{% endif %}>
-                        {{ member.username }}
-                    </option>
-                    {% endfor %}
-                </select>
-            {% endif %}
+        <!-- Project Icon -->
+        <div class="form-group mb-4">
+            <label for="project-icon">Project Icon</label>
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i id="icon-preview" class="{{ project.icon or 'fas fa-project-diagram' }}"></i>
+                </span>
+                <input type="text" class="form-control" id="project-icon" name="icon" 
+                       value="{{ project.icon or 'fas fa-project-diagram' }}"
+                       placeholder="fas fa-icon-name"
+                       {% if readonly %}readonly{% endif %}>
+                {% if not readonly %}
+                <button class="btn btn-outline-secondary" type="button" onclick="projectModule.openIconPicker()">
+                    Browse Icons
+                </button>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="form-group mb-3">
-            <label for="project-start-date">Start Date</label>
-            <input type="date" class="form-control" id="project-start-date" name="start_date"
-                   value="{{ project.start_date|date if project.start_date }}"
-                   {% if readonly %}readonly{% endif %}>
-        </div>
+        <!-- Timestamps -->
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Last Updated</dt>
+            <dd class="col-sm-8" id="last-saved">{{ project.updated_at|datetime }}</dd>
 
-        <div class="form-group mb-3">
-            <label for="project-end-date">End Date</label>
-            <input type="date" class="form-control" id="project-end-date" name="end_date"
-                   value="{{ project.end_date|date if project.end_date }}"
-                   {% if readonly %}readonly{% endif %}>
-        </div>
-
-        <dl class="row">
             <dt class="col-sm-4">Created</dt>
             <dd class="col-sm-8">{{ project.created_at|datetime }}</dd>
-
-            <dt class="col-sm-4">Updated</dt>
-            <dd class="col-sm-8" id="last-saved">{{ project.updated_at|datetime }}</dd>
         </dl>
     </div>
 </div>
+
+{% if not readonly %}
+<style>
+/* Icon picker styles */
+.icon-option {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.icon-option:hover {
+    background-color: var(--bs-secondary-bg);
+    transform: scale(1.05);
+}
+.icon-option i {
+    transition: all 0.2s ease;
+}
+.icon-option:hover i {
+    color: var(--bs-primary);
+}
+
+/* Select2 custom styles */
+.select2-container--bootstrap-5 .select2-selection {
+    border-color: var(--bs-border-color);
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+.select2-container--bootstrap-5 .select2-selection--single {
+    height: calc(3.5rem + 2px);
+    padding: 1rem 0.75rem;
+    font-size: 1rem;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+    background-color: var(--bs-body-bg);
+    border-color: var(--bs-border-color);
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    color: var(--bs-body-color);
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+/* Status and Priority option styles */
+.select2-option-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.select2-option-text {
+    flex-grow: 1;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Select2 for lead
+    $('#project-lead').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+
+    // Custom template for status options
+    $('#project-status').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        templateResult: formatStatus,
+        templateSelection: formatStatus,
+        escapeMarkup: function(m) { return m; }
+    });
+
+    // Custom template for priority options
+    $('#project-priority').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        templateResult: formatPriority,
+        templateSelection: formatPriority,
+        escapeMarkup: function(m) { return m; }
+    });
+
+    function formatStatus(status) {
+        if (!status.id) return status.text;
+        const color = $(status.element).data('color');
+        const text = status.text;
+        return $(
+            '<div class="select2-option-container">' +
+                '<span class="select2-option-text">' + text + '</span>' +
+                '<span class="badge bg-' + color + '">' + text + '</span>' +
+            '</div>'
+        );
+    }
+
+    function formatPriority(priority) {
+        if (!priority.id) return priority.text;
+        const color = $(priority.element).data('color');
+        const text = priority.text;
+        return $(
+            '<div class="select2-option-container">' +
+                '<span class="select2-option-text">' + text + '</span>' +
+                '<span class="badge bg-' + color + '">' + text + '</span>' +
+            '</div>'
+        );
+    }
+
+    // Trigger change event after initialization to update any existing values
+    $('.select2').trigger('change');
+});
+</script>
+{% endif %}

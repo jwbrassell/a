@@ -74,29 +74,25 @@
 </style>
 {% endblock %}
 
-{% block header %}
-    {% include 'projects/components/_project_header.html' %}
-{% endblock %}
-
 {% block left_column %}
     <!-- Project Details -->
     {% include 'projects/components/_project_details.html' %}
 
     <!-- Tasks Table -->
     <div class="card mb-4">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-tasks me-1"></i>
-                Tasks
-            </h3>
-            <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-new-task">
-                    <i class="fas fa-plus"></i> Add Task
-                </button>
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#tasksCollapse" aria-expanded="true" aria-controls="tasksCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-tasks me-1"></i>
+                    Tasks
+                </h3>
+                <i class="fas fa-minus collapse-icon"></i>
             </div>
         </div>
-        <div class="card-body">
-            {% include 'projects/tasks/_table.html' %}
+        <div class="collapse show" id="tasksCollapse">
+            <div class="card-body">
+                {% include 'projects/tasks/_table.html' %}
+            </div>
         </div>
     </div>
 
@@ -121,7 +117,7 @@
                     <i class="fas fa-comments me-1"></i>
                     Comments
                 </h3>
-                <i class="fas fa-chevron-down"></i>
+                <i class="fas fa-plus"></i>
             </div>
         </div>
         <div class="collapse" id="commentsCollapse">
@@ -139,7 +135,7 @@
                     <i class="fas fa-history me-1"></i>
                     Project History
                 </h3>
-                <i class="fas fa-chevron-down"></i>
+                <i class="fas fa-plus"></i>
             </div>
         </div>
         <div class="collapse" id="historyCollapse">
@@ -188,6 +184,22 @@
 <script>
 window.projectId = {{ project.id }};
 window.currentUserId = {{ current_user.id }};
+
+// Handle collapse icon changes
+document.addEventListener('DOMContentLoaded', function() {
+    const tasksCollapse = document.getElementById('tasksCollapse');
+    const collapseIcon = tasksCollapse.previousElementSibling.querySelector('.collapse-icon');
+    
+    tasksCollapse.addEventListener('show.bs.collapse', function() {
+        collapseIcon.classList.remove('fa-plus');
+        collapseIcon.classList.add('fa-minus');
+    });
+    
+    tasksCollapse.addEventListener('hide.bs.collapse', function() {
+        collapseIcon.classList.remove('fa-minus');
+        collapseIcon.classList.add('fa-plus');
+    });
+});
 </script>
 
 <!-- Project functionality -->

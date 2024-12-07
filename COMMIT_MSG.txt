@@ -1,8 +1,8 @@
-refactor(projects): improve tasks view layout and interactions
+refactor(projects): improve project edit page layout and styling
 
-- Move Add Task button from header to footer and make it smaller
-- Replace Description column with Summary in tasks table
-- Allow columns to fit content width without word wrapping
-- Make tasks card collapsible with AdminLTE-style header
-- Add minus/plus icons for collapse/expand state
-- Position collapse button at far right of card header
+- Remove duplicate project icon and summary from header
+- Move project icon selection below lead field
+- Put project name and summary on single lines
+- Reorder fields: Status, Lead, Priority, Project Icon, Last Updated, Created
+- Add Bootstrap badges to status and priority dropdowns matching task list style
+- Update Select2 dropdown styling for better visual consistency

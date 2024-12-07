@@ -97,10 +97,6 @@ window.projectModule = (function() {
             description = descriptionElement.value || '';
         }
 
-        // Get dates safely
-        const startDate = getElementValue('project-start-date');
-        const endDate = getElementValue('project-end-date');
-
         // Get lead ID safely and ensure it's a number or null
         const leadId = getElementValue('project-lead');
         
@@ -112,9 +108,7 @@ window.projectModule = (function() {
             description: description,
             status: getElementValue('project-status'),
             priority: getElementValue('project-priority'),
-            lead_id: leadId ? parseInt(leadId) : null,
-            start_date: startDate || null,
-            end_date: endDate || null
+            lead_id: leadId ? parseInt(leadId) : null
         };
 
         // Log the form data for debugging
@@ -542,9 +536,7 @@ window.projectModule = (function() {
             'project-summary',
             'project-status',
             'project-priority',
-            'project-lead',
-            'project-start-date',
-            'project-end-date'
+            'project-lead'
         ];
         
         formFields.forEach(fieldId => {
