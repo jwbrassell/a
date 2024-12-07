@@ -1,4 +1,4 @@
-refactor(projects): improve project edit page layout and styling
+refactor(projects): improve project edit page layout and navigation
 
 - Remove duplicate project icon and summary from header
 - Move project icon selection below lead field
@@ -6,3 +6,4 @@ refactor(projects): improve project edit page layout and styling
 - Reorder fields: Status, Lead, Priority, Project Icon, Last Updated, Created
 - Add Bootstrap badges to status and priority dropdowns matching task list style
 - Update Select2 dropdown styling for better visual consistency
+- Add proper breadcrumb navigation showing path to edit page
