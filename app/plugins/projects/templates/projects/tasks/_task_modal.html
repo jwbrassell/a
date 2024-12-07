@@ -1,0 +1,55 @@
+<div class="modal fade" id="modal-new-task">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">New Task</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="new-task-form">
+          <div class="form-group">
+            <label for="task-name">Task Name</label>
+            <input type="text" class="form-control" id="task-name" required>
+          </div>
+          <div class="form-group">
+            <label for="task-assigned">Assigned To</label>
+            <select class="form-control" id="task-assigned" required>
+              <option value="">Select User</option>
+              {% for member in project.team_members %}
+              <option value="{{ member.id }}">{{ member.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="task-status">Status</label>
+            <select class="form-control" id="task-status" required>
+              <option value="">Select Status</option>
+              {% for status in statuses %}
+              <option value="{{ status.id }}">{{ status.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="task-priority">Priority</label>
+            <select class="form-control" id="task-priority" required>
+              <option value="">Select Priority</option>
+              {% for priority in priorities %}
+              <option value="{{ priority.id }}">{{ priority.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="task-due-date">Due Date</label>
+            <input type="date" class="form-control" id="task-due-date" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="saveNewTask()">Save Task</button>
+      </div>
+    </div>
+  </div>
+</div>

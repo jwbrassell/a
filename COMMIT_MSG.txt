@@ -1,14 +1,17 @@
-feat: restored project functionality and enhanced task management
+refactor(templates): Update project edit page layout and styling
 
-- Restored project.js with complete task and todo management functionality
-- Added create-task-modal to view.html for task creation/editing
-- Updated imports.html to properly include project.js and dependencies
-- Added Sortable.js for todo list drag-and-drop functionality
-- Added TinyMCE for rich text editing support
+- Reorganize project edit page with cleaner two-column layout
+- Add project details and info sections at the top
+- Simplify tasks table with proper action buttons
+- Update todo list with cleaner checkbox styling
+- Improve comments section with direct-chat style
+- Clean up history timeline formatting
+- Make all sections collapsible
+- Add proper action buttons and modals
+- Use consistent styling across all components
 
-These changes restore and improve functionality by:
-- Enabling full task management (view, create, edit, delete)
-- Supporting todo list features (create, toggle, delete, reorder)
-- Providing proper modal handling for task operations
-- Ensuring all JavaScript dependencies are properly loaded
-- Maintaining proper separation of concerns between view and edit modes
+This improves the overall user experience by:
+- Making the layout more intuitive and easier to navigate
+- Providing better visual hierarchy of information
+- Ensuring consistent styling across all sections
+- Making actions more discoverable and easier to use

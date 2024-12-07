@@ -1,56 +1,40 @@
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">
-            <i class="fas fa-tasks mr-1"></i>
-            Tasks
-        </h3>
-        <div class="card-tools">
-            <button type="button" class="btn btn-primary btn-sm" onclick="addTask()">
-                <i class="fas fa-plus"></i> Add Task
-            </button>
-            <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                <i class="fas fa-minus"></i>
-            </button>
-        </div>
-    </div>
-    <div class="card-body">
-        <table id="tasks-table" class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Task</th>
-                    <th>Assigned To</th>
-                    <th>Status</th>
-                    <th>Priority</th>
-                    <th>Due Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for task in project.tasks %}
-                <tr>
-                    <td>{{ task.name }}</td>
-                    <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
-                    <td>
-                        <span class="badge bg-{{ task.status_class }}">{{ task.status }}</span>
-                    </td>
-                    <td>
-                        <span class="badge bg-{{ task.priority_class }}">{{ task.priority }}</span>
-                    </td>
-                    <td>{{ task.due_date|datetime if task.due_date }}</td>
-                    <td>
-                        <a href="{{ url_for('projects.view_task', project_id=project.id, task_id=task.id) }}" class="btn btn-sm btn-info">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="{{ url_for('projects.edit_task', project_id=project.id, task_id=task.id) }}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-pencil-alt"></i>
-                        </a>
-                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="table-responsive">
+    <table id="tasks-table" class="table table-hover">
+        <thead>
+            <tr>
+                <th>Task</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Due Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in project.tasks %}
+            <tr>
+                <td>{{ task.name }}</td>
+                <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
+                <td>
+                    <span class="badge bg-{{ task.status_class }}">{{ task.status }}</span>
+                </td>
+                <td>
+                    <span class="badge bg-{{ task.priority_class }}">{{ task.priority }}</span>
+                </td>
+                <td>{{ task.due_date|datetime if task.due_date }}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
