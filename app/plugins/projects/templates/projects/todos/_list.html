@@ -1,33 +1,28 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="card-title mb-0">
-    <i class="fas fa-check-square me-1"></i>
-    Todo List
-  </h3>
-  <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-new-todo">
-    <i class="fas fa-plus"></i> Add Todo
-  </button>
-</div>
-
 <div class="table-responsive">
-  <table class="table table-hover">
+  <table class="table table-hover mb-0">
     <thead>
       <tr>
         <th style="width: 10px">#</th>
+        <th style="width: 30px"></th>
         <th>Description</th>
         <th style="width: 100px">Due</th>
         <th style="width: 100px">Actions</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody class="sortable-todos">
       {% for todo in project.todos %}
-      <tr>
+      <tr data-todo-id="{{ todo.id }}">
         <td>
           <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="todoCheck{{ todo.id }}" 
-                   {% if todo.completed %}checked{% endif %}
-                   onchange="toggleTodo({{ todo.id }}, this.checked)">
+            <input type="checkbox" class="form-check-input todo-check" 
+                   id="todoCheck{{ todo.id }}" 
+                   data-todo-id="{{ todo.id }}"
+                   {% if todo.completed %}checked{% endif %}>
             <label class="form-check-label" for="todoCheck{{ todo.id }}"></label>
           </div>
+        </td>
+        <td>
+          <i class="fas fa-grip-vertical handle" style="cursor: move; color: #ccc;"></i>
         </td>
         <td>
           <span {% if todo.completed %}class="text-muted text-decoration-line-through"{% endif %}>
@@ -41,12 +36,12 @@
         </td>
         <td>
           <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-outline-warning" title="Edit"
-                    onclick="editTodo({{ todo.id }})">
+            <button type="button" class="btn btn-sm btn-outline-secondary edit-todo" 
+                    data-todo-id="{{ todo.id }}" title="Edit">
               <i class="fas fa-pencil-alt"></i>
             </button>
-            <button type="button" class="btn btn-sm btn-outline-danger" title="Delete"
-                    onclick="deleteTodo({{ todo.id }})">
+            <button type="button" class="btn btn-sm btn-outline-secondary delete-todo" 
+                    data-todo-id="{{ todo.id }}" title="Delete">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -55,6 +50,11 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+<div class="card-footer text-end">
+  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-todo">
+    <i class="fas fa-plus"></i> Add Todo
+  </button>
 </div>
 
 <!-- Todo Modal -->
@@ -79,7 +79,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" onclick="saveTodo()">Save Changes</button>
+        <button type="button" class="btn btn-primary save-todo">Save Changes</button>
       </div>
     </div>
   </div>
@@ -87,3 +87,5 @@
 
 <!-- Include todos.js -->
 <script src="{{ url_for('projects.static', filename='js/todos.js') }}"></script>
+<!-- Include Sortable.js -->
+<script src="{{ url_for('static', filename='src/sortablejs/Sortable.min.js') }}"></script>

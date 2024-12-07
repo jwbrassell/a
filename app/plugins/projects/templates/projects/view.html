@@ -83,6 +83,9 @@ textarea.form-control[readonly] {
 .btn-tool:hover {
     color: #495057;
 }
+.card-header[data-bs-toggle="collapse"] {
+    cursor: pointer;
+}
 </style>
 {% endblock %}
 
@@ -98,12 +101,12 @@ textarea.form-control[readonly] {
 
     <!-- Tasks Table -->
     <div class="card mb-4">
-        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#tasks-collapse" style="cursor: pointer;">
-            <h3 class="card-title">
-                <i class="fas fa-tasks me-1"></i>
-                Tasks
-            </h3>
-            <div class="card-tools">
+        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#tasks-collapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-tasks me-1"></i>
+                    Tasks
+                </h3>
                 <button type="button" class="btn btn-tool">
                     <i class="fas fa-minus collapse-icon"></i>
                 </button>
@@ -118,14 +121,21 @@ textarea.form-control[readonly] {
 
     <!-- Todo List -->
     <div class="card mb-4">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-check-square me-1"></i>
-                Todo List
-            </h3>
+        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#todos-collapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-check-square me-1"></i>
+                    Todo List
+                </h3>
+                <button type="button" class="btn btn-tool">
+                    <i class="fas fa-minus todos-collapse-icon"></i>
+                </button>
+            </div>
         </div>
-        <div class="card-body">
-            {% include 'projects/todos/_list.html' %}
+        <div id="todos-collapse" class="collapse show">
+            <div class="card-body p-0">
+                {% include 'projects/todos/_list.html' %}
+            </div>
         </div>
     </div>
 
@@ -186,17 +196,32 @@ textarea.form-control[readonly] {
 <script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Tasks collapse functionality
     const tasksCollapse = document.getElementById('tasks-collapse');
-    const collapseIcon = document.querySelector('.collapse-icon');
+    const tasksCollapseIcon = document.querySelector('.collapse-icon');
     
     tasksCollapse.addEventListener('show.bs.collapse', function() {
-        collapseIcon.classList.remove('fa-plus');
-        collapseIcon.classList.add('fa-minus');
+        tasksCollapseIcon.classList.remove('fa-plus');
+        tasksCollapseIcon.classList.add('fa-minus');
     });
     
     tasksCollapse.addEventListener('hide.bs.collapse', function() {
-        collapseIcon.classList.remove('fa-minus');
-        collapseIcon.classList.add('fa-plus');
+        tasksCollapseIcon.classList.remove('fa-minus');
+        tasksCollapseIcon.classList.add('fa-plus');
+    });
+
+    // Todos collapse functionality
+    const todosCollapse = document.getElementById('todos-collapse');
+    const todosCollapseIcon = document.querySelector('.todos-collapse-icon');
+    
+    todosCollapse.addEventListener('show.bs.collapse', function() {
+        todosCollapseIcon.classList.remove('fa-plus');
+        todosCollapseIcon.classList.add('fa-minus');
+    });
+    
+    todosCollapse.addEventListener('hide.bs.collapse', function() {
+        todosCollapseIcon.classList.remove('fa-minus');
+        todosCollapseIcon.classList.add('fa-plus');
     });
 });
 </script>

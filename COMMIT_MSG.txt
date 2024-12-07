@@ -1,9 +1,9 @@
-refactor(projects): improve project edit page layout and navigation
+feat(projects): enhance todo list component UI/UX
 
-- Remove duplicate project icon and summary from header
-- Move project icon selection below lead field
-- Put project name and summary on single lines
-- Reorder fields: Status, Lead, Priority, Project Icon, Last Updated, Created
-- Add Bootstrap badges to status and priority dropdowns matching task list style
-- Update Select2 dropdown styling for better visual consistency
-- Add proper breadcrumb navigation showing path to edit page
+- Add collapsible card functionality to todo list in edit view
+- Move "Add Todo" button to card footer
+- Update button colors to use professional blue scheme
+- Add drag and drop handles for todo reordering
+- Make card header fully clickable with expand/collapse icon
+- Fix duplicate card wrapper issue
+- Maintain consistent styling with tasks section

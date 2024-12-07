@@ -66,6 +66,17 @@ async function toggleTodo(todoId, completed) {
             }
         }
 
+        // Update the todo item appearance
+        const todoRow = document.querySelector(`tr[data-todo-id="${todoId}"]`);
+        if (todoRow) {
+            const descriptionSpan = todoRow.querySelector('td:nth-child(3) span');
+            if (completed) {
+                descriptionSpan.classList.add('text-muted', 'text-decoration-line-through');
+            } else {
+                descriptionSpan.classList.remove('text-muted', 'text-decoration-line-through');
+            }
+        }
+
         showSuccess('Todo status updated');
     } catch (error) {
         showError('Error updating todo: ' + error.message);
@@ -87,7 +98,8 @@ async function editTodo(todoId) {
         document.getElementById('todo-due-date').value = todo.due_date;
 
         // Show modal
-        $('#modal-new-todo').modal('show');
+        const modal = new bootstrap.Modal(document.getElementById('modal-new-todo'));
+        modal.show();
     } catch (error) {
         showError('Error editing todo: ' + error.message);
     }
@@ -142,26 +154,71 @@ async function deleteTodo(todoId) {
             throw new Error('Failed to delete todo');
         }
 
+        // Remove the todo item from the DOM
+        const todoRow = document.querySelector(`tr[data-todo-id="${todoId}"]`);
+        if (todoRow) {
+            todoRow.remove();
+        }
+
         showSuccess('Todo deleted successfully');
-        location.reload(); // Refresh to remove deleted todo
     } catch (error) {
         showError('Error deleting todo: ' + error.message);
     }
 }
 
-// Modal event handlers
-function saveTodo() {
-    if (window.currentTodoId) {
-        updateTodo();
-    } else {
-        createTodo();
+async function updateTodoOrder(todoId, newPosition) {
+    try {
+        const response = await fetch(`/projects/todos/${todoId}/reorder`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify({ position: newPosition })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update todo order');
+        }
+    } catch (error) {
+        showError('Error updating todo order: ' + error.message);
     }
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Sortable
+    const todoList = document.querySelector('.sortable-todos');
+    if (todoList) {
+        new Sortable(todoList, {
+            handle: '.handle',
+            animation: 150,
+            onEnd: function(evt) {
+                const todoId = evt.item.getAttribute('data-todo-id');
+                updateTodoOrder(todoId, evt.newIndex);
+            }
+        });
+    }
+
+    // Handle collapse icon changes
+    const todoCollapse = document.getElementById('todoCollapse');
+    const collapseIcon = document.querySelector('.collapse-icon');
+    
+    if (todoCollapse && collapseIcon) {
+        todoCollapse.addEventListener('show.bs.collapse', function() {
+            collapseIcon.classList.remove('fa-plus');
+            collapseIcon.classList.add('fa-minus');
+        });
+        
+        todoCollapse.addEventListener('hide.bs.collapse', function() {
+            collapseIcon.classList.remove('fa-minus');
+            collapseIcon.classList.add('fa-plus');
+        });
+    }
+
     // Reset form when modal is closed
-    $('#modal-new-todo').on('hidden.bs.modal', function () {
+    const todoModal = document.getElementById('modal-new-todo');
+    todoModal.addEventListener('hidden.bs.modal', function () {
         resetTodoForm();
     });
 
