@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3 class="card-title mb-0">
-    <i class="fas fa-history mr-1"></i>
+    <i class="fas fa-history me-1"></i>
     History
   </h3>
 </div>
@@ -11,35 +11,168 @@
     {% if current_date != activity.created_at.date() %}
       {% set current_date = activity.created_at.date() %}
       <div class="time-label">
-        <span class="bg-danger">
+        <span class="bg-primary rounded px-3 py-1">
           {{ activity.created_at.strftime('%d %b. %Y') }}
         </span>
       </div>
     {% endif %}
     
-    <div>
-      <i class="{{ activity.icon }} {{ activity.icon_bg }}"></i>
-      <div class="timeline-item">
-        <span class="time">
-          <i class="far fa-clock"></i> 
-          {{ activity.created_at.strftime('%I:%M %p') }}
-        </span>
-        <h3 class="timeline-header{% if not activity.body %} border-0{% endif %}">
-          {% if activity.user %}
-            <a href="#">{{ activity.user.name }}</a>
-          {% endif %}
-          {{ activity.header }}
-        </h3>
-        {% if activity.body %}
-        <div class="timeline-body">
-          {{ activity.body }}
+    <div class="timeline-item">
+      <div class="timeline-item-marker">
+        <div class="timeline-item-marker-indicator bg-light">
+          <i class="{{ activity.icon }} {{ activity.icon_color|default('text-primary') }}"></i>
         </div>
-        {% endif %}
+      </div>
+      <div class="timeline-item-content pt-0">
+        <div class="card shadow-sm">
+          <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+            <div class="d-flex align-items-center">
+              {% if activity.user %}
+                <img src="{{ activity.user.avatar_url }}" class="rounded-circle me-2" style="width: 24px; height: 24px;">
+                <a href="#" class="text-decoration-none">{{ activity.user.name }}</a>
+              {% endif %}
+              <span class="ms-2">{{ activity.header }}</span>
+            </div>
+            <small class="text-muted">
+              <i class="far fa-clock me-1"></i>
+              {{ activity.created_at.strftime('%I:%M %p') }}
+            </small>
+          </div>
+          {% if activity.body %}
+          <div class="card-body py-2">
+            {{ activity.body }}
+          </div>
+          {% endif %}
+        </div>
       </div>
     </div>
   {% endfor %}
   
-  <div>
-    <i class="far fa-clock bg-gray"></i>
+  <div class="timeline-end">
+    <div class="timeline-end-marker">
+      <i class="far fa-clock text-muted"></i>
+    </div>
   </div>
 </div>
+
+<style>
+.timeline {
+  position: relative;
+  padding: 1rem 0;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  height: 100%;
+  border-left: 2px solid #e9ecef;
+}
+
+.time-label {
+  position: relative;
+  margin-bottom: 1rem;
+  margin-left: 1.5rem;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+  margin-left: 1.5rem;
+}
+
+.timeline-item-marker {
+  position: absolute;
+  left: -2.45rem;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.75rem;
+}
+
+.timeline-item-marker-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 100%;
+  border: 2px solid #e9ecef;
+  margin-left: -0.5rem;
+  margin-top: -0.5rem;
+}
+
+.timeline-item-marker-indicator i {
+  font-size: 0.875rem;
+}
+
+.timeline-item-content {
+  padding-top: 0.25rem;
+  padding-left: 1rem;
+}
+
+.timeline-end {
+  position: relative;
+  margin-left: 1.5rem;
+}
+
+.timeline-end-marker {
+  position: absolute;
+  left: -2.45rem;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 100%;
+  border: 2px solid #e9ecef;
+  margin-left: -0.5rem;
+  margin-top: -0.5rem;
+  background-color: #fff;
+}
+
+.timeline-end-marker i {
+  font-size: 0.875rem;
+}
+
+@media (min-width: 768px) {
+  .timeline::before {
+    left: 50%;
+    margin-left: -1px;
+  }
+  
+  .time-label {
+    margin-left: 0;
+    text-align: center;
+  }
+  
+  .timeline-item {
+    margin-left: 0;
+    width: 50%;
+    padding-right: 2.5rem;
+  }
+  
+  .timeline-item:nth-child(even) {
+    margin-left: 50%;
+    padding-right: 0;
+    padding-left: 2.5rem;
+  }
+  
+  .timeline-item:nth-child(even) .timeline-item-marker {
+    left: -0.55rem;
+  }
+  
+  .timeline-end {
+    margin-left: 0;
+    text-align: center;
+  }
+  
+  .timeline-end-marker {
+    left: 50%;
+    margin-left: -1rem;
+  }
+}
+</style>

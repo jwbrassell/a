@@ -1,21 +1,21 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3 class="card-title mb-0">
-    <i class="fas fa-comments mr-1"></i>
+    <i class="fas fa-comments me-1"></i>
     Comments
   </h3>
   {% if project.unread_comments %}
-  <span class="badge badge-primary">{{ project.unread_comments }} new</span>
+  <span class="badge bg-primary">{{ project.unread_comments }} new</span>
   {% endif %}
 </div>
 
 <div class="direct-chat-messages">
   {% for comment in project.comments %}
-  <div class="direct-chat-msg {% if comment.user_id == current_user.id %}right{% endif %}">
+  <div class="direct-chat-msg {% if comment.user_id == current_user.id %}right{% endif %}" id="comment-{{ comment.id }}">
     <div class="direct-chat-infos clearfix">
-      <span class="direct-chat-name float-{% if comment.user_id == current_user.id %}right{% else %}left{% endif %}">
+      <span class="direct-chat-name float-{% if comment.user_id == current_user.id %}end{% else %}start{% endif %}">
         {{ comment.user.name }}
       </span>
-      <span class="direct-chat-timestamp float-{% if comment.user_id == current_user.id %}left{% else %}right{% endif %}">
+      <span class="direct-chat-timestamp float-{% if comment.user_id == current_user.id %}start{% else %}end{% endif %}">
         {{ comment.created_at.strftime('%d %b %I:%M %p') }}
       </span>
     </div>
@@ -23,6 +23,16 @@
     <div class="direct-chat-text">
       {{ comment.content }}
     </div>
+    {% if comment.user_id == current_user.id %}
+    <div class="direct-chat-actions">
+      <button class="btn btn-sm btn-link" onclick="editComment({{ comment.id }})">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button class="btn btn-sm btn-link text-danger" onclick="deleteComment({{ comment.id }})">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+    {% endif %}
   </div>
   {% endfor %}
 </div>
@@ -31,23 +41,77 @@
   <div class="input-group">
     <input type="text" name="message" id="comment-message" 
            class="form-control" placeholder="Type Message ..." required>
-    <div class="input-group-append">
-      <button type="submit" class="btn btn-primary">
-        <i class="fas fa-paper-plane"></i>
-      </button>
-    </div>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-paper-plane"></i>
+    </button>
   </div>
 </form>
 
-<script>
-function submitComment(event) {
-  event.preventDefault();
-  const message = $('#comment-message').val();
-  
-  // Implement comment submission logic
-  console.log('Submit comment:', message);
-  
-  // Clear the input
-  $('#comment-message').val('');
+<!-- Include comments.js -->
+<script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
+
+<style>
+.direct-chat-messages {
+    height: 400px;
+    padding: 10px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    border-radius: 4px;
 }
-</script>
+
+.direct-chat-msg {
+    margin-bottom: 1rem;
+}
+
+.direct-chat-msg.right .direct-chat-text {
+    margin-right: 50px;
+    margin-left: 0;
+    background-color: #007bff;
+    color: #fff;
+}
+
+.direct-chat-text {
+    border-radius: 0.5rem;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 1rem;
+    margin-left: 50px;
+    margin-right: 0;
+    position: relative;
+}
+
+.direct-chat-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    float: left;
+}
+
+.right .direct-chat-img {
+    float: right;
+}
+
+.direct-chat-infos {
+    margin-bottom: 0.25rem;
+}
+
+.direct-chat-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.direct-chat-timestamp {
+    color: #6c757d;
+    font-size: 0.75rem;
+}
+
+.direct-chat-actions {
+    margin-top: 0.25rem;
+    text-align: right;
+}
+
+.direct-chat-actions .btn-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>

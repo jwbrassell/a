@@ -1,17 +1,11 @@
-refactor(templates): Update project edit page layout and styling
+fix: Update project edit view layout and task handling
 
-- Reorganize project edit page with cleaner two-column layout
-- Add project details and info sections at the top
-- Simplify tasks table with proper action buttons
-- Update todo list with cleaner checkbox styling
-- Improve comments section with direct-chat style
-- Clean up history timeline formatting
-- Make all sections collapsible
-- Add proper action buttons and modals
-- Use consistent styling across all components
+- Maintain consistent two-column layout throughout edit view
+- Fix task table to use modal interactions instead of direct URLs
+- Remove invalid route references (projects.view_task)
+- Update task actions to use JavaScript handlers for view/edit/delete
+- Keep edit view aligned with view template structure
 
-This improves the overall user experience by:
-- Making the layout more intuitive and easier to navigate
-- Providing better visual hierarchy of information
-- Ensuring consistent styling across all sections
-- Making actions more discoverable and easier to use
+This change ensures the edit view maintains a consistent layout while
+properly handling task interactions through modals instead of separate
+pages, fixing the 500 error caused by invalid route references.
