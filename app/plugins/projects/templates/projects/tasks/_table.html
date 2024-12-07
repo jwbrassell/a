@@ -2,33 +2,32 @@
     <table id="tasks-table" class="table table-hover">
         <thead>
             <tr>
-                <th style="width: 25%">Task</th>
-                <th style="width: 30%">Description</th>
-                <th style="width: 15%">Assigned To</th>
-                <th style="width: 10%">Status</th>
-                <th style="width: 10%">Priority</th>
-                <th style="width: 10%">Due Date</th>
+                <th>Task</th>
+                <th>Summary</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Due Date</th>
                 <th style="width: 120px">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for task in project.tasks %}
             <tr>
-                <td>{{ task.name }}</td>
-                <td>
-                    <div class="rich-text-content text-truncate" style="max-width: 300px;" 
-                         title="{{ task.description|striptags if task.description }}">
+                <td style="white-space: nowrap">{{ task.name }}</td>
+                <td style="white-space: nowrap">
+                    <div class="rich-text-content" title="{{ task.description|striptags if task.description }}">
                         {{ task.description|safe if task.description }}
                     </div>
                 </td>
-                <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
-                <td>
+                <td style="white-space: nowrap">{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
+                <td style="white-space: nowrap">
                     <span class="badge bg-{{ task.status_class }}">{{ task.status }}</span>
                 </td>
-                <td>
+                <td style="white-space: nowrap">
                     <span class="badge bg-{{ task.priority_class }}">{{ task.priority }}</span>
                 </td>
-                <td>{{ task.due_date|datetime if task.due_date }}</td>
+                <td style="white-space: nowrap">{{ task.due_date|datetime if task.due_date }}</td>
                 <td>
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})" title="View">
@@ -48,17 +47,19 @@
     </table>
 </div>
 
+<div class="card-footer text-end">
+    <button type="button" class="btn btn-sm btn-primary" onclick="addTask()">
+        <i class="fas fa-plus me-1"></i> Add Task
+    </button>
+</div>
+
 <style>
 /* Ensure rich text content in table cells is properly truncated */
-.rich-text-content.text-truncate p {
-    margin: 0;
+.rich-text-content * {
     display: inline;
 }
-.rich-text-content.text-truncate * {
-    display: inline;
-}
-.rich-text-content.text-truncate br,
-.rich-text-content.text-truncate hr {
+.rich-text-content br,
+.rich-text-content hr {
     display: none;
 }
 </style>

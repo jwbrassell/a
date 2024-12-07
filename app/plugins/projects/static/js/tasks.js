@@ -91,6 +91,11 @@ function setFormData(data, disabled = false) {
 }
 
 // Task CRUD operations
+function addTask() {
+    resetTaskForm();
+    $('#modal-new-task').modal('show');
+}
+
 async function createTask() {
     try {
         setModalLoading('modal-new-task', true);
@@ -238,6 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Make functions globally available
+window.addTask = addTask;
 window.viewTask = viewTask;
 window.editTask = editTask;
 window.deleteTask = deleteTask;

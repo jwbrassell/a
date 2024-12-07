@@ -70,6 +70,19 @@ textarea.form-control[readonly] {
     padding: 0.5rem;
     border: 1px solid #dee2e6;
 }
+.card-tools {
+    float: right;
+}
+.btn-tool {
+    background: transparent;
+    color: #adb5bd;
+    font-size: 0.875rem;
+    margin: -0.75rem 0;
+    padding: .25rem .5rem;
+}
+.btn-tool:hover {
+    color: #495057;
+}
 </style>
 {% endblock %}
 
@@ -85,14 +98,21 @@ textarea.form-control[readonly] {
 
     <!-- Tasks Table -->
     <div class="card mb-4">
-        <div class="card-header">
+        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#tasks-collapse" style="cursor: pointer;">
             <h3 class="card-title">
                 <i class="fas fa-tasks me-1"></i>
                 Tasks
             </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool">
+                    <i class="fas fa-minus collapse-icon"></i>
+                </button>
+            </div>
         </div>
-        <div class="card-body">
-            {% include 'projects/tasks/_table.html' %}
+        <div id="tasks-collapse" class="collapse show">
+            <div class="card-body">
+                {% include 'projects/tasks/_table.html' %}
+            </div>
         </div>
     </div>
 
@@ -164,4 +184,20 @@ textarea.form-control[readonly] {
 {% block scripts %}
 {{ super() }}
 <script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tasksCollapse = document.getElementById('tasks-collapse');
+    const collapseIcon = document.querySelector('.collapse-icon');
+    
+    tasksCollapse.addEventListener('show.bs.collapse', function() {
+        collapseIcon.classList.remove('fa-plus');
+        collapseIcon.classList.add('fa-minus');
+    });
+    
+    tasksCollapse.addEventListener('hide.bs.collapse', function() {
+        collapseIcon.classList.remove('fa-minus');
+        collapseIcon.classList.add('fa-plus');
+    });
+});
+</script>
 {% endblock %}
