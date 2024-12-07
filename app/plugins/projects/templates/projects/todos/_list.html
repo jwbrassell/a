@@ -3,13 +3,17 @@
     <thead>
       <tr>
         <th style="width: 10px">#</th>
+        {% if not readonly %}
         <th style="width: 30px"></th>
+        {% endif %}
         <th>Description</th>
         <th style="width: 100px">Due</th>
+        {% if not readonly %}
         <th style="width: 100px">Actions</th>
+        {% endif %}
       </tr>
     </thead>
-    <tbody class="sortable-todos">
+    <tbody class="{% if not readonly %}sortable-todos{% endif %}">
       {% for todo in project.todos %}
       <tr data-todo-id="{{ todo.id }}">
         <td>
@@ -21,9 +25,11 @@
             <label class="form-check-label" for="todoCheck{{ todo.id }}"></label>
           </div>
         </td>
+        {% if not readonly %}
         <td>
           <i class="fas fa-grip-vertical handle" style="cursor: move; color: #ccc;"></i>
         </td>
+        {% endif %}
         <td>
           <span {% if todo.completed %}class="text-muted text-decoration-line-through"{% endif %}>
             {{ todo.description }}
@@ -34,6 +40,7 @@
             <i class="far fa-clock"></i> {{ todo.due_text }}
           </span>
         </td>
+        {% if not readonly %}
         <td>
           <div class="btn-group">
             <button type="button" class="btn btn-sm btn-outline-secondary edit-todo" 
@@ -46,11 +53,13 @@
             </button>
           </div>
         </td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+{% if not readonly %}
 <div class="card-footer text-end">
   <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-todo">
     <i class="fas fa-plus"></i> Add Todo
@@ -84,8 +93,11 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 <!-- Include todos.js -->
 <script src="{{ url_for('projects.static', filename='js/todos.js') }}"></script>
 <!-- Include Sortable.js -->
+{% if not readonly %}
 <script src="{{ url_for('static', filename='src/sortablejs/Sortable.min.js') }}"></script>
+{% endif %}

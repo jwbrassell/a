@@ -250,15 +250,43 @@ def toggle_todo(todo_id):
 @bp.route('/todo/reorder', methods=['POST'])
 @login_required
 @requires_roles('user')
+@track_activity
 def reorder_todos():
     """Update the order of todos"""
     data = request.get_json()
     todos = data.get('todos', [])
     
+    # Update order for each todo
     for todo_data in todos:
         todo = Todo.query.get(todo_data['id'])
         if todo:
             todo.order = todo_data['order']
+    
+    # Create history entry for the reordering
+    if todos:
+        # Get the project ID from the first todo
+        first_todo = Todo.query.get(todos[0]['id'])
+        if first_todo:
+            history = History(
+                entity_type='todo',
+                action='reordered',
+                user_id=current_user.id,
+                project_id=first_todo.project_id,
+                task_id=first_todo.task_id,
+                details={'todo_orders': {str(t['id']): t['order'] for t in todos}}
+            )
+            if first_todo.task:
+                first_todo.task.project.history.append(history)
+            else:
+                first_todo.project.history.append(history)
+            
+            # Log activity
+            activity = UserActivity(
+                user_id=current_user.id,
+                username=current_user.username,
+                activity=f"Reordered todos in {'task: ' + first_todo.task.name if first_todo.task else 'project: ' + first_todo.project.name}"
+            )
+            db.session.add(activity)
     
     db.session.commit()
     

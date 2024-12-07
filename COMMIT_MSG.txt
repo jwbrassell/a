@@ -1,5 +1,6 @@
-feat(projects): enhance todo list component UI/UX
+feat(projects): enhance UI/UX for project components
 
+Todo List:
 - Add collapsible card functionality to todo list in edit view
 - Move "Add Todo" button to card footer
 - Update button colors to use professional blue scheme
@@ -7,3 +8,29 @@ feat(projects): enhance todo list component UI/UX
 - Make card header fully clickable with expand/collapse icon
 - Fix duplicate card wrapper issue
 - Maintain consistent styling with tasks section
+
+Project Details:
+- Add collapsible card functionality to project details
+- Limit description to 3 rows by default with show more/less toggle
+- Add smooth transition for description expansion
+- Add scroll functionality for long descriptions
+- Make card header fully clickable with expand/collapse icon
+
+Layout & Project Info:
+- Optimize layout with 9/3 column split for better content proportions
+- Improve dropdown styling with visible borders and hover states
+- Add dropdown indicator arrows for better UX
+- Restructure timestamps to stack vertically for better readability
+- Left-align status and priority dropdown values
+- Add visual feedback on dropdown interactions
+
+Form Handling & Project Management:
+- Remove team members section and replace with role-based access
+- Add multi-select dropdowns for watchers, shareholders, and stakeholders
+- Add project role selection from user's RBAC roles
+- Add private project toggle with admin access note
+- Fix unsaved changes warning with improved form state handling
+- Add proper cleanup and reinitialization of form components after save
+- Improve select2 dropdowns with click-to-deselect functionality
+- Add info icons with tooltips for field descriptions
+- Add dynamic visibility for watchers and roles when project is private

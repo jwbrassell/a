@@ -22,7 +22,12 @@ window.projectModule = (function() {
 
     // Get CSRF token from meta tag
     function getCsrfToken() {
-        return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!token) {
+            console.error('CSRF token not found');
+            return '';
+        }
+        return token;
     }
 
     // Safe element getter
@@ -30,6 +35,20 @@ window.projectModule = (function() {
         const element = document.getElementById(id);
         if (!element) return defaultValue;
         return element.value ? element.value.trim() : defaultValue;
+    }
+
+    // Get multiple select values
+    function getMultiSelectValues(id) {
+        const element = document.getElementById(id);
+        if (!element) return [];
+        return Array.from(element.selectedOptions).map(option => parseInt(option.value));
+    }
+
+    // Get multiple select text values (for roles)
+    function getMultiSelectTextValues(id) {
+        const element = document.getElementById(id);
+        if (!element) return [];
+        return Array.from(element.selectedOptions).map(option => option.value);
     }
 
     // Update header elements preview
@@ -100,6 +119,9 @@ window.projectModule = (function() {
         // Get lead ID safely and ensure it's a number or null
         const leadId = getElementValue('project-lead');
         
+        // Get private project status
+        const isPrivate = document.getElementById('project-private')?.checked || false;
+
         // Get all form values
         const formData = {
             name: getElementValue('project-name'),
@@ -108,11 +130,13 @@ window.projectModule = (function() {
             description: description,
             status: getElementValue('project-status'),
             priority: getElementValue('project-priority'),
-            lead_id: leadId ? parseInt(leadId) : null
+            lead_id: leadId ? parseInt(leadId) : null,
+            watchers: getMultiSelectValues('project-watchers'),
+            shareholders: getMultiSelectValues('project-shareholders'),
+            stakeholders: getMultiSelectValues('project-stakeholders'),
+            roles: getMultiSelectTextValues('project-role'),
+            is_private: isPrivate
         };
-
-        // Log the form data for debugging
-        console.log('Form data being sent:', formData);
 
         return formData;
     }
@@ -137,6 +161,7 @@ window.projectModule = (function() {
 
             const result = await response.json();
             showSuccess('Project created successfully');
+            markSavedChanges();
             // Redirect to the new project's page
             window.location.href = `/projects/${result.project_id}`;
         } catch (error) {
@@ -150,14 +175,8 @@ window.projectModule = (function() {
             return;
         }
 
-        if (!unsavedChanges) {
-            showInfo('No changes to save');
-            return;
-        }
-
         try {
             const formData = getProjectFormData();
-            console.log('Saving project with data:', formData);
 
             const response = await fetch(`/projects/${window.projectId}`, {
                 method: 'PUT',
@@ -176,10 +195,126 @@ window.projectModule = (function() {
             const result = await response.json();
             showSuccess('Project changes saved successfully');
             markSavedChanges();
-            updateLastSaved(result.updated_at);
+            
+            // Update last saved timestamp if the element exists
+            const lastSavedElement = document.getElementById('last-saved');
+            if (lastSavedElement && result.project && result.project.updated_at) {
+                lastSavedElement.textContent = new Date(result.project.updated_at).toLocaleString();
+            }
+            
             updateIconPreview();
+
+            // Reset all form change handlers
+            resetFormChangeHandlers();
         } catch (error) {
             showError('Error saving project: ' + error.message);
+        }
+    }
+
+    // Reset form change handlers
+    function resetFormChangeHandlers() {
+        // Remove and re-add all event listeners
+        const formFields = [
+            'project-name',
+            'project-icon',
+            'project-summary',
+            'project-status',
+            'project-priority',
+            'project-lead',
+            'project-watchers',
+            'project-shareholders',
+            'project-stakeholders',
+            'project-role',
+            'project-private'
+        ];
+
+        formFields.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                const newElement = element.cloneNode(true);
+                element.parentNode.replaceChild(newElement, element);
+
+                if (newElement.type === 'checkbox') {
+                    newElement.addEventListener('change', handleInputChange);
+                } else if (newElement.tagName === 'SELECT') {
+                    // Reinitialize select2
+                    if ($(newElement).hasClass('select2-hidden-accessible')) {
+                        $(newElement).select2('destroy');
+                        initializeSelect2(newElement);
+                    }
+                    newElement.addEventListener('change', handleInputChange);
+                } else {
+                    newElement.addEventListener('change', handleInputChange);
+                    newElement.addEventListener('input', handleInputChange);
+                }
+            }
+        });
+
+        // Reinitialize TinyMCE
+        const descriptionElement = document.getElementById('project-description');
+        if (descriptionElement && !descriptionElement.hasAttribute('readonly')) {
+            if (tinymce.get('project-description')) {
+                tinymce.get('project-description').remove();
+            }
+            initializeTinyMCE();
+        }
+    }
+
+    // Initialize TinyMCE
+    function initializeTinyMCE() {
+        tinymce.init({
+            selector: '#project-description',
+            menubar: false,
+            statusbar: false,
+            branding: true,
+            plugins: 'link image lists',
+            toolbar: 'bold italic | bullist numlist | link image',
+            height: 300,
+            placeholder: 'Type your comment...',
+            skin: document.querySelector('html').dataset.bsTheme === 'dark' ? 'oxide-dark' : 'oxide',
+            content_css: document.querySelector('html').dataset.bsTheme === 'dark' ? 'dark' : 'default',
+            setup: function(editor) {
+                editor.on('change', function() {
+                    editor.save();
+                    handleInputChange();
+                });
+            },
+            content_style: `
+                body { 
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    padding: 0.5rem;
+                }
+                p { margin: 0 0 1em 0; }
+                img { max-width: 100%; height: auto; }
+            `
+        });
+    }
+
+    // Initialize Select2
+    function initializeSelect2(element) {
+        const isMultiSelect = $(element).is('#project-watchers, #project-shareholders, #project-stakeholders, #project-role');
+        
+        if (isMultiSelect) {
+            $(element).select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                closeOnSelect: false,
+                allowClear: false
+            }).on('select2:unselecting', function(e) {
+                $(this).data('unselecting', true);
+            }).on('select2:opening', function(e) {
+                if ($(this).data('unselecting')) {
+                    $(this).removeData('unselecting');
+                    e.preventDefault();
+                }
+            });
+        } else {
+            $(element).select2({
+                theme: 'bootstrap-5',
+                width: '100%'
+            });
         }
     }
 
@@ -345,189 +480,10 @@ window.projectModule = (function() {
         handleInputChange();
     }
 
-    // Team member management
-    async function searchUsers(query) {
-        if (!query || query.length < 2) {
-            const resultsContainer = document.getElementById('user-search-results');
-            if (resultsContainer) {
-                resultsContainer.innerHTML = '';
-            }
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
-            if (!response.ok) {
-                throw new Error('Failed to search users');
-            }
-
-            const users = await response.json();
-            const resultsContainer = document.getElementById('user-search-results');
-            if (!resultsContainer) return;
-            
-            if (users.length === 0) {
-                resultsContainer.innerHTML = `
-                    <div class="list-group-item text-muted">
-                        No users found matching "${query}"
-                    </div>
-                `;
-                return;
-            }
-
-            resultsContainer.innerHTML = users
-                .filter(user => !isTeamMember(user.id))
-                .map(user => `
-                    <div class="list-group-item user-search-item d-flex align-items-center" 
-                         onclick="projectModule.addTeamMember(${user.id})">
-                        <img src="${user.avatar_url}" alt="${user.name}" 
-                             class="rounded-circle me-3" style="width: 32px; height: 32px;">
-                        <div>
-                            <h6 class="mb-0">${user.name}</h6>
-                            <small class="text-muted">${user.email}</small>
-                        </div>
-                    </div>
-                `).join('');
-        } catch (error) {
-            showError('Error searching users: ' + error.message);
-        }
-    }
-
-    function isTeamMember(userId) {
-        const teamMembers = Array.from(document.querySelectorAll('.team-member'))
-            .map(el => parseInt(el.dataset.userId));
-        return teamMembers.includes(userId);
-    }
-
-    async function addTeamMember(userId) {
-        if (!window.projectId) {
-            showError('Project ID not found');
-            return;
-        }
-
-        try {
-            const response = await fetch(`/projects/${window.projectId}/team/add`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken()
-                },
-                body: JSON.stringify({ user_id: userId })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to add team member');
-            }
-
-            showSuccess('Team member added successfully');
-            location.reload(); // Refresh to show new team member
-        } catch (error) {
-            showError('Error adding team member: ' + error.message);
-        }
-    }
-
-    async function removeTeamMember(userId) {
-        if (!confirm('Are you sure you want to remove this team member?')) {
-            return;
-        }
-
-        if (!window.projectId) {
-            showError('Project ID not found');
-            return;
-        }
-
-        try {
-            const response = await fetch(`/projects/${window.projectId}/team/remove`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken()
-                },
-                body: JSON.stringify({ user_id: userId })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to remove team member');
-            }
-
-            showSuccess('Team member removed successfully');
-            location.reload(); // Refresh to show updated team
-        } catch (error) {
-            showError('Error removing team member: ' + error.message);
-        }
-    }
-
-    async function promoteToLead(userId) {
-        if (!window.projectId) {
-            showError('Project ID not found');
-            return;
-        }
-
-        try {
-            const response = await fetch(`/projects/${window.projectId}/lead`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken()
-                },
-                body: JSON.stringify({ user_id: userId })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to update project lead');
-            }
-
-            showSuccess('Project lead updated successfully');
-            location.reload(); // Refresh to show updated lead
-        } catch (error) {
-            showError('Error updating project lead: ' + error.message);
-        }
-    }
-
-    // Project status updates
-    function updateLastSaved(timestamp) {
-        const lastSavedElement = document.getElementById('last-saved');
-        if (lastSavedElement && timestamp) {
-            lastSavedElement.textContent = new Date(timestamp).toLocaleString();
-        }
-    }
-
     // Initialize when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize TinyMCE for project description
-        const descriptionElement = document.getElementById('project-description');
-        if (descriptionElement && !descriptionElement.hasAttribute('readonly')) {
-            tinymce.init({
-                selector: '#project-description',
-                menubar: false,
-                statusbar: false,
-                branding: true,
-                plugins: 'link image lists',
-                toolbar: 'bold italic | bullist numlist | link image',
-                height: 300,
-                placeholder: 'Type your comment...',
-                skin: document.querySelector('html').dataset.bsTheme === 'dark' ? 'oxide-dark' : 'oxide',
-                content_css: document.querySelector('html').dataset.bsTheme === 'dark' ? 'dark' : 'default',
-                setup: function(editor) {
-                    editor.on('change', function() {
-                        editor.save();
-                        handleInputChange();
-                    });
-                },
-                content_style: `
-                    body { 
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                        font-size: 14px;
-                        line-height: 1.6;
-                        padding: 0.5rem;
-                    }
-                    p { margin: 0 0 1em 0; }
-                    img { max-width: 100%; height: auto; }
-                `
-            });
-        }
+        // Initialize TinyMCE
+        initializeTinyMCE();
         
         // Add change listeners to form fields
         const formFields = [
@@ -536,17 +492,26 @@ window.projectModule = (function() {
             'project-summary',
             'project-status',
             'project-priority',
-            'project-lead'
+            'project-lead',
+            'project-watchers',
+            'project-shareholders',
+            'project-stakeholders',
+            'project-role',
+            'project-private'
         ];
         
         formFields.forEach(fieldId => {
             const element = document.getElementById(fieldId);
             if (element) {
-                // For select fields, only use change event
-                if (element.tagName === 'SELECT') {
+                if (element.type === 'checkbox') {
                     element.addEventListener('change', handleInputChange);
+                } else if (element.tagName === 'SELECT') {
+                    element.addEventListener('change', handleInputChange);
+                    // Initialize select2
+                    if ($(element).hasClass('select2-hidden-accessible')) {
+                        initializeSelect2(element);
+                    }
                 } else {
-                    // For other fields, use both change and input events
                     element.addEventListener('change', handleInputChange);
                     element.addEventListener('input', handleInputChange);
                 }
@@ -570,18 +535,6 @@ window.projectModule = (function() {
         tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
-        
-        // Initialize user search
-        const searchInput = document.getElementById('new-member-search');
-        if (searchInput) {
-            let searchTimeout;
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    searchUsers(this.value);
-                }, 300);
-            });
-        }
 
         // Initialize save buttons
         const saveButtons = document.querySelectorAll('.floating-save, .save-changes-btn');
@@ -592,18 +545,26 @@ window.projectModule = (function() {
             `;
             button.addEventListener('click', saveProject);
         });
+
+        // Handle private project toggle
+        $('#project-private').on('change', function() {
+            const isPrivate = $(this).prop('checked');
+            $('#public-project-sections').toggle(!isPrivate);
+            handleInputChange();
+        });
     });
 
     // Public API
     return {
         saveProject,
         createProject,
-        addTeamMember,
-        removeTeamMember,
-        promoteToLead,
         openIconPicker,
         updateIconPreview,
-        searchUsers,
-        selectIcon
+        selectIcon,
+        showError,
+        showSuccess,
+        showWarning,
+        showInfo,
+        getCsrfToken
     };
 })();

@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from app.utils.rbac import requires_roles
 from app.utils.activity_tracking import track_activity
 from app.extensions import db
-from app.models import UserActivity, User
+from app.models import UserActivity, User, Role
 from ..models import Project, History, ProjectStatus, ProjectPriority
 from app.plugins.projects import bp
 
@@ -188,10 +188,56 @@ def update_project(project_id):
     
     # Track changes for history
     changes = {}
-    for key, value in data.items():
+    
+    # Handle special fields first
+    special_fields = ['watchers', 'shareholders', 'stakeholders', 'roles']
+    regular_fields = {k: v for k, v in data.items() if k not in special_fields}
+    
+    # Update regular fields
+    for key, value in regular_fields.items():
         if hasattr(project, key) and getattr(project, key) != value:
             changes[key] = {'old': getattr(project, key), 'new': value}
             setattr(project, key, value)
+    
+    # Handle watchers
+    if 'watchers' in data:
+        watchers = User.query.filter(User.id.in_(data['watchers'])).all()
+        if set(project.watchers) != set(watchers):
+            changes['watchers'] = {
+                'old': [w.username for w in project.watchers],
+                'new': [w.username for w in watchers]
+            }
+            project.watchers = watchers
+    
+    # Handle shareholders
+    if 'shareholders' in data:
+        shareholders = User.query.filter(User.id.in_(data['shareholders'])).all()
+        if set(project.shareholders) != set(shareholders):
+            changes['shareholders'] = {
+                'old': [s.username for s in project.shareholders],
+                'new': [s.username for s in shareholders]
+            }
+            project.shareholders = shareholders
+    
+    # Handle stakeholders
+    if 'stakeholders' in data:
+        stakeholders = User.query.filter(User.id.in_(data['stakeholders'])).all()
+        if set(project.stakeholders) != set(stakeholders):
+            changes['stakeholders'] = {
+                'old': [s.username for s in project.stakeholders],
+                'new': [s.username for s in stakeholders]
+            }
+            project.stakeholders = stakeholders
+    
+    # Handle roles
+    if 'roles' in data and not data.get('is_private', False):
+        roles = Role.query.filter(Role.name.in_(data['roles'])).all()
+        if set(project.roles) != set(roles):
+            changes['roles'] = {
+                'old': [r.name for r in project.roles],
+                'new': [r.name for r in roles]
+            }
+            project.roles = roles
     
     if changes:
         # Create history entry

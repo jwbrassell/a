@@ -1,6 +1,6 @@
 from datetime import datetime
 from app import db
-from app.models import User
+from app.models import User, Role
 
 # Association tables for many-to-many relationships
 project_team_members = db.Table('project_team_members',
@@ -21,6 +21,11 @@ project_stakeholders = db.Table('project_stakeholders',
 project_shareholders = db.Table('project_shareholders',
     db.Column('project_id', db.Integer, db.ForeignKey('project.id'), primary_key=True),
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
+)
+
+project_roles = db.Table('project_roles',
+    db.Column('project_id', db.Integer, db.ForeignKey('project.id'), primary_key=True),
+    db.Column('role_id', db.Integer, db.ForeignKey('role.id'), primary_key=True)
 )
 
 class ProjectStatus(db.Model):
@@ -74,6 +79,7 @@ class Project(db.Model):
     percent_complete = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_private = db.Column(db.Boolean, default=False)
     
     # Notification settings
     notify_task_created = db.Column(db.Boolean, default=True)
@@ -87,8 +93,10 @@ class Project(db.Model):
     watchers = db.relationship('User', secondary=project_watchers, lazy='subquery')
     stakeholders = db.relationship('User', secondary=project_stakeholders, lazy='subquery')
     shareholders = db.relationship('User', secondary=project_shareholders, lazy='subquery')
+    roles = db.relationship('Role', secondary=project_roles, lazy='subquery')
     tasks = db.relationship('Task', backref='project', lazy=True, cascade='all, delete-orphan')
-    todos = db.relationship('Todo', backref='project', lazy=True, cascade='all, delete-orphan')
+    todos = db.relationship('Todo', backref='project', lazy=True, cascade='all, delete-orphan',
+                          order_by='Todo.order')  # Order todos by order field
     comments = db.relationship('Comment', backref='project', lazy=True, cascade='all, delete-orphan')
     history = db.relationship('History', backref='project', lazy=True, cascade='all, delete-orphan')
 
@@ -129,6 +137,11 @@ class Project(db.Model):
             'percent_complete': self.percent_complete,
             'lead': self.lead.username if self.lead else None,
             'team_members': [user.username for user in self.team_members],
+            'watchers': [user.username for user in self.watchers],
+            'stakeholders': [user.username for user in self.stakeholders],
+            'shareholders': [user.username for user in self.shareholders],
+            'roles': [role.name for role in self.roles],
+            'is_private': self.is_private,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -149,7 +162,8 @@ class Task(db.Model):
     # Relationships
     assigned_to_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     assigned_to = db.relationship('User', foreign_keys=[assigned_to_id])
-    todos = db.relationship('Todo', backref='task', lazy=True, cascade='all, delete-orphan')
+    todos = db.relationship('Todo', backref='task', lazy=True, cascade='all, delete-orphan',
+                          order_by='Todo.order')  # Order todos by order field
     comments = db.relationship('Comment', backref='task', lazy=True, cascade='all, delete-orphan')
     history = db.relationship('History', backref='task', lazy=True, cascade='all, delete-orphan')
 

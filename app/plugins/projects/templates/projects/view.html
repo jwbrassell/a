@@ -2,6 +2,12 @@
 
 {% block title %}{{ project.name }}{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('projects.list_projects') }}">Projects</a></li>
+<li class="breadcrumb-item active">{{ project.name }}</li>
+{% endblock %}
+
 {% block styles %}
 {{ super() }}
 <style>
@@ -70,27 +76,7 @@ textarea.form-control[readonly] {
     padding: 0.5rem;
     border: 1px solid #dee2e6;
 }
-.card-tools {
-    float: right;
-}
-.btn-tool {
-    background: transparent;
-    color: #adb5bd;
-    font-size: 0.875rem;
-    margin: -0.75rem 0;
-    padding: .25rem .5rem;
-}
-.btn-tool:hover {
-    color: #495057;
-}
-.card-header[data-bs-toggle="collapse"] {
-    cursor: pointer;
-}
 </style>
-{% endblock %}
-
-{% block header %}
-    {% include 'projects/components/_project_header.html' %}
 {% endblock %}
 
 {% block left_column %}
@@ -101,18 +87,16 @@ textarea.form-control[readonly] {
 
     <!-- Tasks Table -->
     <div class="card mb-4">
-        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#tasks-collapse">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#tasksCollapse" aria-expanded="true" aria-controls="tasksCollapse">
             <div class="d-flex justify-content-between align-items-center">
                 <h3 class="card-title mb-0">
                     <i class="fas fa-tasks me-1"></i>
                     Tasks
                 </h3>
-                <button type="button" class="btn btn-tool">
-                    <i class="fas fa-minus collapse-icon"></i>
-                </button>
+                <i class="fas fa-minus collapse-icon"></i>
             </div>
         </div>
-        <div id="tasks-collapse" class="collapse show">
+        <div class="collapse show" id="tasksCollapse">
             <div class="card-body">
                 {% include 'projects/tasks/_table.html' %}
             </div>
@@ -121,18 +105,16 @@ textarea.form-control[readonly] {
 
     <!-- Todo List -->
     <div class="card mb-4">
-        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#todos-collapse">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#todosCollapse" aria-expanded="true" aria-controls="todosCollapse">
             <div class="d-flex justify-content-between align-items-center">
                 <h3 class="card-title mb-0">
                     <i class="fas fa-check-square me-1"></i>
                     Todo List
                 </h3>
-                <button type="button" class="btn btn-tool">
-                    <i class="fas fa-minus todos-collapse-icon"></i>
-                </button>
+                <i class="fas fa-minus todos-collapse-icon"></i>
             </div>
         </div>
-        <div id="todos-collapse" class="collapse show">
+        <div class="collapse show" id="todosCollapse">
             <div class="card-body p-0">
                 {% include 'projects/todos/_list.html' %}
             </div>
@@ -141,27 +123,37 @@ textarea.form-control[readonly] {
 
     <!-- Comments Section -->
     <div class="card mb-4">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-comments me-1"></i>
-                Comments
-            </h3>
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#commentsCollapse" aria-expanded="false" aria-controls="commentsCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-comments me-1"></i>
+                    Comments
+                </h3>
+                <i class="fas fa-plus"></i>
+            </div>
         </div>
-        <div class="card-body">
-            {% include 'projects/comments/_list.html' %}
+        <div class="collapse" id="commentsCollapse">
+            <div class="card-body">
+                {% include 'projects/comments/_list.html' %}
+            </div>
         </div>
     </div>
 
     <!-- History Table -->
     <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-history me-1"></i>
-                Project History
-            </h3>
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#historyCollapse" aria-expanded="false" aria-controls="historyCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-history me-1"></i>
+                    Project History
+                </h3>
+                <i class="fas fa-plus"></i>
+            </div>
         </div>
-        <div class="card-body">
-            {% include 'projects/history/_list.html' %}
+        <div class="collapse" id="historyCollapse">
+            <div class="card-body">
+                {% include 'projects/history/_list.html' %}
+            </div>
         </div>
     </div>
 {% endblock %}
@@ -172,57 +164,57 @@ textarea.form-control[readonly] {
     {% include 'projects/components/_project_info.html' %}
     {% endwith %}
 
-    <!-- Team Members -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3 class="card-title">Team Members</h3>
-        </div>
-        <div class="card-body">
-            {% include 'projects/details/_team_members.html' %}
-        </div>
-    </div>
-{% endblock %}
-
-{% block floating_action %}
-{% if can_edit %}
-<a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary btn-lg floating-action">
-    <i class="fas fa-edit me-1"></i> Edit Project
-</a>
-{% endif %}
+    {% if can_edit %}
+    <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary btn-lg w-100 mb-4">
+        <i class="fas fa-edit me-1"></i> Edit Project
+    </a>
+    {% endif %}
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Tasks collapse functionality
-    const tasksCollapse = document.getElementById('tasks-collapse');
-    const tasksCollapseIcon = document.querySelector('.collapse-icon');
+(function() {
+    'use strict';
     
-    tasksCollapse.addEventListener('show.bs.collapse', function() {
-        tasksCollapseIcon.classList.remove('fa-plus');
-        tasksCollapseIcon.classList.add('fa-minus');
-    });
-    
-    tasksCollapse.addEventListener('hide.bs.collapse', function() {
-        tasksCollapseIcon.classList.remove('fa-minus');
-        tasksCollapseIcon.classList.add('fa-plus');
-    });
+    // Project variables
+    var projectModule = {
+        projectId: "{{ project.id }}",
+        currentUserId: "{{ current_user.id }}"
+    };
+    window.projectModule = projectModule;
 
-    // Todos collapse functionality
-    const todosCollapse = document.getElementById('todos-collapse');
-    const todosCollapseIcon = document.querySelector('.todos-collapse-icon');
-    
-    todosCollapse.addEventListener('show.bs.collapse', function() {
-        todosCollapseIcon.classList.remove('fa-plus');
-        todosCollapseIcon.classList.add('fa-minus');
+    // Handle collapse icon changes
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tasks collapse functionality
+        const tasksCollapse = document.getElementById('tasksCollapse');
+        const tasksCollapseIcon = tasksCollapse.previousElementSibling.querySelector('.collapse-icon');
+        
+        tasksCollapse.addEventListener('show.bs.collapse', function() {
+            tasksCollapseIcon.classList.remove('fa-plus');
+            tasksCollapseIcon.classList.add('fa-minus');
+        });
+        
+        tasksCollapse.addEventListener('hide.bs.collapse', function() {
+            tasksCollapseIcon.classList.remove('fa-minus');
+            tasksCollapseIcon.classList.add('fa-plus');
+        });
+
+        // Todos collapse functionality
+        const todosCollapse = document.getElementById('todosCollapse');
+        const todosCollapseIcon = todosCollapse.previousElementSibling.querySelector('.todos-collapse-icon');
+        
+        todosCollapse.addEventListener('show.bs.collapse', function() {
+            todosCollapseIcon.classList.remove('fa-plus');
+            todosCollapseIcon.classList.add('fa-minus');
+        });
+        
+        todosCollapse.addEventListener('hide.bs.collapse', function() {
+            todosCollapseIcon.classList.remove('fa-minus');
+            todosCollapseIcon.classList.add('fa-plus');
+        });
     });
-    
-    todosCollapse.addEventListener('hide.bs.collapse', function() {
-        todosCollapseIcon.classList.remove('fa-minus');
-        todosCollapseIcon.classList.add('fa-plus');
-    });
-});
+})();
 </script>
 {% endblock %}

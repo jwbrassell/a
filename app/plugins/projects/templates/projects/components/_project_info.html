@@ -56,30 +56,122 @@
         <!-- Project Icon -->
         <div class="form-group mb-4">
             <label for="project-icon">Project Icon</label>
-            <div class="input-group">
-                <span class="input-group-text">
-                    <i id="icon-preview" class="{{ project.icon or 'fas fa-project-diagram' }}"></i>
-                </span>
-                <input type="text" class="form-control" id="project-icon" name="icon" 
-                       value="{{ project.icon or 'fas fa-project-diagram' }}"
-                       placeholder="fas fa-icon-name"
-                       {% if readonly %}readonly{% endif %}>
-                {% if not readonly %}
-                <button class="btn btn-outline-secondary" type="button" onclick="projectModule.openIconPicker()">
-                    Browse Icons
-                </button>
-                {% endif %}
+            <div class="icon-select" onclick="projectModule.openIconPicker()">
+                <i id="icon-preview" class="{{ project.icon or 'fas fa-project-diagram' }}"></i>
+                <input type="hidden" id="project-icon" name="icon" value="{{ project.icon or 'fas fa-project-diagram' }}">
             </div>
         </div>
 
         <!-- Timestamps -->
-        <dl class="row mb-0">
-            <dt class="col-sm-4">Last Updated</dt>
-            <dd class="col-sm-8" id="last-saved">{{ project.updated_at|datetime }}</dd>
+        <div class="mb-3">
+            <label class="d-block mb-1">Last Updated</label>
+            <div class="text-muted" id="last-saved">{{ project.updated_at|datetime }}</div>
+        </div>
+        <div class="mb-4">
+            <label class="d-block mb-1">Created</label>
+            <div class="text-muted">{{ project.created_at|datetime }}</div>
+        </div>
 
-            <dt class="col-sm-4">Created</dt>
-            <dd class="col-sm-8">{{ project.created_at|datetime }}</dd>
-        </dl>
+        <!-- Private Project Toggle -->
+        <div class="form-group mb-4">
+            <div class="d-flex align-items-center mb-2">
+                <label for="project-private" class="mb-0 me-2">Private Project</label>
+                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                   title="When enabled, this project will only be visible to you. Note: Admins and management may still access it if needed."></i>
+            </div>
+            {% if readonly %}
+                <div class="text-muted">{{ 'Yes' if project.is_private else 'No' }}</div>
+            {% else %}
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="project-private" name="is_private"
+                           {% if project.is_private %}checked{% endif %}>
+                    <label class="form-check-label" for="project-private">Make this project private</label>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Dynamic sections that hide when project is private -->
+        <div id="public-project-sections" {% if project.is_private %}style="display: none;"{% endif %}>
+            <!-- Watchers -->
+            <div class="form-group mb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <label for="project-watchers" class="mb-0 me-2">Watchers</label>
+                    <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                       title="Users who will receive updates about this project"></i>
+                </div>
+                {% if readonly %}
+                    <div class="text-muted">{{ ', '.join(project.watchers|map(attribute='username')) if project.watchers else 'None' }}</div>
+                {% else %}
+                    <select class="form-control select2-no-clear" id="project-watchers" name="watchers" multiple>
+                        {% for user in users %}
+                        <option value="{{ user.id }}" {% if user in project.watchers %}selected{% endif %}>
+                            {{ user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+            </div>
+
+            <!-- Project Roles -->
+            <div class="form-group mb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <label for="project-role" class="mb-0 me-2">Project Roles</label>
+                    <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                       title="Assign roles to control access to this project"></i>
+                </div>
+                {% if readonly %}
+                    <div class="text-muted">{{ ', '.join(project.roles|map(attribute='name')) if project.roles else 'None' }}</div>
+                {% else %}
+                    <select class="form-control select2-no-clear" id="project-role" name="roles" multiple>
+                        {% for role in current_user.roles %}
+                        <option value="{{ role.name }}" {% if role in project.roles %}selected{% endif %}>
+                            {{ role.name|title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Shareholders -->
+        <div class="form-group mb-3">
+            <div class="d-flex align-items-center mb-2">
+                <label for="project-shareholders" class="mb-0 me-2">Shareholders</label>
+                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                   title="Users who have a stake in this project's success"></i>
+            </div>
+            {% if readonly %}
+                <div class="text-muted">{{ ', '.join(project.shareholders|map(attribute='username')) if project.shareholders else 'None' }}</div>
+            {% else %}
+                <select class="form-control select2-no-clear" id="project-shareholders" name="shareholders" multiple>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if user in project.shareholders %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <!-- Stakeholders -->
+        <div class="form-group mb-3">
+            <div class="d-flex align-items-center mb-2">
+                <label for="project-stakeholders" class="mb-0 me-2">Stakeholders</label>
+                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                   title="Key decision makers and influencers in the project"></i>
+            </div>
+            {% if readonly %}
+                <div class="text-muted">{{ ', '.join(project.stakeholders|map(attribute='username')) if project.stakeholders else 'None' }}</div>
+            {% else %}
+                <select class="form-control select2-no-clear" id="project-stakeholders" name="stakeholders" multiple>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if user in project.stakeholders %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
     </div>
 </div>
 
@@ -101,11 +193,30 @@
     color: var(--bs-primary);
 }
 
+/* Icon select styles */
+.icon-select {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.icon-select:hover {
+    background-color: var(--bs-secondary-bg);
+}
+.icon-select i {
+    font-size: 1.5rem;
+}
+
 /* Select2 custom styles */
 .select2-container--bootstrap-5 .select2-selection {
-    border-color: var(--bs-border-color);
+    border: 1px solid var(--bs-border-color) !important;
     background-color: var(--bs-body-bg);
     color: var(--bs-body-color);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.075);
 }
 
 .select2-container--bootstrap-5 .select2-selection--single {
@@ -116,7 +227,8 @@
 
 .select2-container--bootstrap-5 .select2-dropdown {
     background-color: var(--bs-body-bg);
-    border-color: var(--bs-border-color);
+    border: 1px solid var(--bs-border-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .select2-container--bootstrap-5 .select2-results__option {
@@ -132,22 +244,79 @@
 /* Status and Priority option styles */
 .select2-option-container {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     width: 100%;
 }
 
-.select2-option-text {
-    flex-grow: 1;
+/* Add dropdown indicator */
+.select2-container--bootstrap-5 .select2-selection--single::after {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--bs-body-color);
+    pointer-events: none;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single:hover {
+    border-color: var(--bs-primary) !important;
+}
+
+/* Multiple select styles */
+.select2-container--bootstrap-5 .select2-selection--multiple {
+    min-height: calc(3.5rem + 2px);
+    padding: 0.5rem;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+    background-color: var(--bs-primary);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 2px 8px;
+    margin: 2px;
+}
+
+/* Hide clear buttons for select2-no-clear */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove,
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__clear {
+    display: none !important;
+}
+
+/* Info icon styles */
+.fa-info-circle {
+    font-size: 0.875rem;
+    cursor: help;
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Select2 for lead
-    $('#project-lead').select2({
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize regular Select2 dropdowns
+    $('#project-status, #project-lead, #project-priority').select2({
         theme: 'bootstrap-5',
         width: '100%'
+    });
+
+    // Initialize multi-select Select2 dropdowns without clear buttons
+    $('#project-watchers, #project-shareholders, #project-stakeholders, #project-role').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        closeOnSelect: false,
+        allowClear: false
     });
 
     // Custom template for status options
@@ -174,7 +343,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const text = status.text;
         return $(
             '<div class="select2-option-container">' +
-                '<span class="select2-option-text">' + text + '</span>' +
                 '<span class="badge bg-' + color + '">' + text + '</span>' +
             '</div>'
         );
@@ -186,11 +354,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const text = priority.text;
         return $(
             '<div class="select2-option-container">' +
-                '<span class="select2-option-text">' + text + '</span>' +
                 '<span class="badge bg-' + color + '">' + text + '</span>' +
             '</div>'
         );
     }
+
+    // Handle private project toggle
+    $('#project-private').on('change', function() {
+        const isPrivate = $(this).prop('checked');
+        $('#public-project-sections').toggle(!isPrivate);
+    });
 
     // Trigger change event after initialization to update any existing values
     $('.select2').trigger('change');
