@@ -1,15 +1,12 @@
-feat: enhanced task viewing and editing functionality
+feat: enhanced task viewing and project layout improvements
 
-- Added detailed task view modal showing task information, history, and comments
-- Implemented task editing functionality with proper state management
-- Added ability to transition from view to edit mode
-- Enhanced task form with proper validation and error handling
-- Added role-based access control for edit functionality
-- Improved modal handling with proper state reset
-- Added proper handling of both create and edit operations in the same modal
+- Moved task history below comments in task view modal and made it collapsible
+- Removed ability to add comments in view mode
+- Moved todo section below description in project details
+- Reorganized project edit layout for better usability
 
-These changes significantly improve the task management experience by providing:
-- Better visibility of task details and history
-- Smoother editing workflow
-- Proper access control based on user roles
-- Improved user feedback through toastr notifications
+These changes improve the user experience by:
+- Providing a cleaner, more organized layout
+- Making task history accessible but not obtrusive
+- Ensuring comments are read-only in view mode
+- Keeping related functionality (description and todos) together

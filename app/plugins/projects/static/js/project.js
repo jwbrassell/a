@@ -295,74 +295,9 @@ function deleteTask(id) {
     }
 }
 
-function submitComment(event) {
-    // If can_edit is false, return without doing anything
-    if (!window.canEdit) return;
-
-    event.preventDefault();
-    const content = document.getElementById('comment-content').value;
-
-    fetch(`/projects/${window.projectId}/comment`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-            content: content
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            toastr.success('Comment added successfully');
-            location.reload();
-            // Clear the comment input
-            document.getElementById('comment-content').value = '';
-        } else {
-            toastr.error(data.message || 'Failed to add comment');
-        }
-    })
-    .catch(error => {
-        console.error('Submit comment error:', error);
-        toastr.error('An error occurred while adding comment');
-    });
-}
-
-function submitTaskComment(event) {
-    // If can_edit is false, return without doing anything
-    if (!window.canEdit) return;
-
-    event.preventDefault();
-    const content = document.getElementById('task-comment-content').value;
-
-    fetch(`/projects/task/${currentTaskId}/comment`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-            content: content
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            toastr.success('Comment added successfully');
-            // Refresh task view to show new comment
-            viewTask(currentTaskId);
-            // Clear the comment input
-            document.getElementById('task-comment-content').value = '';
-        } else {
-            toastr.error(data.message || 'Failed to add comment');
-        }
-    })
-    .catch(error => {
-        console.error('Submit task comment error:', error);
-        toastr.error('An error occurred while adding comment');
-    });
-}
+// Disable comment functionality
+function submitComment() { return false; }
+function submitTaskComment() { return false; }
 
 // Helper functions for status and priority classes
 function getStatusClass(status) {

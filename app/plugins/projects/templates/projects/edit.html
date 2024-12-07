@@ -148,45 +148,38 @@
                         <label>Description</label>
                         <textarea id="description-editor">{{ project.description }}</textarea>
                     </div>
-                </div>
-            </div>
 
-            <!-- Todo List Card -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-tasks me-1"></i>
-                        Todo List
-                    </h3>
-                    <div class="card-tools">
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#add-todo-modal">
-                            <i class="fas fa-plus"></i> Add Todo
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="todo-list" id="sortable-todos">
-                        {% for todo in project.todos|sort(attribute='order') %}
-                        <div class="todo-item d-flex align-items-center" data-id="{{ todo.id }}">
-                            <div class="todo-handle">
-                                <i class="fas fa-grip-vertical text-muted"></i>
-                            </div>
-                            <div class="icheck-primary d-inline">
-                                <input type="checkbox" id="todo-{{ todo.id }}" 
-                                       {% if todo.completed %}checked{% endif %}
-                                       onchange="toggleTodo({{ todo.id }})">
-                                <label for="todo-{{ todo.id }}"></label>
-                            </div>
-                            <div class="todo-content {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
-                                {{ todo.description }}
-                            </div>
-                            <div class="todo-actions">
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTodo({{ todo.id }})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
+                    <!-- Todo List -->
+                    <div class="form-group mb-3">
+                        <label>Todo List</label>
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#add-todo-modal">
+                                <i class="fas fa-plus"></i> Add Todo
+                            </button>
                         </div>
-                        {% endfor %}
+                        <div class="todo-list" id="sortable-todos">
+                            {% for todo in project.todos|sort(attribute='order') %}
+                            <div class="todo-item d-flex align-items-center" data-id="{{ todo.id }}">
+                                <div class="todo-handle">
+                                    <i class="fas fa-grip-vertical text-muted"></i>
+                                </div>
+                                <div class="icheck-primary d-inline">
+                                    <input type="checkbox" id="todo-{{ todo.id }}" 
+                                           {% if todo.completed %}checked{% endif %}
+                                           onchange="toggleTodo({{ todo.id }})">
+                                    <label for="todo-{{ todo.id }}"></label>
+                                </div>
+                                <div class="todo-content {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
+                                    {{ todo.description }}
+                                </div>
+                                <div class="todo-actions">
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTodo({{ todo.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -273,16 +266,6 @@
                         </div>
                         {% endfor %}
                     </div>
-                </div>
-                <div class="card-footer">
-                    <form id="comment-form" onsubmit="submitComment(event)">
-                        <div class="input-group">
-                            <input type="text" id="comment-content" class="form-control" placeholder="Type Message ...">
-                            <span class="input-group-append">
-                                <button type="submit" class="btn btn-primary">Send</button>
-                            </span>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
@@ -497,33 +480,6 @@
                             </div>
                         </div>
 
-                        <!-- Task History -->
-                        <div class="card mt-4">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-history me-1"></i>
-                                    Task History
-                                </h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>User</th>
-                                                <th>Action</th>
-                                                <th>Details</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="view-task-history">
-                                            <!-- Task history will be populated here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Task Comments -->
                         <div class="card mt-4 direct-chat direct-chat-primary">
                             <div class="card-header">
@@ -537,15 +493,35 @@
                                     <!-- Task comments will be populated here -->
                                 </div>
                             </div>
-                            <div class="card-footer">
-                                <form id="task-comment-form" onsubmit="submitTaskComment(event)">
-                                    <div class="input-group">
-                                        <input type="text" id="task-comment-content" class="form-control" placeholder="Type Message ...">
-                                        <span class="input-group-append">
-                                            <button type="submit" class="btn btn-primary">Send</button>
-                                        </span>
+                        </div>
+
+                        <!-- Task History -->
+                        <div class="card mt-4">
+                            <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#task-history-collapse">
+                                <h3 class="card-title">
+                                    <i class="fas fa-history me-1"></i>
+                                    Task History
+                                    <i class="fas fa-chevron-down ms-2"></i>
+                                </h3>
+                            </div>
+                            <div id="task-history-collapse" class="collapse">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>User</th>
+                                                    <th>Action</th>
+                                                    <th>Details</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="view-task-history">
+                                                <!-- Task history will be populated here -->
+                                            </tbody>
+                                        </table>
                                     </div>
-                                </form>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -89,8 +89,8 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
   - Status and priority
   - Assignment details
   - Due dates
-  - Task history
-  - Comments section
+  - Comments section (read-only)
+  - Collapsible task history
 - Task properties:
   - Name
   - Description
@@ -110,9 +110,10 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
 - Track completion status
 - Assign responsibilities
 - Progress tracking
+- Integrated with project description for better context
 
 ### Comments & Collaboration
-- Comment system on projects and tasks
+- Comment system on projects and tasks (read-only in view mode)
 - Mention users in comments
 - Rich text formatting
 - File attachments
@@ -127,6 +128,7 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
   - Status Changes
   - Assignment Changes
 - Audit trail of all modifications
+- Collapsible history views for better space management
 
 ## Database Models
 
@@ -212,9 +214,12 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
 ### Project Views
 - Project listing (DataTables)
 - Project details view
-- Project creation/edit forms
+- Project creation/edit forms with:
+  - Project information
+  - Integrated todo section below description
+  - Role management
+  - Status tracking
 - Project dashboard
-- Role management interface
 
 ### Task Views
 - Task board (Kanban style)
@@ -223,8 +228,8 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
   - Status and priority badges
   - Assignment details
   - Due date information
-  - Task history table
-  - Comments section
+  - Comments section (read-only)
+  - Collapsible task history
 - Task creation/edit modal with:
   - Task name and description
   - Status selection
