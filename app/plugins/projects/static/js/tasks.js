@@ -1,134 +1,244 @@
-import { notifications, modal, api, forms } from './shared/utils.js';
+// Task manager state
+let currentTaskId = null;
 
-class TaskManager {
-    constructor() {
-        this.currentTaskId = null;
-        this.projectId = window.projectId; // Assuming projectId is set in the template
-        this.setupEventListeners();
-    }
-
-    setupEventListeners() {
-        // Initialize TinyMCE
-        modal.setupEditor('task-description', 'modal-new-task', {
-            placeholder: 'Enter task description...'
-        });
-
-        // Reset form when modal is closed
-        $('#modal-new-task').on('hidden.bs.modal', () => {
-            this.resetTaskForm();
-        });
-    }
-
-    resetTaskForm() {
-        modal.resetForm('new-task-form', 'task-description');
-        this.currentTaskId = null;
-    }
-
-    // Task CRUD operations
-    async createTask() {
-        try {
-            modal.setLoading('modal-new-task', true);
-            const formData = forms.getFormData('new-task-form', 'task-description');
-            formData.project_id = this.projectId;
-
-            const result = await api.fetchWithError(`/projects/${this.projectId}/task`, {
-                method: 'POST',
-                body: JSON.stringify(formData)
-            });
-
-            notifications.showSuccess('Task created successfully');
-            location.reload();
-        } catch (error) {
-            modal.setLoading('modal-new-task', false);
-        }
-    }
-
-    async viewTask(taskId) {
-        try {
-            modal.setLoading('modal-new-task', true);
-            const result = await api.fetchWithError(`/projects/task/${taskId}`);
-            
-            forms.setFormData('new-task-form', result.task, 'task-description', true);
-            
-            $('#modal-new-task').modal('show');
-            modal.setLoading('modal-new-task', false);
-        } catch (error) {
-            modal.setLoading('modal-new-task', false);
-        }
-    }
-
-    async editTask(taskId) {
-        try {
-            modal.setLoading('modal-new-task', true);
-            const result = await api.fetchWithError(`/projects/task/${taskId}`);
-            
-            this.currentTaskId = taskId;
-            forms.setFormData('new-task-form', result.task, 'task-description', false);
-            
-            $('#modal-new-task').modal('show');
-            modal.setLoading('modal-new-task', false);
-        } catch (error) {
-            modal.setLoading('modal-new-task', false);
-        }
-    }
-
-    async updateTask() {
-        if (!this.currentTaskId) {
-            notifications.showError('No task selected for update');
-            return;
-        }
-
-        try {
-            modal.setLoading('modal-new-task', true);
-            const formData = forms.getFormData('new-task-form', 'task-description');
-
-            await api.fetchWithError(`/projects/task/${this.currentTaskId}`, {
-                method: 'PUT',
-                body: JSON.stringify(formData)
-            });
-
-            notifications.showSuccess('Task updated successfully');
-            location.reload();
-        } catch (error) {
-            modal.setLoading('modal-new-task', false);
-        }
-    }
-
-    async deleteTask(taskId) {
-        if (!confirm('Are you sure you want to delete this task?')) {
-            return;
-        }
-
-        try {
-            modal.setLoading('modal-new-task', true);
-            await api.fetchWithError(`/projects/task/${taskId}`, {
-                method: 'DELETE'
-            });
-
-            notifications.showSuccess('Task deleted successfully');
-            location.reload();
-        } catch (error) {
-            modal.setLoading('modal-new-task', false);
-        }
-    }
-
-    // Task action handlers
-    saveNewTask() {
-        if (this.currentTaskId) {
-            this.updateTask();
-        } else {
-            this.createTask();
-        }
+// Utility functions
+function setModalLoading(modalId, loading) {
+    const loadingOverlay = document.getElementById(`${modalId}-loading`);
+    if (loadingOverlay) {
+        loadingOverlay.classList.toggle('d-none', !loading);
     }
 }
 
-// Initialize task manager when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.taskManager = new TaskManager();
+// Get CSRF token from meta tag
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
+function setupEditor(editorId, modalId, options = {}) {
+    const defaultOptions = {
+        menubar: false,
+        plugins: 'lists link autolink paste',
+        toolbar: 'bold italic | bullist numlist | link',
+        height: 200,
+        placeholder: 'Enter description...',
+        paste_as_text: true,
+        skin: document.querySelector('html').dataset.bsTheme === 'dark' ? 'oxide-dark' : 'oxide',
+        content_css: document.querySelector('html').dataset.bsTheme === 'dark' ? 'dark' : 'default'
+    };
+
+    const combinedOptions = Object.assign({}, defaultOptions, options);
+    combinedOptions.selector = `#${editorId}`;
+    
+    return tinymce.init({
+        ...combinedOptions,
+        setup: function(editor) {
+            setModalLoading(modalId, true);
+            editor.on('init', function() {
+                setModalLoading(modalId, false);
+                $(`#${modalId}`).on('shown.bs.modal', function() {
+                    editor.focus();
+                });
+            });
+        }
+    });
+}
+
+function resetTaskForm() {
+    const form = document.getElementById('new-task-form');
+    if (form) form.reset();
+    
+    const editor = tinymce.get('task-description');
+    if (editor) {
+        editor.setContent('');
+        editor.getBody().contentEditable = true;
+    }
+    
+    currentTaskId = null;
+}
+
+function getFormData() {
+    const form = document.getElementById('new-task-form');
+    const formData = {};
+    
+    new FormData(form).forEach((value, key) => {
+        formData[key] = value;
+    });
+
+    const editor = tinymce.get('task-description');
+    if (editor) {
+        formData.description = editor.getContent();
+    }
+
+    return formData;
+}
+
+function setFormData(data, disabled = false) {
+    const form = document.getElementById('new-task-form');
+    
+    Object.entries(data).forEach(([key, value]) => {
+        const field = form.elements[key];
+        if (field) {
+            field.value = value || '';
+            field.disabled = disabled;
+        }
+    });
+
+    const editor = tinymce.get('task-description');
+    if (editor) {
+        editor.setContent(data.description || '');
+        editor.getBody().contentEditable = !disabled;
+    }
+}
+
+// Task CRUD operations
+async function createTask() {
+    try {
+        setModalLoading('modal-new-task', true);
+        const formData = getFormData();
+        formData.project_id = window.projectId;
+
+        const response = await fetch(`/projects/${window.projectId}/task`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to create task');
+        }
+
+        toastr.success('Task created successfully');
+        location.reload();
+    } catch (error) {
+        toastr.error('Error creating task: ' + error.message);
+        setModalLoading('modal-new-task', false);
+    }
+}
+
+async function viewTask(taskId) {
+    try {
+        setModalLoading('modal-new-task', true);
+        const response = await fetch(`/projects/task/${taskId}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch task');
+        }
+
+        const result = await response.json();
+        setFormData(result.task, true);
+        
+        $('#modal-new-task').modal('show');
+        setModalLoading('modal-new-task', false);
+    } catch (error) {
+        toastr.error('Error viewing task: ' + error.message);
+        setModalLoading('modal-new-task', false);
+    }
+}
+
+async function editTask(taskId) {
+    try {
+        setModalLoading('modal-new-task', true);
+        const response = await fetch(`/projects/task/${taskId}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch task');
+        }
+
+        const result = await response.json();
+        currentTaskId = taskId;
+        setFormData(result.task, false);
+        
+        $('#modal-new-task').modal('show');
+        setModalLoading('modal-new-task', false);
+    } catch (error) {
+        toastr.error('Error editing task: ' + error.message);
+        setModalLoading('modal-new-task', false);
+    }
+}
+
+async function updateTask() {
+    if (!currentTaskId) {
+        toastr.error('No task selected for update');
+        return;
+    }
+
+    try {
+        setModalLoading('modal-new-task', true);
+        const formData = getFormData();
+
+        const response = await fetch(`/projects/task/${currentTaskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update task');
+        }
+
+        toastr.success('Task updated successfully');
+        location.reload();
+    } catch (error) {
+        toastr.error('Error updating task: ' + error.message);
+        setModalLoading('modal-new-task', false);
+    }
+}
+
+async function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) {
+        return;
+    }
+
+    try {
+        setModalLoading('modal-new-task', true);
+        const response = await fetch(`/projects/task/${taskId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': getCsrfToken()
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete task');
+        }
+
+        toastr.success('Task deleted successfully');
+        location.reload();
+    } catch (error) {
+        toastr.error('Error deleting task: ' + error.message);
+        setModalLoading('modal-new-task', false);
+    }
+}
+
+function saveNewTask() {
+    if (currentTaskId) {
+        updateTask();
+    } else {
+        createTask();
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize TinyMCE
+    setupEditor('task-description', 'modal-new-task', {
+        placeholder: 'Enter task description...'
+    });
+
+    // Reset form when modal is closed
+    $('#modal-new-task').on('hidden.bs.modal', function() {
+        resetTaskForm();
+    });
 });
 
-// Export functions for use in HTML
-window.viewTask = (taskId) => window.taskManager.viewTask(taskId);
-window.editTask = (taskId) => window.taskManager.editTask(taskId);
-window.deleteTask = (taskId) => window.taskManager.deleteTask(taskId);
-window.saveNewTask = () => window.taskManager.saveNewTask();
+// Make functions globally available
+window.viewTask = viewTask;
+window.editTask = editTask;
+window.deleteTask = deleteTask;
+window.saveNewTask = saveNewTask;

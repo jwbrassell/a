@@ -1,6 +1,3 @@
-// Global variables
-const currentTodoId = null;
-
 // Utility functions
 function showError(message) {
     toastr.error(message);
@@ -13,6 +10,11 @@ function showSuccess(message) {
 function resetTodoForm() {
     document.getElementById('new-todo-form').reset();
     window.currentTodoId = null;
+}
+
+// Get CSRF token from meta tag
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 }
 
 // Todo CRUD operations
@@ -28,6 +30,7 @@ async function createTodo() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
             },
             body: JSON.stringify(formData)
         });
@@ -49,6 +52,7 @@ async function toggleTodo(todoId, completed) {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
             },
             body: JSON.stringify({ completed })
         });
@@ -105,6 +109,7 @@ async function updateTodo() {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
             },
             body: JSON.stringify(formData)
         });
@@ -127,7 +132,10 @@ async function deleteTodo(todoId) {
 
     try {
         const response = await fetch(`/projects/todos/${todoId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': getCsrfToken()
+            }
         });
 
         if (!response.ok) {
@@ -150,7 +158,7 @@ function saveTodo() {
     }
 }
 
-// Event Listeners
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Reset form when modal is closed
     $('#modal-new-todo').on('hidden.bs.modal', function () {

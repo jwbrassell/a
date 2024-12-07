@@ -238,7 +238,7 @@ class Comment(db.Model):
             'content': self.content,
             'user': self.user.username if self.user else None,
             'user_id': self.user_id,
-            'user_avatar': self.user.avatar_url if self.user else None,
+            'user_avatar': self.user.get_preference('avatar', 'images/user_1.jpg') if self.user else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

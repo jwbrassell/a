@@ -1,25 +1,16 @@
-refactor(projects): improve task/todo management and history display
+refactor(projects): improve save functionality and CSRF handling
 
-- Remove redundant todo list implementation
-  * Remove duplicate todo modal include
-  * Use existing modal from _list.html template
-  * Maintain all todo functionality in single location
+- Add CSRF token handling to all project-related API calls
+- Change auto-save to explicit save button functionality
+- Add visual indicators for unsaved changes
+- Fix duplicate event handling for select fields
+- Make save buttons consistent across UI
+- Add safety mechanisms for unsaved changes
+- Update both floating and bottom save buttons together
 
-- Enhance project history display
-  * Add timeline visualization with date grouping
-  * Add visual indicators for different change types
-  * Improve formatting of change details
-  * Add proper sorting (newest first)
-  * Implement dark mode support
-  * Better display of entity-specific icons
-
-- Improve code organization
-  * Remove redundant template includes
-  * Better separation of concerns
-  * More consistent UI layout
-  * Cleaner template structure
-
-These changes improve code maintainability and user experience while
-preserving all existing functionality. The history now provides better
-context for project changes, and the todo system is properly organized
-without redundancy.
+This improves the user experience by:
+1. Making save behavior more predictable
+2. Preventing accidental data loss
+3. Providing clear feedback about unsaved changes
+4. Ensuring consistent button states
+5. Adding proper security with CSRF tokens

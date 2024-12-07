@@ -1,0 +1,75 @@
+<!-- Project Info Card -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="card-title">Project Info</h3>
+    </div>
+    <div class="card-body">
+        <div class="form-group mb-3">
+            <label for="project-status">Status</label>
+            {% if readonly %}
+                <input type="text" class="form-control" value="{{ project.status|title }}" readonly>
+            {% else %}
+                <select class="form-control" id="project-status" name="status">
+                    {% for status in statuses %}
+                    <option value="{{ status.name }}" {% if project.status == status.name %}selected{% endif %}>
+                        {{ status.name|title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="project-priority">Priority</label>
+            {% if readonly %}
+                <input type="text" class="form-control" value="{{ project.priority|title }}" readonly>
+            {% else %}
+                <select class="form-control" id="project-priority" name="priority">
+                    {% for priority in priorities %}
+                    <option value="{{ priority.name }}" {% if project.priority == priority.name %}selected{% endif %}>
+                        {{ priority.name|title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="project-lead">Lead</label>
+            {% if readonly %}
+                <input type="text" class="form-control" value="{{ project.lead.username if project.lead else 'Unassigned' }}" readonly>
+            {% else %}
+                <select class="form-control" id="project-lead" name="lead_id">
+                    <option value="">Unassigned</option>
+                    {% for member in project.team_members %}
+                    <option value="{{ member.id }}" {% if project.lead and project.lead.id == member.id %}selected{% endif %}>
+                        {{ member.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="project-start-date">Start Date</label>
+            <input type="date" class="form-control" id="project-start-date" name="start_date"
+                   value="{{ project.start_date|date if project.start_date }}"
+                   {% if readonly %}readonly{% endif %}>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="project-end-date">End Date</label>
+            <input type="date" class="form-control" id="project-end-date" name="end_date"
+                   value="{{ project.end_date|date if project.end_date }}"
+                   {% if readonly %}readonly{% endif %}>
+        </div>
+
+        <dl class="row">
+            <dt class="col-sm-4">Created</dt>
+            <dd class="col-sm-8">{{ project.created_at|datetime }}</dd>
+
+            <dt class="col-sm-4">Updated</dt>
+            <dd class="col-sm-8" id="last-saved">{{ project.updated_at|datetime }}</dd>
+        </dl>
+    </div>
+</div>

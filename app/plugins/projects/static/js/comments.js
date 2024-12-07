@@ -14,7 +14,12 @@ function scrollToBottom() {
     }
 }
 
-// Create edit modal if it doesn't exist
+// Get CSRF token from meta tag
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
+/* Edit modal functionality - commented out but kept for future reference
 function createEditModal() {
     if (!document.getElementById('edit-comment-modal')) {
         const modal = document.createElement('div');
@@ -28,7 +33,12 @@ function createEditModal() {
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <textarea id="edit-comment-content" class="form-control rich-text-editor"></textarea>
+                        <div class="form-group">
+                            <textarea id="edit-comment-content" class="form-control" rows="2" maxlength="300"></textarea>
+                            <small class="text-muted float-end mt-1">
+                                <span id="edit-char-count">0</span>/300 characters
+                            </small>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -38,28 +48,35 @@ function createEditModal() {
             </div>
         `;
         document.body.appendChild(modal);
+
+        // Add character counter for edit modal
+        document.getElementById('edit-comment-content').addEventListener('input', function() {
+            document.getElementById('edit-char-count').textContent = this.value.length;
+        });
     }
 }
+*/
 
 // Comment operations
 async function submitComment(event) {
     event.preventDefault();
     
-    const content = tinymce.get('comment-message').getContent().trim();
+    const textarea = document.getElementById('comment-message');
+    const content = textarea.value.trim();
     
     if (!content) {
         return;
     }
 
     try {
-        const response = await fetch('/projects/comments/create', {
+        const response = await fetch(`/projects/${projectId}/comment`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
             },
             body: JSON.stringify({
-                content: content,
-                project_id: projectId
+                content: content
             })
         });
 
@@ -75,7 +92,8 @@ async function submitComment(event) {
         commentsContainer.insertAdjacentHTML('beforeend', newComment);
         
         // Clear input and scroll to bottom
-        tinymce.get('comment-message').setContent('');
+        textarea.value = '';
+        document.getElementById('char-count').textContent = '0';
         scrollToBottom();
         
         showSuccess('Comment posted successfully');
@@ -84,6 +102,7 @@ async function submitComment(event) {
     }
 }
 
+/* Edit/Delete functionality - commented out but kept for future reference
 let currentEditingCommentId = null;
 
 async function editComment(commentId) {
@@ -92,19 +111,16 @@ async function editComment(commentId) {
         currentEditingCommentId = commentId;
         
         const commentElement = document.querySelector(`#comment-${commentId} .direct-chat-text`);
-        const currentContent = commentElement.innerHTML;
+        const currentContent = commentElement.textContent.trim();
         
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('edit-comment-modal'));
         modal.show();
         
-        // Wait for TinyMCE to be ready
-        setTimeout(() => {
-            const editor = tinymce.get('edit-comment-content');
-            if (editor) {
-                editor.setContent(currentContent);
-            }
-        }, 100);
+        // Set content and update character count
+        const editTextarea = document.getElementById('edit-comment-content');
+        editTextarea.value = currentContent;
+        document.getElementById('edit-char-count').textContent = currentContent.length;
     } catch (error) {
         showError('Error preparing comment edit: ' + error.message);
     }
@@ -114,12 +130,14 @@ async function saveEditedComment() {
     if (!currentEditingCommentId) return;
 
     try {
-        const newContent = tinymce.get('edit-comment-content').getContent();
+        const editTextarea = document.getElementById('edit-comment-content');
+        const newContent = editTextarea.value.trim();
         
-        const response = await fetch(`/projects/comments/${currentEditingCommentId}`, {
+        const response = await fetch(`/projects/comment/${currentEditingCommentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
             },
             body: JSON.stringify({
                 content: newContent
@@ -132,7 +150,7 @@ async function saveEditedComment() {
 
         // Update comment content
         const commentElement = document.querySelector(`#comment-${currentEditingCommentId} .direct-chat-text`);
-        commentElement.innerHTML = newContent;
+        commentElement.textContent = newContent;
         
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('edit-comment-modal')).hide();
@@ -149,8 +167,11 @@ async function deleteComment(commentId) {
     }
 
     try {
-        const response = await fetch(`/projects/comments/${commentId}`, {
-            method: 'DELETE'
+        const response = await fetch(`/projects/comment/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': getCsrfToken()
+            }
         });
 
         if (!response.ok) {
@@ -168,44 +189,33 @@ async function deleteComment(commentId) {
         showError('Error deleting comment: ' + error.message);
     }
 }
+*/
 
 function createCommentElement(comment) {
     const isCurrentUser = comment.user_id === currentUserId;
     const timestamp = new Date(comment.created_at).toLocaleString();
+    const avatarPath = comment.user_avatar.startsWith('/') ? comment.user_avatar : `/static/${comment.user_avatar}`;
     
     return `
     <div class="direct-chat-msg ${isCurrentUser ? 'right' : ''}" id="comment-${comment.id}">
         <div class="direct-chat-infos clearfix">
             <span class="direct-chat-name float-${isCurrentUser ? 'right' : 'left'}">
-                ${comment.user.name}
+                ${comment.user}
             </span>
             <span class="direct-chat-timestamp float-${isCurrentUser ? 'left' : 'right'}">
                 ${timestamp}
             </span>
         </div>
-        <img class="direct-chat-img" src="${comment.user.avatar_url}" alt="message user image">
-        <div class="direct-chat-text rich-text-content">
+        <img class="direct-chat-img" src="${avatarPath}" alt="message user image">
+        <div class="direct-chat-text">
             ${comment.content}
         </div>
-        ${isCurrentUser ? `
-        <div class="direct-chat-actions">
-            <button class="btn btn-sm btn-link" onclick="editComment(${comment.id})">
-                <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-link text-danger" onclick="deleteComment(${comment.id})">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-        ` : ''}
     </div>
     `;
 }
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Create edit modal
-    createEditModal();
-    
     // Scroll to bottom of chat on load
     scrollToBottom();
     
@@ -218,16 +228,4 @@ document.addEventListener('DOMContentLoaded', function() {
             timeOut: 3000
         };
     }
-
-    // Configure TinyMCE for comments with a simpler toolbar
-    tinymce.init({
-        selector: '#comment-message',
-        menubar: false,
-        plugins: 'link lists emoticons',
-        toolbar: 'bold italic | bullist numlist | link emoticons',
-        placeholder: 'Type your comment...',
-        height: 120,
-        skin: document.querySelector('html').dataset.bsTheme === 'dark' ? 'oxide-dark' : 'oxide',
-        content_css: document.querySelector('html').dataset.bsTheme === 'dark' ? 'dark' : 'default'
-    });
 });

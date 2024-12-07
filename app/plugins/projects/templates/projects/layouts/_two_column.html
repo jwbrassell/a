@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <!-- Header Block -->
+    {% block header %}{% endblock %}
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-md-8">
+            {% block left_column %}{% endblock %}
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-md-4">
+            {% block right_column %}{% endblock %}
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button Area -->
+{% block floating_action %}{% endblock %}
+
+<!-- Modals Area -->
+{% block modals %}{% endblock %}
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+/* Floating action button */
+.floating-action {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+.floating-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% block additional_styles %}{% endblock %}
+{% endblock %}

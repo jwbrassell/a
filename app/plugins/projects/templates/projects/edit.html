@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'projects/layouts/_two_column.html' %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -7,6 +7,9 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block additional_styles %}
 <style>
 .todo-list {
     min-height: 100px;
@@ -68,230 +71,108 @@
 .task-description-editor {
     min-height: 200px;
 }
-/* Floating save button */
-.floating-save {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    z-index: 1000;
-    transition: all 0.3s ease;
-}
-.floating-save:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-/* Icon picker styles */
-.icon-option {
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-.icon-option:hover {
-    background-color: #f8f9fa;
-    transform: scale(1.05);
-}
-.icon-option i {
-    transition: all 0.2s ease;
-}
-.icon-option:hover i {
-    color: #007bff;
-}
 </style>
 {% endblock %}
 
-{% block page_content %}
-<div class="container-fluid">
-    <!-- Project Header -->
-    <div class="row mb-4">
-        <div class="col">
-            <h1>
-                <i class="{{ project.icon or 'fas fa-project-diagram' }} me-2"></i>
-                {{ project.name }}
-            </h1>
-            <p class="text-muted">{{ project.summary }}</p>
+{% block header %}
+    {% include 'projects/components/_project_header.html' %}
+{% endblock %}
+
+{% block left_column %}
+    <!-- Project Details -->
+    {% include 'projects/components/_project_details.html' %}
+
+    <!-- Tasks Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-tasks me-1"></i>
+                Tasks
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-new-task">
+                    <i class="fas fa-plus"></i> Add Task
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% include 'projects/tasks/_table.html' %}
         </div>
     </div>
 
-    <div class="row">
-        <!-- Left Column -->
-        <div class="col-md-8">
-            <!-- Project Details -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3 class="card-title">Project Details</h3>
-                </div>
-                <div class="card-body">
-                    <!-- Project Icon -->
-                    <div class="mb-4">
-                        <label for="project-icon">Project Icon</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i id="icon-preview" class="{{ project.icon or 'fas fa-project-diagram' }}"></i>
-                            </span>
-                            <input type="text" class="form-control" id="project-icon" name="icon" 
-                                   value="{{ project.icon or 'fas fa-project-diagram' }}"
-                                   placeholder="fas fa-icon-name">
-                            <button class="btn btn-outline-secondary" type="button" onclick="projectModule.openIconPicker()">
-                                Browse Icons
-                            </button>
-                        </div>
-                    </div>
+    <!-- Todo List -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-check-square me-1"></i>
+                Todo List
+            </h3>
+        </div>
+        <div class="card-body">
+            {% include 'projects/todos/_list.html' %}
+        </div>
+    </div>
 
-                    <!-- Project Summary -->
-                    <div class="mb-4">
-                        <label for="project-summary">Summary</label>
-                        <input type="text" class="form-control" id="project-summary" name="summary" 
-                               value="{{ project.summary }}" placeholder="Brief project description">
-                    </div>
-
-                    <!-- Project Description -->
-                    <div class="mb-4">
-                        <label for="project-description">Description</label>
-                        <textarea class="form-control" id="project-description" name="description" 
-                                  rows="6" placeholder="Detailed project description">{{ project.description }}</textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tasks Table -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-tasks me-1"></i>
-                        Tasks
-                    </h3>
-                    <div class="card-tools">
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-new-task">
-                            <i class="fas fa-plus"></i> Add Task
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    {% include 'projects/tasks/_table.html' %}
-                </div>
-            </div>
-
-            <!-- Todo List -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-check-square me-1"></i>
-                        Todo List
-                    </h3>
-                </div>
-                <div class="card-body">
-                    {% include 'projects/todos/_list.html' %}
-                </div>
-            </div>
-
-            <!-- Comments Section -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-comments me-1"></i>
-                        Comments
-                    </h3>
-                </div>
-                <div class="card-body">
-                    {% include 'projects/comments/_list.html' %}
-                </div>
-            </div>
-
-            <!-- History Table -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-history me-1"></i>
-                        Project History
-                    </h3>
-                </div>
-                <div class="card-body">
-                    {% include 'projects/history/_list.html' %}
-                </div>
+    <!-- Comments Section -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#commentsCollapse" aria-expanded="false" aria-controls="commentsCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-comments me-1"></i>
+                    Comments
+                </h3>
+                <i class="fas fa-chevron-down"></i>
             </div>
         </div>
-
-        <!-- Right Column -->
-        <div class="col-md-4">
-            <!-- Project Info -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3 class="card-title">Project Info</h3>
-                </div>
-                <div class="card-body">
-                    <div class="form-group mb-3">
-                        <label for="project-status">Status</label>
-                        <select class="form-control" id="project-status" name="status">
-                            <option value="planning" {% if project.status == 'planning' %}selected{% endif %}>Planning</option>
-                            <option value="active" {% if project.status == 'active' %}selected{% endif %}>Active</option>
-                            <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Completed</option>
-                            <option value="on_hold" {% if project.status == 'on_hold' %}selected{% endif %}>On Hold</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group mb-3">
-                        <label for="project-priority">Priority</label>
-                        <select class="form-control" id="project-priority" name="priority">
-                            <option value="low" {% if project.priority == 'low' %}selected{% endif %}>Low</option>
-                            <option value="medium" {% if project.priority == 'medium' %}selected{% endif %}>Medium</option>
-                            <option value="high" {% if project.priority == 'high' %}selected{% endif %}>High</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group mb-3">
-                        <label for="project-lead">Lead</label>
-                        <select class="form-control" id="project-lead" name="lead_id">
-                            <option value="">Unassigned</option>
-                            {% for member in project.team_members %}
-                            <option value="{{ member.id }}" {% if project.lead and project.lead.id == member.id %}selected{% endif %}>
-                                {{ member.username }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-group mb-3">
-                        <label for="project-start-date">Start Date</label>
-                        <input type="date" class="form-control" id="project-start-date" name="start_date"
-                               value="{{ project.start_date|date if project.start_date }}">
-                    </div>
-
-                    <div class="form-group mb-3">
-                        <label for="project-end-date">End Date</label>
-                        <input type="date" class="form-control" id="project-end-date" name="end_date"
-                               value="{{ project.end_date|date if project.end_date }}">
-                    </div>
-
-                    <dl class="row">
-                        <dt class="col-sm-4">Created</dt>
-                        <dd class="col-sm-8">{{ project.created_at|datetime }}</dd>
-
-                        <dt class="col-sm-4">Updated</dt>
-                        <dd class="col-sm-8" id="last-saved">{{ project.updated_at|datetime }}</dd>
-                    </dl>
-                </div>
-            </div>
-
-            <!-- Team Members -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3 class="card-title">Team Members</h3>
-                </div>
-                <div class="card-body">
-                    {% include 'projects/details/_team_members.html' %}
-                </div>
+        <div class="collapse" id="commentsCollapse">
+            <div class="card-body">
+                {% include 'projects/comments/_list.html' %}
             </div>
         </div>
     </div>
-</div>
 
-<!-- Floating Save Button -->
-<button type="button" class="btn btn-primary btn-lg floating-save" onclick="projectModule.saveProject()">
-    <i class="fas fa-save me-1"></i> Save Changes
-</button>
+    <!-- History Table -->
+    <div class="card">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#historyCollapse" aria-expanded="false" aria-controls="historyCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-history me-1"></i>
+                    Project History
+                </h3>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+        <div class="collapse" id="historyCollapse">
+            <div class="card-body">
+                {% include 'projects/history/_list.html' %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
 
+{% block right_column %}
+    <!-- Project Info -->
+    {% include 'projects/components/_project_info.html' %}
+
+    <!-- Team Members -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">Team Members</h3>
+        </div>
+        <div class="card-body">
+            {% include 'projects/details/_team_members.html' %}
+        </div>
+    </div>
+
+    <!-- Save Changes Button -->
+    <button type="button" class="btn btn-primary btn-lg w-100 mb-4" onclick="projectModule.saveProject()">
+        <i class="fas fa-save me-1"></i> Save Changes
+    </button>
+{% endblock %}
+
+{% block modals %}
 <!-- Task Modal -->
 {% include 'projects/tasks/_task_modal.html' %}
-
 {% endblock %}
 
 {% block scripts %}
@@ -305,8 +186,8 @@
 
 <!-- Project variables -->
 <script>
-var projectId = {{ project.id }};
-var currentUserId = {{ current_user.id }};
+window.projectId = {{ project.id }};
+window.currentUserId = {{ current_user.id }};
 </script>
 
 <!-- Project functionality -->
