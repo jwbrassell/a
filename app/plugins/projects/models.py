@@ -187,8 +187,11 @@ class Task(db.Model):
             'priority': self.priority,
             'due_date': self.due_date.isoformat() if self.due_date else None,
             'assigned_to': self.assigned_to.username if self.assigned_to else None,
+            'assigned_to_id': self.assigned_to_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'history': [h.to_dict() for h in self.history],
+            'comments': [c.to_dict() for c in self.comments]
         }
 
 class Todo(db.Model):
@@ -226,6 +229,19 @@ class Comment(db.Model):
 
     def __repr__(self):
         return f'<Comment {self.content[:20]}...>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'project_id': self.project_id,
+            'task_id': self.task_id,
+            'content': self.content,
+            'user': self.user.username if self.user else None,
+            'user_id': self.user_id,
+            'user_avatar': self.user.avatar_url if self.user else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 class History(db.Model):
     """History model for tracking all changes"""
@@ -268,3 +284,15 @@ class History(db.Model):
             'archived': 'secondary'
         }
         return colors.get(self.action, 'secondary')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'entity_type': self.entity_type,
+            'action': self.action,
+            'details': self.details,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'user': self.user.username if self.user else None,
+            'icon': self.icon,
+            'color': self.color
+        }

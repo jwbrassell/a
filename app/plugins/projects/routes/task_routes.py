@@ -6,7 +6,7 @@ from app.utils.rbac import requires_roles
 from app.utils.activity_tracking import track_activity
 from app.extensions import db
 from app.models import UserActivity
-from ..models import Project, Task, History
+from ..models import Project, Task, History, Comment
 from app.plugins.projects import bp
 from datetime import datetime
 
@@ -143,6 +143,7 @@ def update_task(task_id):
             action='updated',
             user_id=current_user.id,
             project_id=task.project_id,
+            task_id=task.id,
             details=changes
         )
         task.project.history.append(history)
@@ -214,6 +215,7 @@ def complete_task(task_id):
         action='completed',
         user_id=current_user.id,
         project_id=task.project_id,
+        task_id=task.id,
         details={'status': 'completed'}
     )
     task.project.history.append(history)
@@ -232,4 +234,53 @@ def complete_task(task_id):
         'success': True,
         'message': 'Task marked as complete',
         'task': task.to_dict()
+    })
+
+@bp.route('/task/<int:task_id>/comment', methods=['POST'])
+@login_required
+@requires_roles('user')
+@track_activity
+def create_task_comment(task_id):
+    """Add a comment to a task"""
+    task = Task.query.get_or_404(task_id)
+    data = request.get_json()
+    
+    if not data.get('content'):
+        return jsonify({
+            'success': False,
+            'message': 'Comment content is required'
+        }), 400
+    
+    comment = Comment(
+        content=data['content'],
+        task_id=task_id,
+        user_id=current_user.id
+    )
+    
+    # Create history entry
+    history = History(
+        entity_type='task',
+        action='updated',
+        user_id=current_user.id,
+        project_id=task.project_id,
+        task_id=task_id,
+        details={'comment_added': data['content'][:50] + '...' if len(data['content']) > 50 else data['content']}
+    )
+    task.project.history.append(history)
+    
+    # Log activity
+    activity = UserActivity(
+        user_id=current_user.id,
+        username=current_user.username,
+        activity=f"Added comment to task: {task.name}"
+    )
+    
+    db.session.add(comment)
+    db.session.add(activity)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Comment added successfully',
+        'comment': comment.to_dict()
     })

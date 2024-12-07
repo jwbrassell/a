@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='src/select2/select2.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='src/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='src/sweetalert2/sweetalert2.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/toastr/toastr.min.css') }}">
 
 <!-- JavaScript -->
 <script src="{{ url_for('static', filename='src/jquery/js/jquery-3.6.0.min.js') }}"></script>
@@ -36,3 +37,14 @@
 <script src="{{ url_for('static', filename='src/select2/select2.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/sweetalert2/sweetalert2.all.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/tinymce.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/toastr/toastr.min.js') }}"></script>
+
+<!-- Initialize Toastr -->
+<script>
+toastr.options = {
+    closeButton: true,
+    progressBar: true,
+    positionClass: "toast-top-right",
+    timeOut: 3000
+};
+</script>

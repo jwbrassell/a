@@ -1,3 +1,6 @@
+// Get CSRF token from meta tag
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
 // Project functionality
 function toggleTodo(id) {
     // If can_edit is false, return without doing anything
@@ -8,6 +11,7 @@ function toggleTodo(id) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         }
     })
     .then(response => response.json())
@@ -19,7 +23,14 @@ function toggleTodo(id) {
             } else {
                 todoText.classList.remove('text-muted', 'text-decoration-line-through');
             }
+            toastr.success('Todo status updated');
+        } else {
+            toastr.error(data.message || 'Failed to update todo');
         }
+    })
+    .catch(error => {
+        console.error('Toggle todo error:', error);
+        toastr.error('An error occurred while updating todo');
     });
 }
 
@@ -29,15 +40,14 @@ function createTodo() {
 
     const description = document.getElementById('todo-description').value;
     const assignedTo = document.getElementById('todo-assigned-to').value;
-    const projectId = window.location.pathname.split('/').pop();
 
-    fetch('/projects/todo/create', {
+    fetch(`/projects/${window.projectId}/todo`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({
-            project_id: projectId,
             description: description,
             assigned_to_id: assignedTo || null
         })
@@ -45,8 +55,18 @@ function createTodo() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            toastr.success('Todo created successfully');
+            // Hide modal using Bootstrap 5 method
+            const modal = bootstrap.Modal.getInstance(document.getElementById('add-todo-modal'));
+            modal.hide();
             location.reload();
+        } else {
+            toastr.error(data.message || 'Failed to create todo');
         }
+    })
+    .catch(error => {
+        console.error('Create todo error:', error);
+        toastr.error('An error occurred while creating todo');
     });
 }
 
@@ -56,13 +76,23 @@ function deleteTodo(id) {
 
     if (confirm('Are you sure you want to delete this todo?')) {
         fetch(`/projects/todo/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                toastr.success('Todo deleted successfully');
                 location.reload();
+            } else {
+                toastr.error(data.message || 'Failed to delete todo');
             }
+        })
+        .catch(error => {
+            console.error('Delete todo error:', error);
+            toastr.error('An error occurred while deleting todo');
         });
     }
 }
@@ -75,6 +105,7 @@ function updateTodoOrder(todos) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({ todos: todos })
     })
@@ -82,7 +113,12 @@ function updateTodoOrder(todos) {
     .then(data => {
         if (!data.success) {
             console.error('Failed to update todo order');
+            toastr.error('Failed to update todo order');
         }
+    })
+    .catch(error => {
+        console.error('Update todo order error:', error);
+        toastr.error('An error occurred while updating todo order');
     });
 }
 
@@ -90,10 +126,7 @@ function createTask() {
     // If can_edit is false, return without doing anything
     if (!window.canEdit) return;
 
-    const form = document.getElementById('task-form');
-    const projectId = window.location.pathname.split('/').pop();
     const formData = {
-        project_id: projectId,
         name: document.getElementById('task-name').value,
         description: document.getElementById('task-description').value,
         status: document.getElementById('task-status').value,
@@ -102,41 +135,136 @@ function createTask() {
         due_date: document.getElementById('task-due-date').value || null
     };
 
-    fetch('/projects/task/create', {
-        method: 'POST',
+    const taskId = document.getElementById('task-id').value;
+    const method = taskId ? 'PUT' : 'POST';
+    const url = taskId ? `/projects/task/${taskId}` : `/projects/${window.projectId}/task`;
+
+    fetch(url, {
+        method: method,
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         },
         body: JSON.stringify(formData)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            toastr.success(`Task ${taskId ? 'updated' : 'created'} successfully`);
+            // Hide modal using Bootstrap 5 method
+            const modal = bootstrap.Modal.getInstance(document.getElementById('create-task-modal'));
+            modal.hide();
             location.reload();
+        } else {
+            toastr.error(data.message || `Failed to ${taskId ? 'update' : 'create'} task`);
         }
+    })
+    .catch(error => {
+        console.error('Task operation error:', error);
+        toastr.error(`An error occurred while ${taskId ? 'updating' : 'creating'} task`);
     });
 }
 
-function editTask(id) {
-    // If can_edit is false, return without doing anything
-    if (!window.canEdit) return;
-
+function viewTask(id) {
+    currentTaskId = id;  // Store current task ID for edit button
     fetch(`/projects/task/${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const task = data.task;
                 // Populate modal with task data
+                document.getElementById('view-task-name').textContent = task.name;
+                document.getElementById('view-task-description').innerHTML = task.description || 'No description provided';
+                document.getElementById('view-task-status').innerHTML = `<span class="badge bg-${getStatusClass(task.status)}">${task.status}</span>`;
+                document.getElementById('view-task-priority').innerHTML = `<span class="badge bg-${getPriorityClass(task.priority)}">${task.priority}</span>`;
+                document.getElementById('view-task-assigned').textContent = task.assigned_to || 'Unassigned';
+                document.getElementById('view-task-due-date').textContent = task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date';
+                document.getElementById('view-task-created').textContent = new Date(task.created_at).toLocaleString();
+                document.getElementById('view-task-updated').textContent = new Date(task.updated_at).toLocaleString();
+
+                // Populate task history
+                const historyHtml = task.history.map(entry => `
+                    <tr>
+                        <td>${new Date(entry.created_at).toLocaleString()}</td>
+                        <td>${entry.user}</td>
+                        <td><span class="badge bg-${entry.color}"><i class="fas fa-${entry.icon} me-1"></i>${entry.action}</span></td>
+                        <td>${JSON.stringify(entry.details)}</td>
+                    </tr>
+                `).join('');
+                document.getElementById('view-task-history').innerHTML = historyHtml;
+
+                // Populate task comments
+                const commentsHtml = task.comments.map(comment => `
+                    <div class="direct-chat-msg ${comment.user_id === window.currentUserId ? 'right' : ''}">
+                        <div class="direct-chat-infos clearfix">
+                            <span class="direct-chat-name ${comment.user_id === window.currentUserId ? 'float-end' : 'float-start'}">
+                                ${comment.user}
+                            </span>
+                            <span class="direct-chat-timestamp ${comment.user_id === window.currentUserId ? 'float-start' : 'float-end'}">
+                                ${new Date(comment.created_at).toLocaleString()}
+                            </span>
+                        </div>
+                        <img class="direct-chat-img" src="${comment.user_avatar}" alt="User Image">
+                        <div class="direct-chat-text">
+                            ${comment.content}
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('view-task-comments').innerHTML = commentsHtml;
+                
+                // Show modal using Bootstrap 5 method
+                const modal = new bootstrap.Modal(document.getElementById('view-task-modal'));
+                modal.show();
+            } else {
+                toastr.error(data.message || 'Failed to load task');
+            }
+        })
+        .catch(error => {
+            console.error('Load task error:', error);
+            toastr.error('An error occurred while loading task');
+        });
+}
+
+function editTask(id) {
+    // If can_edit is false, return without doing anything
+    if (!window.canEdit) return;
+
+    // Hide the view task modal if it's open
+    const viewModal = bootstrap.Modal.getInstance(document.getElementById('view-task-modal'));
+    if (viewModal) {
+        viewModal.hide();
+    }
+
+    fetch(`/projects/task/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const task = data.task;
+                // Update modal title
+                document.querySelector('#create-task-modal .modal-title').textContent = 'Edit Task';
+                
+                // Populate modal with task data
+                document.getElementById('task-id').value = task.id;
                 document.getElementById('task-name').value = task.name;
-                document.getElementById('task-description').value = task.description;
+                document.getElementById('task-description').value = task.description || '';
                 document.getElementById('task-status').value = task.status;
                 document.getElementById('task-priority').value = task.priority;
                 document.getElementById('task-assigned-to').value = task.assigned_to_id || '';
                 document.getElementById('task-due-date').value = task.due_date || '';
                 
-                // Show modal
-                $('#create-task-modal').modal('show');
+                // Update submit button text
+                document.querySelector('#create-task-modal .modal-footer .btn-primary').textContent = 'Save Changes';
+                
+                // Show modal using Bootstrap 5 method
+                const modal = new bootstrap.Modal(document.getElementById('create-task-modal'));
+                modal.show();
+            } else {
+                toastr.error(data.message || 'Failed to load task');
             }
+        })
+        .catch(error => {
+            console.error('Load task error:', error);
+            toastr.error('An error occurred while loading task');
         });
 }
 
@@ -146,13 +274,23 @@ function deleteTask(id) {
 
     if (confirm('Are you sure you want to delete this task?')) {
         fetch(`/projects/task/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                toastr.success('Task deleted successfully');
                 location.reload();
+            } else {
+                toastr.error(data.message || 'Failed to delete task');
             }
+        })
+        .catch(error => {
+            console.error('Delete task error:', error);
+            toastr.error('An error occurred while deleting task');
         });
     }
 }
@@ -163,12 +301,12 @@ function submitComment(event) {
 
     event.preventDefault();
     const content = document.getElementById('comment-content').value;
-    const projectId = window.location.pathname.split('/').pop();
 
-    fetch(`/projects/${projectId}/comment`, {
+    fetch(`/projects/${window.projectId}/comment`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({
             content: content
@@ -177,10 +315,128 @@ function submitComment(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            toastr.success('Comment added successfully');
             location.reload();
             // Clear the comment input
             document.getElementById('comment-content').value = '';
+        } else {
+            toastr.error(data.message || 'Failed to add comment');
         }
+    })
+    .catch(error => {
+        console.error('Submit comment error:', error);
+        toastr.error('An error occurred while adding comment');
+    });
+}
+
+function submitTaskComment(event) {
+    // If can_edit is false, return without doing anything
+    if (!window.canEdit) return;
+
+    event.preventDefault();
+    const content = document.getElementById('task-comment-content').value;
+
+    fetch(`/projects/task/${currentTaskId}/comment`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            content: content
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            toastr.success('Comment added successfully');
+            // Refresh task view to show new comment
+            viewTask(currentTaskId);
+            // Clear the comment input
+            document.getElementById('task-comment-content').value = '';
+        } else {
+            toastr.error(data.message || 'Failed to add comment');
+        }
+    })
+    .catch(error => {
+        console.error('Submit task comment error:', error);
+        toastr.error('An error occurred while adding comment');
+    });
+}
+
+// Helper functions for status and priority classes
+function getStatusClass(status) {
+    const statusClasses = {
+        'open': 'secondary',
+        'in_progress': 'primary',
+        'review': 'info',
+        'completed': 'success'
+    };
+    return statusClasses[status] || 'secondary';
+}
+
+function getPriorityClass(priority) {
+    const priorityClasses = {
+        'low': 'success',
+        'medium': 'warning',
+        'high': 'danger'
+    };
+    return priorityClasses[priority] || 'secondary';
+}
+
+// Save project changes
+function saveProject() {
+    if (!window.canEdit) return;
+
+    // Show loading state
+    const saveButton = document.querySelector('.floating-save-button');
+    const originalContent = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    saveButton.disabled = true;
+
+    // Get TinyMCE content
+    const description = tinymce.get('description-editor').getContent();
+
+    // Collect all project data
+    const projectData = {
+        name: document.getElementById('project-name').value,
+        summary: document.getElementById('project-summary').value,
+        icon: document.getElementById('project-icon').value,
+        description: description,
+        lead_id: document.getElementById('lead-select').value,
+        priority: document.getElementById('priority-select').options[document.getElementById('priority-select').selectedIndex].text,
+        status: document.getElementById('status-select').options[document.getElementById('status-select').selectedIndex].text
+    };
+
+    // Send update request
+    fetch(`/projects/${window.projectId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(projectData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Reset button state
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
+
+        if (data.success) {
+            // Show success message
+            toastr.success('Project saved successfully');
+        } else {
+            // Show error message
+            toastr.error(data.message || 'Failed to save project');
+        }
+    })
+    .catch(error => {
+        // Reset button state and show error
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
+        toastr.error('An error occurred while saving');
+        console.error('Save error:', error);
     });
 }
 
@@ -193,6 +449,8 @@ const ICON_CATEGORIES = {
 
 function loadIcons() {
     const iconGrid = document.getElementById('icon-grid');
+    iconGrid.innerHTML = ''; // Clear existing icons
+    
     Object.entries(ICON_CATEGORIES).forEach(([category, prefix]) => {
         // Add category header
         const header = document.createElement('div');
@@ -219,28 +477,26 @@ function loadIcons() {
                     <div class="small text-muted mt-1">${icon}</div>
                 </div>
             `;
+            
+            // Add click handler directly to the icon option
+            const iconOption = div.querySelector('.icon-option');
+            iconOption.addEventListener('click', function() {
+                // Remove selection from other icons
+                document.querySelectorAll('.icon-option.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                // Add selection to clicked icon
+                this.classList.add('selected');
+            });
+            
             iconGrid.appendChild(div);
         });
     });
-
-    // Add floating save/cancel buttons
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'position-fixed bottom-0 end-0 p-3';
-    buttonContainer.style.zIndex = '1050';
-    buttonContainer.innerHTML = `
-        <div class="btn-group">
-            <button type="button" class="btn btn-secondary" onclick="$('#icon-picker-modal').modal('hide')">Cancel</button>
-            <button type="button" class="btn btn-primary" onclick="saveSelectedIcon()">Save</button>
-        </div>
-    `;
-    document.getElementById('icon-picker-modal').appendChild(buttonContainer);
 }
 
 // Initialize icon picker when modal is shown
-$('#icon-picker-modal').on('show.bs.modal', function () {
-    if (!document.querySelector('#icon-grid .icon-option')) {
-        loadIcons();
-    }
+document.getElementById('icon-picker-modal')?.addEventListener('show.bs.modal', function () {
+    loadIcons();
 });
 
 // Icon search functionality
@@ -261,19 +517,24 @@ function saveSelectedIcon() {
     const selectedIcon = document.querySelector('#icon-grid .icon-option.selected');
     if (selectedIcon) {
         document.getElementById('project-icon').value = selectedIcon.dataset.icon;
-        $('#icon-picker-modal').modal('hide');
+        // Update the preview icon
+        const previewIcon = document.querySelector('.input-group-text i');
+        previewIcon.className = selectedIcon.dataset.icon;
+        // Hide modal using Bootstrap 5 method
+        const modal = bootstrap.Modal.getInstance(document.getElementById('icon-picker-modal'));
+        modal.hide();
+        toastr.success('Icon selected');
     }
 }
 
-// Add click handler for icon selection
-document.getElementById('icon-grid')?.addEventListener('click', function(e) {
-    const iconOption = e.target.closest('.icon-option');
-    if (iconOption) {
-        // Remove selection from other icons
-        document.querySelectorAll('.icon-option.selected').forEach(el => {
-            el.classList.remove('selected');
-        });
-        // Add selection to clicked icon
-        iconOption.classList.add('selected');
-    }
+// Reset create/edit task modal when closed
+document.getElementById('create-task-modal')?.addEventListener('hidden.bs.modal', function () {
+    // Reset form
+    document.getElementById('task-form').reset();
+    // Clear task ID
+    document.getElementById('task-id').value = '';
+    // Reset modal title
+    document.querySelector('#create-task-modal .modal-title').textContent = 'Create Task';
+    // Reset submit button text
+    document.querySelector('#create-task-modal .modal-footer .btn-primary').textContent = 'Create Task';
 });
