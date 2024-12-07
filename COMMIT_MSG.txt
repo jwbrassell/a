@@ -1,11 +1,25 @@
-fix: Update project edit view layout and task handling
+refactor(projects): improve task/todo management and history display
 
-- Maintain consistent two-column layout throughout edit view
-- Fix task table to use modal interactions instead of direct URLs
-- Remove invalid route references (projects.view_task)
-- Update task actions to use JavaScript handlers for view/edit/delete
-- Keep edit view aligned with view template structure
+- Remove redundant todo list implementation
+  * Remove duplicate todo modal include
+  * Use existing modal from _list.html template
+  * Maintain all todo functionality in single location
 
-This change ensures the edit view maintains a consistent layout while
-properly handling task interactions through modals instead of separate
-pages, fixing the 500 error caused by invalid route references.
+- Enhance project history display
+  * Add timeline visualization with date grouping
+  * Add visual indicators for different change types
+  * Improve formatting of change details
+  * Add proper sorting (newest first)
+  * Implement dark mode support
+  * Better display of entity-specific icons
+
+- Improve code organization
+  * Remove redundant template includes
+  * Better separation of concerns
+  * More consistent UI layout
+  * Cleaner template structure
+
+These changes improve code maintainability and user experience while
+preserving all existing functionality. The history now provides better
+context for project changes, and the todo system is properly organized
+without redundancy.

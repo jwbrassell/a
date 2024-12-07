@@ -149,29 +149,6 @@
                         <textarea class="form-control" id="project-description" name="description" 
                                   rows="6" placeholder="Detailed project description">{{ project.description }}</textarea>
                     </div>
-
-                    <!-- Project Category -->
-                    <div class="mb-4">
-                        <label for="project-category">Category</label>
-                        <select class="form-control" id="project-category" name="category">
-                            <option value="">Select Category</option>
-                            {% for category in categories %}
-                            <option value="{{ category.id }}" {% if project.category_id == category.id %}selected{% endif %}>
-                                {{ category.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Project Tags -->
-                    <div class="mb-4">
-                        <label for="project-tags">Tags</label>
-                        <select class="form-control" id="project-tags" name="tags[]" multiple>
-                            {% for tag in project.tags %}
-                            <option value="{{ tag }}" selected>{{ tag }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
                 </div>
             </div>
 
@@ -200,11 +177,6 @@
                         <i class="fas fa-check-square me-1"></i>
                         Todo List
                     </h3>
-                    <div class="card-tools">
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-new-todo">
-                            <i class="fas fa-plus"></i> Add Todo
-                        </button>
-                    </div>
                 </div>
                 <div class="card-body">
                     {% include 'projects/todos/_list.html' %}
@@ -319,9 +291,6 @@
 
 <!-- Task Modal -->
 {% include 'projects/tasks/_task_modal.html' %}
-
-<!-- Todo Modal -->
-{% include 'projects/todos/_list.html' %}
 
 {% endblock %}
 

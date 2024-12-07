@@ -2,18 +2,25 @@
     <table id="tasks-table" class="table table-hover">
         <thead>
             <tr>
-                <th>Task</th>
-                <th>Assigned To</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Due Date</th>
-                <th>Actions</th>
+                <th style="width: 25%">Task</th>
+                <th style="width: 30%">Description</th>
+                <th style="width: 15%">Assigned To</th>
+                <th style="width: 10%">Status</th>
+                <th style="width: 10%">Priority</th>
+                <th style="width: 10%">Due Date</th>
+                <th style="width: 120px">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for task in project.tasks %}
             <tr>
                 <td>{{ task.name }}</td>
+                <td>
+                    <div class="rich-text-content text-truncate" style="max-width: 300px;" 
+                         title="{{ task.description|striptags if task.description }}">
+                        {{ task.description|safe if task.description }}
+                    </div>
+                </td>
                 <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
                 <td>
                     <span class="badge bg-{{ task.status_class }}">{{ task.status }}</span>
@@ -23,18 +30,35 @@
                 </td>
                 <td>{{ task.due_date|datetime if task.due_date }}</td>
                 <td>
-                    <button type="button" class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})" title="View">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})" title="Edit">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<style>
+/* Ensure rich text content in table cells is properly truncated */
+.rich-text-content.text-truncate p {
+    margin: 0;
+    display: inline;
+}
+.rich-text-content.text-truncate * {
+    display: inline;
+}
+.rich-text-content.text-truncate br,
+.rich-text-content.text-truncate hr {
+    display: none;
+}
+</style>

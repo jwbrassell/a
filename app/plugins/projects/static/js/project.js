@@ -1,5 +1,5 @@
 // Global variables
-let saveTimeout;
+window.saveTimeout = null;
 const SAVE_DELAY = 1000; // 1 second delay
 let unsavedChanges = false;
 
@@ -40,9 +40,9 @@ function markSavedChanges() {
 }
 
 function autoSave() {
-    clearTimeout(saveTimeout);
+    clearTimeout(window.saveTimeout);
     markUnsavedChanges();
-    saveTimeout = setTimeout(saveProject, SAVE_DELAY);
+    window.saveTimeout = setTimeout(saveProject, SAVE_DELAY);
 }
 
 async function saveProject() {

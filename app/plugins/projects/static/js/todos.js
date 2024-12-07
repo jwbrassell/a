@@ -1,5 +1,5 @@
 // Global variables
-let currentTodoId = null;
+const currentTodoId = null;
 
 // Utility functions
 function showError(message) {
@@ -12,7 +12,7 @@ function showSuccess(message) {
 
 function resetTodoForm() {
     document.getElementById('new-todo-form').reset();
-    currentTodoId = null;
+    window.currentTodoId = null;
 }
 
 // Todo CRUD operations
@@ -76,7 +76,7 @@ async function editTodo(todoId) {
         }
 
         const todo = await response.json();
-        currentTodoId = todoId;
+        window.currentTodoId = todoId;
 
         // Populate modal with todo details
         document.getElementById('todo-description').value = todo.description;
@@ -90,7 +90,7 @@ async function editTodo(todoId) {
 }
 
 async function updateTodo() {
-    if (!currentTodoId) {
+    if (!window.currentTodoId) {
         showError('No todo selected for update');
         return;
     }
@@ -101,7 +101,7 @@ async function updateTodo() {
             due_date: document.getElementById('todo-due-date').value
         };
 
-        const response = await fetch(`/projects/todos/${currentTodoId}`, {
+        const response = await fetch(`/projects/todos/${window.currentTodoId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ async function deleteTodo(todoId) {
 
 // Modal event handlers
 function saveTodo() {
-    if (currentTodoId) {
+    if (window.currentTodoId) {
         updateTodo();
     } else {
         createTodo();

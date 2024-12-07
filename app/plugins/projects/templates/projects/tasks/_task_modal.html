@@ -1,19 +1,34 @@
 <div class="modal fade" id="modal-new-task">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h4 class="modal-title">Task Details</h4>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <!-- Loading overlay -->
+        <div id="modal-new-task-loading" class="position-absolute w-100 h-100 top-0 start-0 d-none" 
+             style="background: rgba(255,255,255,0.8); z-index: 1000;">
+          <div class="d-flex justify-content-center align-items-center h-100">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+
         <form id="new-task-form">
           <div class="form-group mb-3">
             <label for="task-name">Task Name</label>
-            <input type="text" class="form-control" id="task-name" required>
+            <input type="text" class="form-control" id="task-name" name="name" required>
+          </div>
+          <div class="form-group mb-3">
+            <label for="task-description">Description</label>
+            <textarea class="form-control rich-text-editor" id="task-description" name="description" rows="6" 
+                      placeholder="Detailed task description"></textarea>
           </div>
           <div class="form-group mb-3">
             <label for="task-assigned">Assigned To</label>
-            <select class="form-control" id="task-assigned" required>
+            <select class="form-control" id="task-assigned" name="assigned_to_id" required>
               <option value="">Select User</option>
               {% for member in project.team_members %}
               <option value="{{ member.id }}">{{ member.username }}</option>
@@ -22,7 +37,7 @@
           </div>
           <div class="form-group mb-3">
             <label for="task-status">Status</label>
-            <select class="form-control" id="task-status" required>
+            <select class="form-control" id="task-status" name="status" required>
               <option value="not_started">Not Started</option>
               <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
@@ -31,7 +46,7 @@
           </div>
           <div class="form-group mb-3">
             <label for="task-priority">Priority</label>
-            <select class="form-control" id="task-priority" required>
+            <select class="form-control" id="task-priority" name="priority" required>
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
@@ -40,7 +55,7 @@
           </div>
           <div class="form-group mb-3">
             <label for="task-due-date">Due Date</label>
-            <input type="date" class="form-control" id="task-due-date" required>
+            <input type="date" class="form-control" id="task-due-date" name="due_date" required>
           </div>
         </form>
       </div>
@@ -51,3 +66,14 @@
     </div>
   </div>
 </div>
+
+<style>
+/* Dark mode support for loading overlay */
+[data-bs-theme="dark"] #modal-new-task-loading {
+    background: rgba(0,0,0,0.8);
+}
+</style>
+
+<!-- Include shared utilities -->
+<script type="module" src="{{ url_for('projects.static', filename='js/shared/utils.js') }}"></script>
+<script type="module" src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>

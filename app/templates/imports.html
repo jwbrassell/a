@@ -38,7 +38,7 @@
 <script src="{{ url_for('static', filename='src/sweetalert2/sweetalert2.all.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/toastr/toastr.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/sortablejs/Sortable.min.js') }}"></script>
-<script src="{{ url_for('static', filename='src/tinymce/tinymce.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/tinymce.min.js') }}"></script>
 
 <!-- Project Scripts -->
 {% if request.endpoint and request.endpoint.startswith('projects.') %}
@@ -68,6 +68,14 @@ document.addEventListener('DOMContentLoaded', function() {
     var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
     var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
         return new bootstrap.Popover(popoverTriggerEl);
+    });
+
+    // Initialize TinyMCE for rich text editors
+    tinymce.init({
+        selector: '.rich-text-editor',
+        plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',
+        toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+        height: 300
     });
 });
 </script>
