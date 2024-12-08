@@ -1,5 +1,6 @@
 <div class="direct-chat-messages mb-4">
-  {% for comment in project.comments %}
+  {% set comments = task.comments if task is defined else project.comments %}
+  {% for comment in comments %}
   <div class="direct-chat-msg {% if comment.user_id == current_user.id %}right{% endif %}" id="comment-{{ comment.id }}">
     <div class="direct-chat-infos clearfix">
       <span class="direct-chat-name float-{% if comment.user_id == current_user.id %}end{% else %}start{% endif %}">

@@ -14,7 +14,7 @@
       {% set todos = task.todos if task is defined else project.todos %}
       {% for todo in todos %}
       <tr data-todo-id="{{ todo.id }}">
-        <td>
+        <td class="text-center">
           <div class="form-check">
             <input type="checkbox" class="form-check-input todo-checkbox" 
                    id="todoCheck{{ todo.id }}" 
@@ -26,19 +26,20 @@
         </td>
         <td>
           {% if readonly %}
-          <span class="{% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
+          <span class="todo-text {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
             {{ todo.description }}
           </span>
           {% else %}
           <input type="text" class="form-control form-control-sm todo-description {% if todo.completed %}text-muted text-decoration-line-through{% endif %}" 
                  name="todos[{{ loop.index0 }}][description]"
-                 value="{{ todo.description }}" required>
+                 value="{{ todo.description }}" 
+                 required>
           {% endif %}
         </td>
         <td>
           {% if readonly %}
-          <span class="badge bg-{{ todo.badge_color }}">
-            <i class="far fa-clock"></i> {{ todo.due_text }}
+          <span class="badge bg-{{ todo.badge_color }} due-date-badge">
+            <i class="far fa-clock me-1"></i>{{ todo.due_text }}
           </span>
           {% else %}
           <input type="date" class="form-control form-control-sm todo-due-date"
@@ -47,8 +48,8 @@
           {% endif %}
         </td>
         {% if not readonly %}
-        <td>
-          <button type="button" class="btn btn-danger btn-sm remove-todo">
+        <td class="text-center">
+          <button type="button" class="btn btn-danger btn-sm remove-todo" title="Remove Todo">
             <i class="fas fa-trash"></i>
           </button>
         </td>
@@ -64,16 +65,18 @@
       {% endif %}
     </tbody>
   </table>
-  {% if not readonly %}
-  <div class="card-footer text-end">
-    <button type="button" class="btn btn-primary btn-sm" id="addTodoBtn">
-      <i class="fas fa-plus"></i> Add Todo
-    </button>
-  </div>
-  {% endif %}
 </div>
 
+{% if not readonly %}
+<div class="card-footer text-end bg-transparent">
+  <button type="button" class="btn btn-primary btn-sm" id="addTodoBtn">
+    <i class="fas fa-plus me-1"></i>Add Todo
+  </button>
+</div>
+{% endif %}
+
 <style>
+/* Theme-aware table styles */
 .table {
   --bs-table-color: var(--bs-body-color);
   --bs-table-bg: var(--bs-body-bg);
@@ -82,6 +85,7 @@
   --bs-table-hover-color: var(--bs-body-color);
 }
 
+/* Form control theme support */
 .form-control {
   background-color: var(--bs-body-bg);
   border-color: var(--bs-border-color);
@@ -92,9 +96,43 @@
   background-color: var(--bs-body-bg);
   border-color: var(--bs-primary);
   color: var(--bs-body-color);
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
 }
 
+/* Todo item styling */
 .todo-description.text-muted {
   opacity: 0.65;
+}
+
+.todo-text {
+  display: block;
+  padding: 0.25rem 0;
+}
+
+/* Badge styling */
+.due-date-badge {
+  font-size: 0.85em;
+  padding: 0.35em 0.65em;
+  font-weight: 500;
+}
+
+/* Checkbox styling */
+.form-check {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 1.5rem;
+}
+
+.form-check-input {
+  margin: 0;
+}
+
+/* Card footer styling */
+.card-footer {
+  border-top: 1px solid var(--bs-border-color);
+  padding: 0.75rem 1.25rem;
 }
 </style>
