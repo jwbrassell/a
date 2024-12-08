@@ -1,34 +1,17 @@
-feat(projects): improve read-only project view functionality
+fix(projects): improve task table and todo list display
 
-- Update project details display:
-  - Show name and summary as plain text
-  - Increase description preview to 10 lines
-  - Maintain show more/less functionality
+- Tasks Table:
+  * Fix status/priority badges to show proper colors and text
+  * Convert view/edit buttons to direct URL links
+  * Add proper data-task-id attributes for JS interaction
+  * Improve task summary display with truncation
 
-- Enhance project info display:
-  - Show status and priority as badges
-  - Display lead as plain text
-  - Keep clean formatting for metadata fields
+- Todo List:
+  * Move Add Todo button to card footer
+  * Add proper theme support with Bootstrap 5 variables
+  * Fix table styling and vertical alignment
 
-- Improve tasks table:
-  - Keep view action button while hiding edit/delete
-  - Remove add task button in readonly mode
-  - Fix task viewing functionality in modal
+- Documentation:
+  * Add IMPROVEMENTS.md documenting all changes and implementation notes
 
-- Update task modal for readonly:
-  - Make all fields readonly/disabled
-  - Hide rich text toolbar
-  - Remove save button
-  - Keep close button only
-
-- Refine todo list:
-  - Show disabled checkboxes
-  - Remove sorting capability
-  - Hide edit/delete buttons
-  - Remove add todo button
-
-- Adjust comments section:
-  - Hide comment input form
-  - Keep existing comments visible
-
-These changes provide a cleaner, more consistent read-only view while maintaining the ability to view detailed task information.
+This commit improves the visual consistency and user experience of the projects plugin by fixing display issues and improving the layout of task and todo components.

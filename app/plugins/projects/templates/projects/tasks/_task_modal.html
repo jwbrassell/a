@@ -1,208 +1,263 @@
-<div class="modal fade" id="modal-new-task">
-  <div class="modal-dialog modal-lg">
+<!-- Task Modal -->
+<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content bg-dark text-light">
-      <div class="modal-header border-secondary">
-        <h4 class="modal-title">
-          <i class="fas fa-tasks me-2"></i>
-          Task Details
-        </h4>
+      <div class="modal-header">
+        <h5 class="modal-title" id="taskModalLabel">
+          <i class="fas fa-tasks me-1"></i>
+          <span id="modalTitle">Task Details</span>
+        </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <!-- Loading overlay -->
-        <div id="modal-new-task-loading" class="position-absolute w-100 h-100 top-0 start-0 d-none" 
-             style="background: rgba(0,0,0,0.8); z-index: 1000;">
-          <div class="d-flex justify-content-center align-items-center h-100">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </div>
-
-        <form id="new-task-form">
-          <div class="form-group mb-3">
-            <label for="task-name" class="form-label">
-              <i class="fas fa-heading me-1"></i>
-              Task Name
-            </label>
-            <input type="text" class="form-control bg-dark text-light border-secondary" id="task-name" name="name" 
-                   {% if readonly %}readonly{% endif %} required>
-          </div>
-
-          <div class="form-group mb-3">
-            <label for="task-description" class="form-label">
-              <i class="fas fa-align-left me-1"></i>
-              Description
-            </label>
-            {% if not readonly %}
-            <div class="rich-text-toolbar bg-dark border border-secondary rounded-top p-2">
-              <button type="button" class="btn btn-dark btn-sm" data-command="bold"><i class="fas fa-bold"></i></button>
-              <button type="button" class="btn btn-dark btn-sm" data-command="italic"><i class="fas fa-italic"></i></button>
-              <button type="button" class="btn btn-dark btn-sm" data-command="insertUnorderedList"><i class="fas fa-list-ul"></i></button>
-              <button type="button" class="btn btn-dark btn-sm" data-command="insertOrderedList"><i class="fas fa-list-ol"></i></button>
-              <button type="button" class="btn btn-dark btn-sm" data-command="createLink"><i class="fas fa-link"></i></button>
-              <button type="button" class="btn btn-dark btn-sm" data-command="insertImage"><i class="fas fa-image"></i></button>
-            </div>
-            {% endif %}
-            <div class="rich-text-content bg-dark text-light border border-secondary rounded-bottom p-2" 
-                 id="task-description" 
-                 name="description" 
-                 contenteditable="{% if not readonly %}true{% else %}false{% endif %}"
-                 style="min-height: 200px;"
-                 placeholder="Detailed task description"></div>
-          </div>
-
+        <form id="taskForm">
           <div class="row">
-            <div class="col-md-6">
-              <div class="form-group mb-3">
-                <label for="task-assigned" class="form-label">
-                  <i class="fas fa-user me-1"></i>
-                  Assigned To
-                </label>
-                <select class="form-select bg-dark text-light border-secondary" id="task-assigned" name="assigned_to_id" 
-                        {% if readonly %}disabled{% endif %} required>
-                  <option value="">Select User</option>
-                  {% for user in users %}
-                  <option value="{{ user.id }}">{{ user.username }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group mb-3">
-                <label for="task-due-date" class="form-label">
-                  <i class="fas fa-calendar me-1"></i>
-                  Due Date
-                </label>
-                <input type="date" class="form-control bg-dark text-light border-secondary" id="task-due-date" name="due_date" 
-                       {% if readonly %}readonly{% endif %} required>
-              </div>
-            </div>
-          </div>
+            <!-- Left Column (8 columns) -->
+            <div class="col-md-8">
+              <!-- Task Details Card -->
+              <div class="card bg-dark mb-4">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Task Details
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <!-- Name -->
+                  <div class="form-group mb-3">
+                    <label for="task-name" class="form-label">Name</label>
+                    <input type="text" class="form-control bg-dark text-light border-secondary" 
+                           id="task-name" name="name" required 
+                           {% if readonly %}readonly{% endif %}>
+                  </div>
 
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group mb-3">
-                <label for="task-status" class="form-label">
-                  <i class="fas fa-tasks me-1"></i>
-                  Status
-                </label>
-                <select class="form-select bg-dark text-light border-secondary" id="task-status" name="status" 
-                        {% if readonly %}disabled{% endif %} required>
-                  <option value="not_started">Not Started</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="blocked">Blocked</option>
-                </select>
+                  <!-- Summary -->
+                  <div class="form-group mb-3">
+                    <label for="task-summary" class="form-label">Summary</label>
+                    <input type="text" class="form-control bg-dark text-light border-secondary" 
+                           id="task-summary" name="summary" 
+                           {% if readonly %}readonly{% endif %}>
+                  </div>
+
+                  <!-- Description -->
+                  <div class="form-group mb-3">
+                    <label for="task-description" class="form-label">Description</label>
+                    <textarea class="form-control bg-dark text-light border-secondary" 
+                              id="task-description" name="description" rows="5" 
+                              {% if readonly %}readonly{% endif %}></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Todo List Card -->
+              <div class="card bg-dark mb-4">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="fas fa-check-square me-1"></i>
+                    Todo List
+                  </h5>
+                </div>
+                <div class="card-body p-0">
+                  {% include 'projects/todos/_list.html' %}
+                </div>
+              </div>
+
+              <!-- Sub Tasks Card -->
+              <div class="card bg-dark mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h5 class="card-title mb-0">
+                    <i class="fas fa-tasks me-1"></i>
+                    Sub Tasks
+                  </h5>
+                  {% if not readonly %}
+                  <button type="button" class="btn btn-primary btn-sm" id="addSubTaskBtn">
+                    <i class="fas fa-plus"></i> Add Sub Task
+                  </button>
+                  {% endif %}
+                </div>
+                <div class="card-body">
+                  <div id="subTasksList">
+                    <!-- Sub tasks will be dynamically added here -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Comments Card -->
+              <div class="card bg-dark mb-4">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="fas fa-comments me-1"></i>
+                    Comments
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="direct-chat-messages" id="commentsList">
+                    <!-- Comments will be dynamically loaded here -->
+                  </div>
+                  {% if not readonly %}
+                  <div class="input-group mt-3">
+                    <input type="text" class="form-control bg-dark text-light border-secondary" 
+                           id="commentInput" placeholder="Type your comment...">
+                    <button class="btn btn-primary" type="button" onclick="addComment()">
+                      <i class="fas fa-paper-plane"></i>
+                    </button>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- History Card -->
+              <div class="card bg-dark mb-4">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-1"></i>
+                    Task History
+                  </h5>
+                </div>
+                <div class="card-body p-0">
+                  <div class="table-responsive">
+                    <table class="table table-hover table-dark mb-0">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>User</th>
+                          <th>Action</th>
+                          <th>Details</th>
+                        </tr>
+                      </thead>
+                      <tbody id="historyList">
+                        <!-- History items will be dynamically loaded here -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="col-md-6">
-              <div class="form-group mb-3">
-                <label for="task-priority" class="form-label">
-                  <i class="fas fa-flag me-1"></i>
-                  Priority
-                </label>
-                <select class="form-select bg-dark text-light border-secondary" id="task-priority" name="priority" 
-                        {% if readonly %}disabled{% endif %} required>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
+
+            <!-- Right Column (4 columns) -->
+            <div class="col-md-4">
+              <!-- Task Info Card -->
+              <div class="card bg-dark mb-4">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Task Information
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <!-- Status -->
+                  <div class="form-group mb-3">
+                    <label for="task-status" class="form-label">
+                      <i class="fas fa-tasks me-1"></i>
+                      Status
+                    </label>
+                    <select class="form-select bg-dark text-light border-secondary" id="task-status" name="status" 
+                            {% if readonly %}disabled{% endif %} required>
+                      {% for status in statuses %}
+                      <option value="{{ status.name }}" data-color="{{ status.color }}" {% if task and task.status and task.status.name == status.name %}selected{% endif %}>
+                        {{ status.name }}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <!-- Priority -->
+                  <div class="form-group mb-3">
+                    <label for="task-priority" class="form-label">
+                      <i class="fas fa-flag me-1"></i>
+                      Priority
+                    </label>
+                    <select class="form-select bg-dark text-light border-secondary" id="task-priority" name="priority" 
+                            {% if readonly %}disabled{% endif %} required>
+                      {% for priority in priorities %}
+                      <option value="{{ priority.name }}" data-color="{{ priority.color }}" {% if task and task.priority and task.priority.name == priority.name %}selected{% endif %}>
+                        {{ priority.name }}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <!-- Lead -->
+                  <div class="form-group mb-3">
+                    <label for="task-assigned" class="form-label">
+                      <i class="fas fa-user me-1"></i>
+                      Lead
+                    </label>
+                    <select class="form-select bg-dark text-light border-secondary" id="task-assigned" name="assigned_to_id" 
+                            {% if readonly %}disabled{% endif %}>
+                      <option value="">Select User</option>
+                      {% for user in users %}
+                      <option value="{{ user.id }}" {% if task and task.assigned_to_id == user.id %}selected{% endif %}>
+                        {{ user.username }}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <!-- Due Date -->
+                  <div class="form-group mb-3">
+                    <label for="task-due-date" class="form-label">
+                      <i class="fas fa-calendar me-1"></i>
+                      Due Date
+                    </label>
+                    <input type="date" class="form-control bg-dark text-light border-secondary" 
+                           id="task-due-date" name="due_date" 
+                           {% if readonly %}readonly{% endif %}>
+                  </div>
+
+                  <!-- Task Icon -->
+                  {% if not readonly %}
+                  <div class="form-group mb-3">
+                    <label for="task-icon" class="form-label">
+                      <i class="fas fa-icons me-1"></i>
+                      Task Icon
+                    </label>
+                    <select class="form-select bg-dark text-light border-secondary" id="task-icon" name="icon">
+                      <option value="">No Icon</option>
+                      <option value="fa-bug">🐛 Bug</option>
+                      <option value="fa-star">⭐ Feature</option>
+                      <option value="fa-wrench">🔧 Maintenance</option>
+                      <option value="fa-book">📚 Documentation</option>
+                      <option value="fa-rocket">🚀 Enhancement</option>
+                    </select>
+                  </div>
+                  {% endif %}
+
+                  <!-- Created At -->
+                  {% if task %}
+                  <div class="form-group mb-3">
+                    <label class="form-label">
+                      <i class="fas fa-clock me-1"></i>
+                      Created
+                    </label>
+                    <div class="text-muted">{{ task.created_at|datetime }}</div>
+                  </div>
+                  {% endif %}
+
+                  <!-- Updated At -->
+                  {% if task %}
+                  <div class="form-group mb-3">
+                    <label class="form-label">
+                      <i class="fas fa-clock me-1"></i>
+                      Last Updated
+                    </label>
+                    <div class="text-muted">{{ task.updated_at|datetime }}</div>
+                  </div>
+                  {% endif %}
+                </div>
               </div>
+
+              <!-- Save Button -->
+              {% if not readonly %}
+              <button type="submit" class="btn btn-primary btn-lg w-100">
+                <i class="fas fa-save me-1"></i>
+                Save Changes
+              </button>
+              {% endif %}
             </div>
           </div>
         </form>
       </div>
-      <div class="modal-footer border-secondary">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-          <i class="fas fa-times me-1"></i>
-          Close
-        </button>
-        {% if not readonly %}
-        <button type="button" class="btn btn-primary" onclick="saveNewTask()">
-          <i class="fas fa-save me-1"></i>
-          Save Changes
-        </button>
-        {% endif %}
-      </div>
     </div>
   </div>
 </div>
-
-<style>
-.rich-text-toolbar button {
-  margin-right: 4px;
-}
-
-.rich-text-toolbar button:hover {
-  background-color: #2d3238;
-}
-
-.rich-text-content {
-  outline: none;
-}
-
-.rich-text-content:empty:before {
-  content: attr(placeholder);
-  color: #6c757d;
-}
-
-.rich-text-content img {
-  max-width: 100%;
-  height: auto;
-}
-
-/* Dark mode form controls */
-.form-control:focus,
-.form-select:focus {
-  background-color: #2d3238;
-  color: #fff;
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-.form-control::placeholder,
-.form-select::placeholder {
-  color: #6c757d;
-}
-
-.form-control:disabled,
-.form-select:disabled {
-  background-color: #343a40;
-  color: #adb5bd;
-}
-</style>
-
-<!-- Include shared utilities -->
-<script type="module" src="{{ url_for('projects.static', filename='js/shared/utils.js') }}"></script>
-<script type="module" src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>
-
-{% if not readonly %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize rich text editor toolbar
-  const toolbar = document.querySelector('.rich-text-toolbar');
-  const editor = document.querySelector('.rich-text-content');
-
-  toolbar.querySelectorAll('button').forEach(button => {
-    button.addEventListener('click', function(e) {
-      e.preventDefault();
-      const command = this.dataset.command;
-      
-      if (command === 'createLink') {
-        const url = prompt('Enter the URL:');
-        if (url) document.execCommand(command, false, url);
-      } else if (command === 'insertImage') {
-        const url = prompt('Enter the image URL:');
-        if (url) document.execCommand(command, false, url);
-      } else {
-        document.execCommand(command, false, null);
-      }
-      
-      editor.focus();
-    });
-  });
-});
-</script>
-{% endif %}

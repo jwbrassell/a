@@ -13,31 +13,38 @@
         </thead>
         <tbody>
             {% for task in project.tasks %}
-            <tr>
+            <tr data-task-id="{{ task.id }}">
                 <td style="white-space: nowrap">{{ task.name }}</td>
                 <td style="white-space: nowrap">
                     <div class="rich-text-content" title="{{ task.description|striptags if task.description }}">
-                        {{ task.description|safe if task.description }}
+                        {{ task.summary if task.summary else (task.description|striptags|truncate(50) if task.description) }}
                     </div>
                 </td>
                 <td style="white-space: nowrap">{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
                 <td style="white-space: nowrap">
-                    <span class="badge bg-{{ task.status_class }}">{{ task.status }}</span>
+                    <span class="badge bg-{{ task.status.color if task.status else 'secondary' }}">
+                        {{ task.status.name|title if task.status else 'No Status' }}
+                    </span>
                 </td>
                 <td style="white-space: nowrap">
-                    <span class="badge bg-{{ task.priority_class }}">{{ task.priority }}</span>
+                    <span class="badge bg-{{ task.priority.color if task.priority else 'secondary' }}">
+                        {{ task.priority.name|title if task.priority else 'No Priority' }}
+                    </span>
                 </td>
                 <td style="white-space: nowrap">{{ task.due_date|datetime if task.due_date }}</td>
                 <td>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})" title="View">
+                        <a href="{{ url_for('projects.view_task', project_id=project.id, task_id=task.id) }}" 
+                           class="btn btn-sm btn-info" title="View">
                             <i class="fas fa-eye"></i>
-                        </button>
+                        </a>
                         {% if not readonly %}
-                        <button type="button" class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})" title="Edit">
+                        <a href="{{ url_for('projects.edit_task', project_id=project.id, task_id=task.id) }}" 
+                           class="btn btn-sm btn-primary" title="Edit">
                             <i class="fas fa-pencil-alt"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})" title="Delete">
+                        </a>
+                        <button type="button" class="btn btn-sm btn-danger" 
+                                onclick="deleteTask({{ task.id }})" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                         {% endif %}
@@ -51,19 +58,31 @@
 
 {% if not readonly %}
 <div class="card-footer text-end">
-    <button type="button" class="btn btn-sm btn-primary" onclick="addTask()">
+    <a href="{{ url_for('projects.new_task', project_id=project.id) }}" class="btn btn-sm btn-primary">
         <i class="fas fa-plus me-1"></i> Add Task
-    </button>
+    </a>
 </div>
 {% endif %}
 
 <style>
 /* Ensure rich text content in table cells is properly truncated */
+.rich-text-content {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .rich-text-content * {
     display: inline;
 }
 .rich-text-content br,
 .rich-text-content hr {
     display: none;
+}
+
+/* Badge styles */
+.badge {
+    font-size: 0.85em;
+    padding: 0.35em 0.65em;
 }
 </style>

@@ -1,12 +1,12 @@
 """Task management routes for the projects plugin."""
 
-from flask import jsonify, request
+from flask import jsonify, request, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.utils.rbac import requires_roles
 from app.utils.activity_tracking import track_activity
 from app.extensions import db
-from app.models import UserActivity
-from ..models import Project, Task, History, Comment
+from app.models import UserActivity, User
+from ..models import Project, Task, History, Comment, ProjectStatus, ProjectPriority, Todo
 from app.plugins.projects import bp
 from datetime import datetime, date
 
@@ -26,6 +26,172 @@ def get_project_tasks(project_id):
         'success': True,
         'tasks': [task.to_dict() for task in project.tasks]
     })
+
+@bp.route('/task/<int:task_id>/view', methods=['GET'])
+@login_required
+@requires_roles('user')
+def view_task(task_id):
+    """View a task"""
+    task = Task.query.get_or_404(task_id)
+    users = User.query.all()
+    statuses = ProjectStatus.query.all()
+    priorities = ProjectPriority.query.all()
+    
+    return render_template('projects/tasks/view.html', 
+                         task=task,
+                         users=users,
+                         statuses=statuses,
+                         priorities=priorities,
+                         can_edit=True)  # TODO: Add proper permission check
+
+@bp.route('/task/<int:task_id>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_roles('user')
+@track_activity
+def edit_task(task_id):
+    """Edit a task"""
+    task = Task.query.get_or_404(task_id)
+    users = User.query.all()
+    statuses = ProjectStatus.query.all()
+    priorities = ProjectPriority.query.all()
+
+    if request.method == 'POST':
+        # Track changes for history
+        changes = {}
+        
+        # Update basic task fields
+        fields = ['name', 'summary', 'description']
+        for field in fields:
+            if field in request.form:
+                new_value = request.form.get(field)
+                old_value = getattr(task, field)
+                if new_value != str(old_value):
+                    changes[field] = {
+                        'old': old_value,
+                        'new': new_value
+                    }
+                    setattr(task, field, new_value)
+
+        # Update status
+        if 'status' in request.form:
+            new_status = ProjectStatus.query.filter_by(name=request.form['status']).first()
+            if new_status and task.status_id != new_status.id:
+                changes['status'] = {
+                    'old': task.status.name if task.status else None,
+                    'new': new_status.name
+                }
+                task.status_id = new_status.id
+
+        # Update priority
+        if 'priority' in request.form:
+            new_priority = ProjectPriority.query.filter_by(name=request.form['priority']).first()
+            if new_priority and task.priority_id != new_priority.id:
+                changes['priority'] = {
+                    'old': task.priority.name if task.priority else None,
+                    'new': new_priority.name
+                }
+                task.priority_id = new_priority.id
+
+        # Update assigned user
+        if 'assigned_to_id' in request.form:
+            new_assigned_id = request.form.get('assigned_to_id')
+            if new_assigned_id:
+                new_assigned_id = int(new_assigned_id)
+            if new_assigned_id != task.assigned_to_id:
+                changes['assigned_to'] = {
+                    'old': task.assigned_to.username if task.assigned_to else None,
+                    'new': User.query.get(new_assigned_id).username if new_assigned_id else None
+                }
+                task.assigned_to_id = new_assigned_id
+
+        # Handle todos
+        existing_todos = {todo.id: todo for todo in task.todos}
+        updated_todos = []
+        todo_changes = []
+
+        # Process todos from form
+        todo_index = 0
+        while f'todos[{todo_index}][description]' in request.form:
+            description = request.form.get(f'todos[{todo_index}][description]')
+            completed = request.form.get(f'todos[{todo_index}][completed]') == 'on'
+            due_date_str = request.form.get(f'todos[{todo_index}][due_date]')
+            due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else None
+            todo_id = request.form.get(f'todos[{todo_index}][id]')
+
+            if todo_id and todo_id.isdigit():
+                # Update existing todo
+                todo = existing_todos.get(int(todo_id))
+                if todo:
+                    if (todo.description != description or 
+                        todo.completed != completed or 
+                        todo.due_date != due_date):
+                        todo_changes.append({
+                            'action': 'updated',
+                            'description': description,
+                            'old_description': todo.description
+                        })
+                    todo.description = description
+                    todo.completed = completed
+                    todo.due_date = due_date
+                    updated_todos.append(todo)
+            else:
+                # Create new todo
+                todo = Todo(
+                    description=description,
+                    completed=completed,
+                    due_date=due_date,
+                    task_id=task.id
+                )
+                todo_changes.append({
+                    'action': 'added',
+                    'description': description
+                })
+                db.session.add(todo)
+                updated_todos.append(todo)
+            
+            todo_index += 1
+
+        # Remove deleted todos
+        for todo in task.todos:
+            if todo not in updated_todos:
+                todo_changes.append({
+                    'action': 'removed',
+                    'description': todo.description
+                })
+                db.session.delete(todo)
+
+        if todo_changes:
+            changes['todos'] = todo_changes
+
+        if changes:
+            # Create history entry
+            history = History(
+                entity_type='task',
+                action='updated',
+                user_id=current_user.id,
+                project_id=task.project_id,
+                task_id=task.id,
+                details=changes
+            )
+            task.project.history.append(history)
+            
+            # Log activity
+            activity = UserActivity(
+                user_id=current_user.id,
+                username=current_user.username,
+                activity=f"Updated task: {task.name}"
+            )
+            db.session.add(activity)
+            
+            db.session.commit()
+            flash('Task updated successfully', 'success')
+            return redirect(url_for('projects.view_task', task_id=task.id))
+
+    return render_template('projects/tasks/edit.html', 
+                         task=task,
+                         users=users,
+                         statuses=statuses,
+                         priorities=priorities)
 
 @bp.route('/<int:project_id>/task', methods=['POST'])
 @login_required
@@ -53,12 +219,21 @@ def create_task(project_id):
                 'success': False,
                 'message': 'Invalid due date format. Use YYYY-MM-DD'
             }), 400
+
+    # Get status and priority objects
+    status = None
+    if data.get('status'):
+        status = ProjectStatus.query.filter_by(name=data['status']).first()
+
+    priority = None
+    if data.get('priority'):
+        priority = ProjectPriority.query.filter_by(name=data['priority']).first()
     
     task = Task(
         name=data['name'],
         description=data.get('description', ''),
-        status=data.get('status', 'open'),
-        priority=data.get('priority', 'medium'),
+        status_id=status.id if status else None,
+        priority_id=priority.id if priority else None,
         due_date=due_date,
         assigned_to_id=data.get('assigned_to_id'),
         project_id=project_id
@@ -73,8 +248,8 @@ def create_task(project_id):
         details={
             'name': task.name,
             'description': task.description,
-            'status': task.status,
-            'priority': task.priority,
+            'status': status.name if status else None,
+            'priority': priority.name if priority else None,
             'due_date': serialize_date(task.due_date),
             'assigned_to_id': task.assigned_to_id
         }
@@ -117,10 +292,16 @@ def get_task(task_id):
                 'success': False,
                 'message': 'Task has no associated project'
             }), 400
+        
+        # Get status and priority options
+        statuses = ProjectStatus.query.all()
+        priorities = ProjectPriority.query.all()
             
         return jsonify({
             'success': True,
-            'task': task.to_dict()
+            'task': task.to_dict(),
+            'statuses': [status.to_dict() for status in statuses],
+            'priorities': [priority.to_dict() for priority in priorities]
         })
     except Exception as e:
         return jsonify({
@@ -157,15 +338,39 @@ def update_task(task_id):
     
     # Track changes for history
     changes = {}
-    for key, value in data.items():
-        if hasattr(task, key) and getattr(task, key) != value:
-            old_value = getattr(task, key)
-            # Convert date objects to ISO format strings
-            changes[key] = {
-                'old': serialize_date(old_value) if isinstance(old_value, (datetime, date)) else old_value,
-                'new': serialize_date(value) if isinstance(value, (datetime, date)) else value
+    
+    # Update basic fields
+    basic_fields = ['name', 'summary', 'description', 'assigned_to_id']
+    for field in basic_fields:
+        if field in data:
+            old_value = getattr(task, field)
+            new_value = data[field]
+            if new_value != old_value:
+                changes[field] = {
+                    'old': old_value,
+                    'new': new_value
+                }
+                setattr(task, field, new_value)
+
+    # Update status
+    if 'status' in data:
+        new_status = ProjectStatus.query.filter_by(name=data['status']).first()
+        if new_status and task.status_id != new_status.id:
+            changes['status'] = {
+                'old': task.status.name if task.status else None,
+                'new': new_status.name
             }
-            setattr(task, key, value)
+            task.status_id = new_status.id
+
+    # Update priority
+    if 'priority' in data:
+        new_priority = ProjectPriority.query.filter_by(name=data['priority']).first()
+        if new_priority and task.priority_id != new_priority.id:
+            changes['priority'] = {
+                'old': task.priority.name if task.priority else None,
+                'new': new_priority.name
+            }
+            task.priority_id = new_priority.id
     
     if changes:
         # Create history entry
@@ -238,7 +443,9 @@ def delete_task(task_id):
 def complete_task(task_id):
     """Mark a task as complete"""
     task = Task.query.get_or_404(task_id)
-    task.status = 'completed'
+    completed_status = ProjectStatus.query.filter_by(name='completed').first()
+    if completed_status:
+        task.status_id = completed_status.id
     
     # Create history entry
     history = History(

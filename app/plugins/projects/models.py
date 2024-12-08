@@ -66,8 +66,8 @@ class Project(db.Model):
     __tablename__ = 'project'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
-    summary = db.Column(db.String(500))  # Added summary field
-    icon = db.Column(db.String(50))  # Added icon field
+    summary = db.Column(db.String(500))
+    icon = db.Column(db.String(50))
     description = db.Column(db.Text)
     status = db.Column(db.String(50), default='active')
     priority = db.Column(db.String(50), default='medium')
@@ -90,7 +90,7 @@ class Project(db.Model):
     roles = db.relationship('Role', secondary=project_roles, lazy='subquery')
     tasks = db.relationship('Task', backref='project', lazy=True, cascade='all, delete-orphan')
     todos = db.relationship('Todo', backref='project', lazy=True, cascade='all, delete-orphan',
-                          order_by='Todo.order')  # Order todos by order field
+                          order_by='Todo.order')
     comments = db.relationship('Comment', backref='project', lazy=True, cascade='all, delete-orphan')
     history = db.relationship('History', backref='project', lazy=True, cascade='all, delete-orphan')
 
@@ -144,19 +144,25 @@ class Task(db.Model):
     __tablename__ = 'task'
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('task.id'))
     name = db.Column(db.String(200), nullable=False)
+    summary = db.Column(db.String(500))
     description = db.Column(db.Text)
-    status = db.Column(db.String(50), default='open')
-    priority = db.Column(db.String(50), default='medium')
-    due_date = db.Column(db.Date)  # Changed from DateTime to Date
+    status_id = db.Column(db.Integer, db.ForeignKey('project_status.id'))
+    priority_id = db.Column(db.Integer, db.ForeignKey('project_priority.id'))
+    due_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     assigned_to_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     assigned_to = db.relationship('User', foreign_keys=[assigned_to_id])
+    status = db.relationship('ProjectStatus', foreign_keys=[status_id])
+    priority = db.relationship('ProjectPriority', foreign_keys=[priority_id])
+    subtasks = db.relationship('Task', backref=db.backref('parent', remote_side=[id]),
+                             cascade='all, delete-orphan')
     todos = db.relationship('Todo', backref='task', lazy=True, cascade='all, delete-orphan',
-                          order_by='Todo.order')  # Order todos by order field
+                          order_by='Todo.order')
     comments = db.relationship('Comment', backref='task', lazy=True, cascade='all, delete-orphan')
     history = db.relationship('History', backref='task', lazy=True, cascade='all, delete-orphan')
 
@@ -166,37 +172,33 @@ class Task(db.Model):
     @property
     def status_class(self):
         """Return Bootstrap class based on status"""
-        status_classes = {
-            'open': 'secondary',
-            'in_progress': 'primary',
-            'review': 'info',
-            'completed': 'success'
-        }
-        return status_classes.get(self.status, 'secondary')
+        if self.status:
+            return self.status.color
+        return 'secondary'
 
     @property
     def priority_class(self):
         """Return Bootstrap class based on priority"""
-        priority_classes = {
-            'low': 'success',
-            'medium': 'warning',
-            'high': 'danger'
-        }
-        return priority_classes.get(self.priority, 'secondary')
+        if self.priority:
+            return self.priority.color
+        return 'secondary'
     
     def to_dict(self):
         return {
             'id': self.id,
             'project_id': self.project_id,
+            'parent_id': self.parent_id,
             'name': self.name,
+            'summary': self.summary,
             'description': self.description,
-            'status': self.status,
-            'priority': self.priority,
+            'status': self.status.name if self.status else None,
+            'priority': self.priority.name if self.priority else None,
             'due_date': self.due_date.isoformat() if self.due_date else None,
             'assigned_to': self.assigned_to.username if self.assigned_to else None,
             'assigned_to_id': self.assigned_to_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'subtasks': [subtask.to_dict() for subtask in self.subtasks],
             'history': [h.to_dict() for h in self.history],
             'comments': [c.to_dict() for c in self.comments]
         }
@@ -211,7 +213,8 @@ class Todo(db.Model):
     completed = db.Column(db.Boolean, default=False)
     completed_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    order = db.Column(db.Integer, default=0)  # Added order field for sorting
+    due_date = db.Column(db.Date)
+    order = db.Column(db.Integer, default=0)
     
     # Relationships
     assigned_to_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -219,6 +222,50 @@ class Todo(db.Model):
 
     def __repr__(self):
         return f'<Todo {self.description[:20]}...>'
+
+    @property
+    def badge_color(self):
+        """Return Bootstrap color class based on due date and completion status"""
+        if self.completed:
+            return 'success'
+        if not self.due_date:
+            return 'secondary'
+        
+        today = datetime.utcnow().date()
+        if self.due_date < today:
+            return 'danger'
+        elif self.due_date == today:
+            return 'warning'
+        return 'info'
+
+    @property
+    def due_text(self):
+        """Return human-readable due date text"""
+        if not self.due_date:
+            return 'No due date'
+        
+        today = datetime.utcnow().date()
+        if self.due_date < today:
+            return 'Overdue'
+        elif self.due_date == today:
+            return 'Due today'
+        else:
+            return self.due_date.strftime('%Y-%m-%d')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'project_id': self.project_id,
+            'task_id': self.task_id,
+            'description': self.description,
+            'completed': self.completed,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'assigned_to': self.assigned_to.username if self.assigned_to else None,
+            'badge_color': self.badge_color,
+            'due_text': self.due_text
+        }
 
 class Comment(db.Model):
     """Comment model for projects and tasks"""
