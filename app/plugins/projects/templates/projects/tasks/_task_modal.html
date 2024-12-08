@@ -1,14 +1,17 @@
 <div class="modal fade" id="modal-new-task">
   <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title">Task Details</h4>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header border-secondary">
+        <h4 class="modal-title">
+          <i class="fas fa-tasks me-2"></i>
+          Task Details
+        </h4>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <!-- Loading overlay -->
         <div id="modal-new-task-loading" class="position-absolute w-100 h-100 top-0 start-0 d-none" 
-             style="background: rgba(255,255,255,0.8); z-index: 1000;">
+             style="background: rgba(0,0,0,0.8); z-index: 1000;">
           <div class="d-flex justify-content-center align-items-center h-100">
             <div class="spinner-border text-primary" role="status">
               <span class="visually-hidden">Loading...</span>
@@ -18,62 +21,177 @@
 
         <form id="new-task-form">
           <div class="form-group mb-3">
-            <label for="task-name">Task Name</label>
-            <input type="text" class="form-control" id="task-name" name="name" required>
+            <label for="task-name" class="form-label">
+              <i class="fas fa-heading me-1"></i>
+              Task Name
+            </label>
+            <input type="text" class="form-control bg-dark text-light border-secondary" id="task-name" name="name" required>
           </div>
+
           <div class="form-group mb-3">
-            <label for="task-description">Description</label>
-            <textarea class="form-control rich-text-editor" id="task-description" name="description" rows="6" 
-                      placeholder="Detailed task description"></textarea>
+            <label for="task-description" class="form-label">
+              <i class="fas fa-align-left me-1"></i>
+              Description
+            </label>
+            <div class="rich-text-toolbar bg-dark border border-secondary rounded-top p-2">
+              <button type="button" class="btn btn-dark btn-sm" data-command="bold"><i class="fas fa-bold"></i></button>
+              <button type="button" class="btn btn-dark btn-sm" data-command="italic"><i class="fas fa-italic"></i></button>
+              <button type="button" class="btn btn-dark btn-sm" data-command="insertUnorderedList"><i class="fas fa-list-ul"></i></button>
+              <button type="button" class="btn btn-dark btn-sm" data-command="insertOrderedList"><i class="fas fa-list-ol"></i></button>
+              <button type="button" class="btn btn-dark btn-sm" data-command="createLink"><i class="fas fa-link"></i></button>
+              <button type="button" class="btn btn-dark btn-sm" data-command="insertImage"><i class="fas fa-image"></i></button>
+            </div>
+            <div class="rich-text-content bg-dark text-light border border-secondary rounded-bottom p-2" 
+                 id="task-description" 
+                 name="description" 
+                 contenteditable="true"
+                 style="min-height: 200px;"
+                 placeholder="Detailed task description"></div>
           </div>
-          <div class="form-group mb-3">
-            <label for="task-assigned">Assigned To</label>
-            <select class="form-control" id="task-assigned" name="assigned_to_id" required>
-              <option value="">Select User</option>
-              {% for member in project.team_members %}
-              <option value="{{ member.id }}">{{ member.username }}</option>
-              {% endfor %}
-            </select>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="task-assigned" class="form-label">
+                  <i class="fas fa-user me-1"></i>
+                  Assigned To
+                </label>
+                <select class="form-select bg-dark text-light border-secondary" id="task-assigned" name="assigned_to_id" required>
+                  <option value="">Select User</option>
+                  {% for user in users %}
+                  <option value="{{ user.id }}">{{ user.username }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="task-due-date" class="form-label">
+                  <i class="fas fa-calendar me-1"></i>
+                  Due Date
+                </label>
+                <input type="date" class="form-control bg-dark text-light border-secondary" id="task-due-date" name="due_date" required>
+              </div>
+            </div>
           </div>
-          <div class="form-group mb-3">
-            <label for="task-status">Status</label>
-            <select class="form-control" id="task-status" name="status" required>
-              <option value="not_started">Not Started</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="blocked">Blocked</option>
-            </select>
-          </div>
-          <div class="form-group mb-3">
-            <label for="task-priority">Priority</label>
-            <select class="form-control" id="task-priority" name="priority" required>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </div>
-          <div class="form-group mb-3">
-            <label for="task-due-date">Due Date</label>
-            <input type="date" class="form-control" id="task-due-date" name="due_date" required>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="task-status" class="form-label">
+                  <i class="fas fa-tasks me-1"></i>
+                  Status
+                </label>
+                <select class="form-select bg-dark text-light border-secondary" id="task-status" name="status" required>
+                  <option value="not_started">Not Started</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="task-priority" class="form-label">
+                  <i class="fas fa-flag me-1"></i>
+                  Priority
+                </label>
+                <select class="form-select bg-dark text-light border-secondary" id="task-priority" name="priority" required>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+            </div>
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" onclick="saveNewTask()">Save Changes</button>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>
+          Close
+        </button>
+        <button type="button" class="btn btn-primary" onclick="saveNewTask()">
+          <i class="fas fa-save me-1"></i>
+          Save Changes
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <style>
-/* Dark mode support for loading overlay */
-[data-bs-theme="dark"] #modal-new-task-loading {
-    background: rgba(0,0,0,0.8);
+.rich-text-toolbar button {
+  margin-right: 4px;
+}
+
+.rich-text-toolbar button:hover {
+  background-color: #2d3238;
+}
+
+.rich-text-content {
+  outline: none;
+}
+
+.rich-text-content:empty:before {
+  content: attr(placeholder);
+  color: #6c757d;
+}
+
+.rich-text-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Dark mode form controls */
+.form-control:focus,
+.form-select:focus {
+  background-color: #2d3238;
+  color: #fff;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-control::placeholder,
+.form-select::placeholder {
+  color: #6c757d;
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  background-color: #343a40;
+  color: #adb5bd;
 }
 </style>
 
 <!-- Include shared utilities -->
 <script type="module" src="{{ url_for('projects.static', filename='js/shared/utils.js') }}"></script>
 <script type="module" src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize rich text editor toolbar
+  const toolbar = document.querySelector('.rich-text-toolbar');
+  const editor = document.querySelector('.rich-text-content');
+
+  toolbar.querySelectorAll('button').forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      const command = this.dataset.command;
+      
+      if (command === 'createLink') {
+        const url = prompt('Enter the URL:');
+        if (url) document.execCommand(command, false, url);
+      } else if (command === 'insertImage') {
+        const url = prompt('Enter the image URL:');
+        if (url) document.execCommand(command, false, url);
+      } else {
+        document.execCommand(command, false, null);
+      }
+      
+      editor.focus();
+    });
+  });
+});
+</script>

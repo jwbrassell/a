@@ -38,11 +38,36 @@ def new_project():
     statuses = ProjectStatus.query.all()
     priorities = ProjectPriority.query.all()
     users = User.query.all()
+    
+    # Create a dummy project object for the template with all necessary attributes
+    project = Project(
+        name='',
+        summary='',
+        description='',
+        status='new',
+        priority='medium',
+        percent_complete=0,
+        lead_id=current_user.id,
+        is_private=False
+    )
+    
+    # Initialize relationships as empty lists
+    project.tasks = []
+    project.todos = []
+    project.comments = []
+    project.history = []
+    project.watchers = []
+    project.stakeholders = []
+    project.shareholders = []
+    project.roles = []
+    
     return render_template(
         'projects/create.html',
+        project=project,
         statuses=statuses,
         priorities=priorities,
-        users=users
+        users=users,
+        readonly=False
     )
 
 @bp.route('/create', methods=['POST'])
@@ -103,7 +128,10 @@ def create_project():
     return jsonify({
         'success': True,
         'message': 'Project created successfully',
-        'project': project.to_dict()
+        'project': {
+            'id': project.id,
+            **project.to_dict()
+        }
     })
 
 @bp.route('/<int:project_id>', methods=['GET'])

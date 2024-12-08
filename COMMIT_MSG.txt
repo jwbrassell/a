@@ -34,3 +34,16 @@ Form Handling & Project Management:
 - Improve select2 dropdowns with click-to-deselect functionality
 - Add info icons with tooltips for field descriptions
 - Add dynamic visibility for watchers and roles when project is private
+
+Task Modal Improvements:
+- Implement dark theme styling with proper contrast and visual hierarchy
+- Add custom rich text editor with formatting toolbar for task descriptions
+- Improve form layout with organized two-column structure
+- Add consistent iconography throughout the interface
+- Enhance input styling with proper focus states and hover effects
+- Update modal header/footer styling to match project interface
+- Replace TinyMCE with custom rich text editor implementation
+- Add proper view/edit mode support with disabled states
+- Improve accessibility and keyboard navigation
+- Add visual feedback for editor interactions
+- Implement proper form state handling and cleanup

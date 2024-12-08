@@ -1,6 +1,6 @@
 # Projects Plugin
 
-A comprehensive Flask plugin for managing projects, tasks, and team collaboration with full tracking and notification capabilities.
+A comprehensive Flask plugin for managing projects, tasks, and collaboration with full tracking and notification capabilities.
 
 ## Implementation Status
 
@@ -75,7 +75,6 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
 - Track project status and progress
 - Assign project roles:
   - Project Lead
-  - Team Members
   - Watchers
   - Stakeholders
   - Shareholders
@@ -139,7 +138,6 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
 - created_at: Creation timestamp
 - updated_at: Last update timestamp
 - lead_id: Reference to lead user
-- team_members: Many-to-many relationship with users
 - watchers: Many-to-many relationship with users
 - stakeholders: Many-to-many relationship with users
 - shareholders: Many-to-many relationship with users

@@ -14,32 +14,31 @@ function getCsrfToken() {
     return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 }
 
-function setupEditor(editorId, modalId, options = {}) {
-    const defaultOptions = {
-        menubar: false,
-        plugins: 'lists link autolink paste',
-        toolbar: 'bold italic | bullist numlist | link',
-        height: 200,
-        placeholder: 'Enter description...',
-        paste_as_text: true,
-        skin: document.querySelector('html').dataset.bsTheme === 'dark' ? 'oxide-dark' : 'oxide',
-        content_css: document.querySelector('html').dataset.bsTheme === 'dark' ? 'dark' : 'default'
-    };
+function setupRichTextEditor() {
+    const editor = document.querySelector('.rich-text-content');
+    if (!editor) return;
 
-    const combinedOptions = Object.assign({}, defaultOptions, options);
-    combinedOptions.selector = `#${editorId}`;
-    
-    return tinymce.init({
-        ...combinedOptions,
-        setup: function(editor) {
-            setModalLoading(modalId, true);
-            editor.on('init', function() {
-                setModalLoading(modalId, false);
-                $(`#${modalId}`).on('shown.bs.modal', function() {
-                    editor.focus();
-                });
-            });
+    // Handle paste to strip formatting
+    editor.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        document.execCommand('insertText', false, text);
+    });
+
+    // Handle placeholder
+    editor.addEventListener('input', () => {
+        if (editor.textContent.trim() === '') {
+            editor.innerHTML = '';
         }
+    });
+
+    // Focus handling
+    editor.addEventListener('focus', () => {
+        editor.classList.add('border-primary');
+    });
+
+    editor.addEventListener('blur', () => {
+        editor.classList.remove('border-primary');
     });
 }
 
@@ -47,10 +46,10 @@ function resetTaskForm() {
     const form = document.getElementById('new-task-form');
     if (form) form.reset();
     
-    const editor = tinymce.get('task-description');
+    const editor = document.querySelector('.rich-text-content');
     if (editor) {
-        editor.setContent('');
-        editor.getBody().contentEditable = true;
+        editor.innerHTML = '';
+        editor.contentEditable = 'true';
     }
     
     currentTaskId = null;
@@ -64,9 +63,9 @@ function getFormData() {
         formData[key] = value;
     });
 
-    const editor = tinymce.get('task-description');
+    const editor = document.querySelector('.rich-text-content');
     if (editor) {
-        formData.description = editor.getContent();
+        formData.description = editor.innerHTML;
     }
 
     return formData;
@@ -83,10 +82,21 @@ function setFormData(data, disabled = false) {
         }
     });
 
-    const editor = tinymce.get('task-description');
+    const editor = document.querySelector('.rich-text-content');
     if (editor) {
-        editor.setContent(data.description || '');
-        editor.getBody().contentEditable = !disabled;
+        editor.innerHTML = data.description || '';
+        editor.contentEditable = !disabled;
+        
+        // Disable toolbar buttons if in view mode
+        const toolbarButtons = document.querySelectorAll('.rich-text-toolbar button');
+        toolbarButtons.forEach(button => {
+            button.disabled = disabled;
+            if (disabled) {
+                button.classList.add('opacity-50');
+            } else {
+                button.classList.remove('opacity-50');
+            }
+        });
     }
 }
 
@@ -231,14 +241,20 @@ function saveNewTask() {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize TinyMCE
-    setupEditor('task-description', 'modal-new-task', {
-        placeholder: 'Enter task description...'
-    });
+    // Initialize rich text editor
+    setupRichTextEditor();
 
     // Reset form when modal is closed
     $('#modal-new-task').on('hidden.bs.modal', function() {
         resetTaskForm();
+    });
+
+    // Focus editor when modal is shown
+    $('#modal-new-task').on('shown.bs.modal', function() {
+        const editor = document.querySelector('.rich-text-content');
+        if (editor && editor.contentEditable !== 'false') {
+            editor.focus();
+        }
     });
 });
 

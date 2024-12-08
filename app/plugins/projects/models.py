@@ -3,11 +3,6 @@ from app import db
 from app.models import User, Role
 
 # Association tables for many-to-many relationships
-project_team_members = db.Table('project_team_members',
-    db.Column('project_id', db.Integer, db.ForeignKey('project.id'), primary_key=True),
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
-)
-
 project_watchers = db.Table('project_watchers',
     db.Column('project_id', db.Integer, db.ForeignKey('project.id'), primary_key=True),
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
@@ -89,7 +84,6 @@ class Project(db.Model):
     # Relationships
     lead_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     lead = db.relationship('User', foreign_keys=[lead_id])
-    team_members = db.relationship('User', secondary=project_team_members, lazy='subquery')
     watchers = db.relationship('User', secondary=project_watchers, lazy='subquery')
     stakeholders = db.relationship('User', secondary=project_stakeholders, lazy='subquery')
     shareholders = db.relationship('User', secondary=project_shareholders, lazy='subquery')
@@ -136,7 +130,6 @@ class Project(db.Model):
             'priority': self.priority,
             'percent_complete': self.percent_complete,
             'lead': self.lead.username if self.lead else None,
-            'team_members': [user.username for user in self.team_members],
             'watchers': [user.username for user in self.watchers],
             'stakeholders': [user.username for user in self.stakeholders],
             'shareholders': [user.username for user in self.shareholders],

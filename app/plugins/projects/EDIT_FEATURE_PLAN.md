@@ -36,14 +36,6 @@
 - [x] Unsaved changes warning
 - [x] Success/error notifications
 
-### Team Members
-- [x] Team member display
-- [x] Add/remove functionality
-- [x] User search
-- [x] Project lead management
-- [x] Member role display
-- [x] Avatar integration
-
 ### History Timeline
 - [x] Activity display
 - [x] Chronological grouping
@@ -132,14 +124,7 @@
 ### Project Details
 - [x] Update project info
 - [x] Change project status
-- [x] Update team members
 - [x] Change project icon
-
-### Team Management
-- [x] Add team member
-- [x] Remove team member
-- [x] Change project lead
-- [x] Search users
 
 ## Next Steps
 

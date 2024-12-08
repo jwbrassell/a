@@ -34,8 +34,6 @@ class ProjectForm(FlaskForm):
     lead_id = SelectField('Project Lead', 
                          validators=[DataRequired()],
                          coerce=int)
-    team_members = SelectMultipleField('Team Members',
-                                     coerce=int)
     watchers = SelectMultipleField('Watchers',
                                   coerce=int)
     stakeholders = SelectMultipleField('Stakeholders',

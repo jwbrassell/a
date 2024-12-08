@@ -64,14 +64,6 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="team_members">Team Members</label>
-                                    <select class="form-control select2" id="team_members" name="team_members[]" multiple>
-                                        {% for user in users %}
-                                        <option value="{{ user.id }}" {% if user in project.team_members %}selected{% endif %}>{{ user.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="form-group">
                                     <label for="watchers">Watchers</label>
                                     <select class="form-control select2" id="watchers" name="watchers[]" multiple>
                                         {% for user in users %}
@@ -238,7 +230,6 @@ $(document).ready(function() {
         e.preventDefault();
         const formData = {
             lead_id: $('#lead').val(),
-            team_members: $('#team_members').val(),
             watchers: $('#watchers').val(),
             stakeholders: $('#stakeholders').val(),
             shareholders: $('#shareholders').val()

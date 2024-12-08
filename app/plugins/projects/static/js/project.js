@@ -2,6 +2,7 @@
 window.projectModule = (function() {
     // Private variables
     let unsavedChanges = false;
+    let intentionalNavigation = false;
 
     // Utility functions
     function showError(message) {
@@ -141,7 +142,7 @@ window.projectModule = (function() {
         return formData;
     }
 
-    async function createProject() {
+    async function createProject(action = 'edit') {
         try {
             const formData = getProjectFormData();
             
@@ -162,8 +163,16 @@ window.projectModule = (function() {
             const result = await response.json();
             showSuccess('Project created successfully');
             markSavedChanges();
-            // Redirect to the new project's page
-            window.location.href = `/projects/${result.project_id}`;
+
+            // Set intentional navigation flag before redirect
+            intentionalNavigation = true;
+
+            // Redirect based on action
+            if (action === 'edit') {
+                window.location.href = `/projects/${result.project.id}/edit`;
+            } else {
+                window.location.href = '/projects/list';
+            }
         } catch (error) {
             showError('Error creating project: ' + error.message);
         }
@@ -523,7 +532,7 @@ window.projectModule = (function() {
         
         // Add unsaved changes warning
         window.addEventListener('beforeunload', function(e) {
-            if (unsavedChanges) {
+            if (unsavedChanges && !intentionalNavigation) {
                 const message = 'You have unsaved changes. Are you sure you want to leave?';
                 e.returnValue = message;
                 return message;
