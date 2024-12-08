@@ -47,6 +47,13 @@ def init_app(app):
             return ''
         return value.strftime('%Y-%m-%d %H:%M:%S')
 
+    @app.template_filter('date')
+    def format_date(value):
+        """Format date objects."""
+        if value is None:
+            return ''
+        return value.strftime('%Y-%m-%d')
+
     @app.template_filter('route_exists')
     def route_exists(endpoint):
         """Check if a route exists in the application."""

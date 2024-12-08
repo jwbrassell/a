@@ -1,19 +1,10 @@
-fix: task editing and comment functionality
+fix: Subtask description field not displaying or saving correctly
 
-- Made all task fields optional except name:
-  - Removed required attributes from summary, description, lead, status, priority
-  - Removed required from dynamically added subtasks and todos
-  - Only task name remains required
+- Added rich-text-editor class to description textarea to enable TinyMCE
+- Added dark mode styling for TinyMCE editor to match theme
+- Updated JavaScript to properly handle TinyMCE initialization and content
+- Added proper handling of readonly mode for description field
+- Added proper cleanup when modal is closed
+- Fixed timing issues by adding delay when setting editor content
 
-- Fixed comment functionality:
-  - Fixed CSRF token header name
-  - Improved error handling and feedback
-  - Added proper collapse/expand behavior
-  - Fixed comment form submission
-  - Removed required attribute from comment textarea
-
-- Improved task form submission:
-  - Simplified to use standard HTML form submission
-  - Fixed form field associations with form="taskForm"
-  - Ensured tinymce content is synced before submission
-  - Moved "Save Changes" button to right column
+This fixes the issue where subtask descriptions were being sent but not displayed in the form.

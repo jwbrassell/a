@@ -29,7 +29,8 @@ from app.plugins.projects.routes import (
     priority_routes,
     task_routes,
     todo_routes,
-    comment_routes
+    comment_routes,
+    subtask_routes
 )
 from app.plugins.projects import models
 from .utils import init_project_settings

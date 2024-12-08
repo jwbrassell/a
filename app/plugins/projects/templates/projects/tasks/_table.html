@@ -12,7 +12,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for task in project.tasks %}
+            {% for task in project.tasks if not task.parent_id %}
             <tr data-task-id="{{ task.id }}">
                 <td>{{ task.name }}</td>
                 <td>
