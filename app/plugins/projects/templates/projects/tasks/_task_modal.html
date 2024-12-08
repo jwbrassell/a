@@ -25,7 +25,8 @@
               <i class="fas fa-heading me-1"></i>
               Task Name
             </label>
-            <input type="text" class="form-control bg-dark text-light border-secondary" id="task-name" name="name" required>
+            <input type="text" class="form-control bg-dark text-light border-secondary" id="task-name" name="name" 
+                   {% if readonly %}readonly{% endif %} required>
           </div>
 
           <div class="form-group mb-3">
@@ -33,6 +34,7 @@
               <i class="fas fa-align-left me-1"></i>
               Description
             </label>
+            {% if not readonly %}
             <div class="rich-text-toolbar bg-dark border border-secondary rounded-top p-2">
               <button type="button" class="btn btn-dark btn-sm" data-command="bold"><i class="fas fa-bold"></i></button>
               <button type="button" class="btn btn-dark btn-sm" data-command="italic"><i class="fas fa-italic"></i></button>
@@ -41,10 +43,11 @@
               <button type="button" class="btn btn-dark btn-sm" data-command="createLink"><i class="fas fa-link"></i></button>
               <button type="button" class="btn btn-dark btn-sm" data-command="insertImage"><i class="fas fa-image"></i></button>
             </div>
+            {% endif %}
             <div class="rich-text-content bg-dark text-light border border-secondary rounded-bottom p-2" 
                  id="task-description" 
                  name="description" 
-                 contenteditable="true"
+                 contenteditable="{% if not readonly %}true{% else %}false{% endif %}"
                  style="min-height: 200px;"
                  placeholder="Detailed task description"></div>
           </div>
@@ -56,7 +59,8 @@
                   <i class="fas fa-user me-1"></i>
                   Assigned To
                 </label>
-                <select class="form-select bg-dark text-light border-secondary" id="task-assigned" name="assigned_to_id" required>
+                <select class="form-select bg-dark text-light border-secondary" id="task-assigned" name="assigned_to_id" 
+                        {% if readonly %}disabled{% endif %} required>
                   <option value="">Select User</option>
                   {% for user in users %}
                   <option value="{{ user.id }}">{{ user.username }}</option>
@@ -70,7 +74,8 @@
                   <i class="fas fa-calendar me-1"></i>
                   Due Date
                 </label>
-                <input type="date" class="form-control bg-dark text-light border-secondary" id="task-due-date" name="due_date" required>
+                <input type="date" class="form-control bg-dark text-light border-secondary" id="task-due-date" name="due_date" 
+                       {% if readonly %}readonly{% endif %} required>
               </div>
             </div>
           </div>
@@ -82,7 +87,8 @@
                   <i class="fas fa-tasks me-1"></i>
                   Status
                 </label>
-                <select class="form-select bg-dark text-light border-secondary" id="task-status" name="status" required>
+                <select class="form-select bg-dark text-light border-secondary" id="task-status" name="status" 
+                        {% if readonly %}disabled{% endif %} required>
                   <option value="not_started">Not Started</option>
                   <option value="in_progress">In Progress</option>
                   <option value="completed">Completed</option>
@@ -96,7 +102,8 @@
                   <i class="fas fa-flag me-1"></i>
                   Priority
                 </label>
-                <select class="form-select bg-dark text-light border-secondary" id="task-priority" name="priority" required>
+                <select class="form-select bg-dark text-light border-secondary" id="task-priority" name="priority" 
+                        {% if readonly %}disabled{% endif %} required>
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
@@ -112,10 +119,12 @@
           <i class="fas fa-times me-1"></i>
           Close
         </button>
+        {% if not readonly %}
         <button type="button" class="btn btn-primary" onclick="saveNewTask()">
           <i class="fas fa-save me-1"></i>
           Save Changes
         </button>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -169,6 +178,7 @@
 <script type="module" src="{{ url_for('projects.static', filename='js/shared/utils.js') }}"></script>
 <script type="module" src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>
 
+{% if not readonly %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize rich text editor toolbar
@@ -195,3 +205,4 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+{% endif %}

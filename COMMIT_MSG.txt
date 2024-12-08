@@ -1,49 +1,34 @@
-feat(projects): enhance UI/UX for project components
+feat(projects): improve read-only project view functionality
 
-Todo List:
-- Add collapsible card functionality to todo list in edit view
-- Move "Add Todo" button to card footer
-- Update button colors to use professional blue scheme
-- Add drag and drop handles for todo reordering
-- Make card header fully clickable with expand/collapse icon
-- Fix duplicate card wrapper issue
-- Maintain consistent styling with tasks section
+- Update project details display:
+  - Show name and summary as plain text
+  - Increase description preview to 10 lines
+  - Maintain show more/less functionality
 
-Project Details:
-- Add collapsible card functionality to project details
-- Limit description to 3 rows by default with show more/less toggle
-- Add smooth transition for description expansion
-- Add scroll functionality for long descriptions
-- Make card header fully clickable with expand/collapse icon
+- Enhance project info display:
+  - Show status and priority as badges
+  - Display lead as plain text
+  - Keep clean formatting for metadata fields
 
-Layout & Project Info:
-- Optimize layout with 9/3 column split for better content proportions
-- Improve dropdown styling with visible borders and hover states
-- Add dropdown indicator arrows for better UX
-- Restructure timestamps to stack vertically for better readability
-- Left-align status and priority dropdown values
-- Add visual feedback on dropdown interactions
+- Improve tasks table:
+  - Keep view action button while hiding edit/delete
+  - Remove add task button in readonly mode
+  - Fix task viewing functionality in modal
 
-Form Handling & Project Management:
-- Remove team members section and replace with role-based access
-- Add multi-select dropdowns for watchers, shareholders, and stakeholders
-- Add project role selection from user's RBAC roles
-- Add private project toggle with admin access note
-- Fix unsaved changes warning with improved form state handling
-- Add proper cleanup and reinitialization of form components after save
-- Improve select2 dropdowns with click-to-deselect functionality
-- Add info icons with tooltips for field descriptions
-- Add dynamic visibility for watchers and roles when project is private
+- Update task modal for readonly:
+  - Make all fields readonly/disabled
+  - Hide rich text toolbar
+  - Remove save button
+  - Keep close button only
 
-Task Modal Improvements:
-- Implement dark theme styling with proper contrast and visual hierarchy
-- Add custom rich text editor with formatting toolbar for task descriptions
-- Improve form layout with organized two-column structure
-- Add consistent iconography throughout the interface
-- Enhance input styling with proper focus states and hover effects
-- Update modal header/footer styling to match project interface
-- Replace TinyMCE with custom rich text editor implementation
-- Add proper view/edit mode support with disabled states
-- Improve accessibility and keyboard navigation
-- Add visual feedback for editor interactions
-- Implement proper form state handling and cleanup
+- Refine todo list:
+  - Show disabled checkboxes
+  - Remove sorting capability
+  - Hide edit/delete buttons
+  - Remove add todo button
+
+- Adjust comments section:
+  - Hide comment input form
+  - Keep existing comments visible
+
+These changes provide a cleaner, more consistent read-only view while maintaining the ability to view detailed task information.

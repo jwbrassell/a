@@ -98,7 +98,9 @@ textarea.form-control[readonly] {
         </div>
         <div class="collapse show" id="tasksCollapse">
             <div class="card-body">
+                {% with readonly=True %}
                 {% include 'projects/tasks/_table.html' %}
+                {% endwith %}
             </div>
         </div>
     </div>
@@ -116,7 +118,9 @@ textarea.form-control[readonly] {
         </div>
         <div class="collapse show" id="todosCollapse">
             <div class="card-body p-0">
+                {% with readonly=True %}
                 {% include 'projects/todos/_list.html' %}
+                {% endwith %}
             </div>
         </div>
     </div>
@@ -134,7 +138,9 @@ textarea.form-control[readonly] {
         </div>
         <div class="collapse" id="commentsCollapse">
             <div class="card-body">
+                {% with readonly=True %}
                 {% include 'projects/comments/_list.html' %}
+                {% endwith %}
             </div>
         </div>
     </div>
@@ -171,9 +177,17 @@ textarea.form-control[readonly] {
     {% endif %}
 {% endblock %}
 
+{% block modals %}
+<!-- Task Modal -->
+{% with readonly=True %}
+{% include 'projects/tasks/_task_modal.html' %}
+{% endwith %}
+{% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
+<script src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>
 <script>
 (function() {
     'use strict';

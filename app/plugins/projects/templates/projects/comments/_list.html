@@ -17,6 +17,7 @@
   {% endfor %}
 </div>
 
+{% if not readonly %}
 <form id="comment-form" onsubmit="submitComment(event)" class="mt-3">
   <div class="input-group">
     <textarea id="comment-message" class="form-control" rows="2" 
@@ -29,6 +30,13 @@
     <span id="char-count">0</span>/300 characters
   </small>
 </form>
+
+<script>
+document.getElementById('comment-message').addEventListener('input', function() {
+    document.getElementById('char-count').textContent = this.value.length;
+});
+</script>
+{% endif %}
 
 <style>
 .direct-chat-messages {
@@ -89,17 +97,6 @@
     font-size: 0.75rem;
 }
 
-#comment-message {
-    resize: none;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-.input-group .btn {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-}
-
 /* Dark mode adjustments */
 [data-bs-theme="dark"] .direct-chat-text {
     background-color: var(--bs-dark);
@@ -111,9 +108,3 @@
     border-color: var(--bs-border-color-translucent);
 }
 </style>
-
-<script>
-document.getElementById('comment-message').addEventListener('input', function() {
-    document.getElementById('char-count').textContent = this.value.length;
-});
-</script>

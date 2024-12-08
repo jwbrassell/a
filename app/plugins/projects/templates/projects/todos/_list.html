@@ -3,33 +3,22 @@
     <thead>
       <tr>
         <th style="width: 10px">#</th>
-        {% if not readonly %}
-        <th style="width: 30px"></th>
-        {% endif %}
         <th>Description</th>
         <th style="width: 100px">Due</th>
-        {% if not readonly %}
-        <th style="width: 100px">Actions</th>
-        {% endif %}
       </tr>
     </thead>
-    <tbody class="{% if not readonly %}sortable-todos{% endif %}">
+    <tbody>
       {% for todo in project.todos %}
       <tr data-todo-id="{{ todo.id }}">
         <td>
           <div class="form-check">
-            <input type="checkbox" class="form-check-input todo-check" 
+            <input type="checkbox" class="form-check-input" 
                    id="todoCheck{{ todo.id }}" 
-                   data-todo-id="{{ todo.id }}"
-                   {% if todo.completed %}checked{% endif %}>
+                   {% if todo.completed %}checked{% endif %}
+                   disabled>
             <label class="form-check-label" for="todoCheck{{ todo.id }}"></label>
           </div>
         </td>
-        {% if not readonly %}
-        <td>
-          <i class="fas fa-grip-vertical handle" style="cursor: move; color: #ccc;"></i>
-        </td>
-        {% endif %}
         <td>
           <span {% if todo.completed %}class="text-muted text-decoration-line-through"{% endif %}>
             {{ todo.description }}
@@ -40,64 +29,8 @@
             <i class="far fa-clock"></i> {{ todo.due_text }}
           </span>
         </td>
-        {% if not readonly %}
-        <td>
-          <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-outline-secondary edit-todo" 
-                    data-todo-id="{{ todo.id }}" title="Edit">
-              <i class="fas fa-pencil-alt"></i>
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary delete-todo" 
-                    data-todo-id="{{ todo.id }}" title="Delete">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </td>
-        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
-{% if not readonly %}
-<div class="card-footer text-end">
-  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-todo">
-    <i class="fas fa-plus"></i> Add Todo
-  </button>
-</div>
-
-<!-- Todo Modal -->
-<div class="modal fade" id="modal-new-todo">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title">Todo Item</h4>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="new-todo-form">
-          <div class="form-group mb-3">
-            <label for="todo-description">Description</label>
-            <input type="text" class="form-control" id="todo-description" required>
-          </div>
-          <div class="form-group mb-3">
-            <label for="todo-due-date">Due Date</label>
-            <input type="datetime-local" class="form-control" id="todo-due-date" required>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary save-todo">Save Changes</button>
-      </div>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-<!-- Include todos.js -->
-<script src="{{ url_for('projects.static', filename='js/todos.js') }}"></script>
-<!-- Include Sortable.js -->
-{% if not readonly %}
-<script src="{{ url_for('static', filename='src/sortablejs/Sortable.min.js') }}"></script>
-{% endif %}

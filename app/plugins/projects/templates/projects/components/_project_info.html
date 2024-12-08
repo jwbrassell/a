@@ -6,9 +6,11 @@
     <div class="card-body">
         <!-- Status -->
         <div class="form-group mb-3">
-            <label for="project-status">Status</label>
+            <label>Status</label>
             {% if readonly %}
-                <input type="text" class="form-control" value="{{ project.status|title }}" readonly>
+                <div class="text-muted">
+                    <span class="badge bg-{{ project.status_class }}">{{ project.status|title }}</span>
+                </div>
             {% else %}
                 <select class="form-control select2" id="project-status" name="status">
                     {% for status in statuses %}
@@ -22,9 +24,9 @@
 
         <!-- Lead -->
         <div class="form-group mb-3">
-            <label for="project-lead">Lead</label>
+            <label>Lead</label>
             {% if readonly %}
-                <input type="text" class="form-control" value="{{ project.lead.username if project.lead else 'Unassigned' }}" readonly>
+                <div class="text-muted">{{ project.lead.username if project.lead else 'Unassigned' }}</div>
             {% else %}
                 <select class="form-control select2" id="project-lead" name="lead_id">
                     <option value="">Unassigned</option>
@@ -39,9 +41,11 @@
 
         <!-- Priority -->
         <div class="form-group mb-3">
-            <label for="project-priority">Priority</label>
+            <label>Priority</label>
             {% if readonly %}
-                <input type="text" class="form-control" value="{{ project.priority|title }}" readonly>
+                <div class="text-muted">
+                    <span class="badge bg-{{ project.priority_class }}">{{ project.priority|title }}</span>
+                </div>
             {% else %}
                 <select class="form-control select2" id="project-priority" name="priority">
                     {% for priority in priorities %}
@@ -55,8 +59,8 @@
 
         <!-- Project Icon -->
         <div class="form-group mb-4">
-            <label for="project-icon">Project Icon</label>
-            <div class="icon-select" onclick="projectModule.openIconPicker()">
+            <label>Project Icon</label>
+            <div class="icon-select" {% if not readonly %}onclick="projectModule.openIconPicker()"{% endif %}>
                 <i id="icon-preview" class="{{ project.icon or 'fas fa-project-diagram' }}"></i>
                 <input type="hidden" id="project-icon" name="icon" value="{{ project.icon or 'fas fa-project-diagram' }}">
             </div>
@@ -75,7 +79,7 @@
         <!-- Private Project Toggle -->
         <div class="form-group mb-4">
             <div class="d-flex align-items-center mb-2">
-                <label for="project-private" class="mb-0 me-2">Private Project</label>
+                <label class="mb-0 me-2">Private Project</label>
                 <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
                    title="When enabled, this project will only be visible to you. Note: Admins and management may still access it if needed."></i>
             </div>
@@ -95,7 +99,7 @@
             <!-- Watchers -->
             <div class="form-group mb-3">
                 <div class="d-flex align-items-center mb-2">
-                    <label for="project-watchers" class="mb-0 me-2">Watchers</label>
+                    <label class="mb-0 me-2">Watchers</label>
                     <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
                        title="Users who will receive updates about this project"></i>
                 </div>
@@ -115,7 +119,7 @@
             <!-- Project Roles -->
             <div class="form-group mb-3">
                 <div class="d-flex align-items-center mb-2">
-                    <label for="project-role" class="mb-0 me-2">Project Roles</label>
+                    <label class="mb-0 me-2">Project Roles</label>
                     <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
                        title="Assign roles to control access to this project"></i>
                 </div>
@@ -136,7 +140,7 @@
         <!-- Shareholders -->
         <div class="form-group mb-3">
             <div class="d-flex align-items-center mb-2">
-                <label for="project-shareholders" class="mb-0 me-2">Shareholders</label>
+                <label class="mb-0 me-2">Shareholders</label>
                 <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
                    title="Users who have a stake in this project's success"></i>
             </div>
@@ -156,7 +160,7 @@
         <!-- Stakeholders -->
         <div class="form-group mb-3">
             <div class="d-flex align-items-center mb-2">
-                <label for="project-stakeholders" class="mb-0 me-2">Stakeholders</label>
+                <label class="mb-0 me-2">Stakeholders</label>
                 <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
                    title="Key decision makers and influencers in the project"></i>
             </div>

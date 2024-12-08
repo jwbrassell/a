@@ -33,12 +33,14 @@
                         <button type="button" class="btn btn-sm btn-info" onclick="viewTask({{ task.id }})" title="View">
                             <i class="fas fa-eye"></i>
                         </button>
+                        {% if not readonly %}
                         <button type="button" class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})" title="Edit">
                             <i class="fas fa-pencil-alt"></i>
                         </button>
                         <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
+                        {% endif %}
                     </div>
                 </td>
             </tr>
@@ -47,11 +49,13 @@
     </table>
 </div>
 
+{% if not readonly %}
 <div class="card-footer text-end">
     <button type="button" class="btn btn-sm btn-primary" onclick="addTask()">
         <i class="fas fa-plus me-1"></i> Add Task
     </button>
 </div>
+{% endif %}
 
 <style>
 /* Ensure rich text content in table cells is properly truncated */

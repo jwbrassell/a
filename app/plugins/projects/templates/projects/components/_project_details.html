@@ -12,12 +12,15 @@
             <div class="mb-4">
                 <div class="row align-items-center">
                     <div class="col-3">
-                        <label for="project-name" class="mb-0">Project Name</label>
+                        <label class="mb-0">Project Name</label>
                     </div>
                     <div class="col-9">
-                        <input type="text" class="form-control" id="project-name" name="name" 
-                               value="{{ project.name }}" placeholder="Enter project name"
-                               {% if readonly %}readonly{% endif %}>
+                        {% if readonly %}
+                            <div class="text-muted">{{ project.name }}</div>
+                        {% else %}
+                            <input type="text" class="form-control" id="project-name" name="name" 
+                                   value="{{ project.name }}" placeholder="Enter project name">
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -26,19 +29,22 @@
             <div class="mb-4">
                 <div class="row align-items-center">
                     <div class="col-3">
-                        <label for="project-summary" class="mb-0">Summary</label>
+                        <label class="mb-0">Summary</label>
                     </div>
                     <div class="col-9">
-                        <input type="text" class="form-control" id="project-summary" name="summary" 
-                               value="{{ project.summary }}" placeholder="Brief project description"
-                               {% if readonly %}readonly{% endif %}>
+                        {% if readonly %}
+                            <div class="text-muted">{{ project.summary }}</div>
+                        {% else %}
+                            <input type="text" class="form-control" id="project-summary" name="summary" 
+                                   value="{{ project.summary }}" placeholder="Brief project description">
+                        {% endif %}
                     </div>
                 </div>
             </div>
 
             <!-- Project Description -->
             <div class="mb-4">
-                <label for="project-description">Description</label>
+                <label>Description</label>
                 <div class="description-container">
                     {% if readonly %}
                     <div class="rich-text-content description-preview" id="description-preview">
@@ -63,7 +69,7 @@
 }
 
 .description-preview {
-    max-height: 4.8em; /* Approximately 3 lines */
+    max-height: 16em; /* Approximately 10 lines */
     overflow: hidden;
     transition: max-height 0.3s ease;
     position: relative;
