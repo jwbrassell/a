@@ -24,9 +24,6 @@
     background-color: transparent;
     border: none;
 }
-.input-group .btn {
-    display: none;
-}
 textarea.form-control[readonly] {
     min-height: unset;
     height: auto;
@@ -190,9 +187,7 @@ textarea.form-control[readonly] {
         </div>
         <div class="collapse" id="commentsCollapse">
             <div class="card-body">
-                {% with readonly=True %}
                 {% include 'projects/comments/_list.html' %}
-                {% endwith %}
             </div>
         </div>
     </div>
@@ -325,6 +320,20 @@ textarea.form-control[readonly] {
         todosCollapse.addEventListener('hide.bs.collapse', function() {
             todosCollapseIcon.classList.remove('fa-minus');
             todosCollapseIcon.classList.add('fa-plus');
+        });
+
+        // Comments collapse functionality
+        const commentsCollapse = document.getElementById('commentsCollapse');
+        const commentsCollapseIcon = commentsCollapse.previousElementSibling.querySelector('.fa-plus');
+        
+        commentsCollapse.addEventListener('show.bs.collapse', function() {
+            commentsCollapseIcon.classList.remove('fa-plus');
+            commentsCollapseIcon.classList.add('fa-minus');
+        });
+        
+        commentsCollapse.addEventListener('hide.bs.collapse', function() {
+            commentsCollapseIcon.classList.remove('fa-minus');
+            commentsCollapseIcon.classList.add('fa-plus');
         });
     });
 })();

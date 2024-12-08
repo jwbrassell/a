@@ -4,13 +4,13 @@
   <div class="direct-chat-msg {% if comment.user_id == current_user.id %}right{% endif %}" id="comment-{{ comment.id }}">
     <div class="direct-chat-infos clearfix">
       <span class="direct-chat-name float-{% if comment.user_id == current_user.id %}end{% else %}start{% endif %}">
-        {{ comment.user.name }}
+        {{ comment.user.username }}
       </span>
       <span class="direct-chat-timestamp float-{% if comment.user_id == current_user.id %}start{% else %}end{% endif %}">
         {{ comment.created_at.strftime('%d %b %I:%M %p') }}
       </span>
     </div>
-    <img class="direct-chat-img" src="{{ comment.user.avatar_url }}" alt="message user image">
+    <img class="direct-chat-img" src="{{ url_for('static', filename=comment.user.get_preference('avatar', 'images/user_1.jpg')) }}" alt="message user image">
     <div class="direct-chat-text">
       {{ comment.content|safe }}
     </div>
@@ -18,11 +18,10 @@
   {% endfor %}
 </div>
 
-{% if not readonly %}
-<form id="comment-form" onsubmit="submitComment(event)" class="mt-3">
+<form id="comment-form" class="mt-3">
   <div class="input-group">
-    <textarea id="comment-message" class="form-control" rows="2" 
-              placeholder="Type your comment..." maxlength="300" required></textarea>
+    <textarea id="comment-message" name="content" class="form-control" rows="2" 
+              placeholder="Type your comment..." maxlength="300"></textarea>
     <button type="submit" class="btn btn-primary">
       <i class="fas fa-paper-plane"></i>
     </button>
@@ -31,13 +30,6 @@
     <span id="char-count">0</span>/300 characters
   </small>
 </form>
-
-<script>
-document.getElementById('comment-message').addEventListener('input', function() {
-    document.getElementById('char-count').textContent = this.value.length;
-});
-</script>
-{% endif %}
 
 <style>
 .direct-chat-messages {

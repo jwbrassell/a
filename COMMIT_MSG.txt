@@ -1,17 +1,19 @@
-fix(projects): improve task table and todo list display
+fix: task editing and comment functionality
 
-- Tasks Table:
-  * Fix status/priority badges to show proper colors and text
-  * Convert view/edit buttons to direct URL links
-  * Add proper data-task-id attributes for JS interaction
-  * Improve task summary display with truncation
+- Made all task fields optional except name:
+  - Removed required attributes from summary, description, lead, status, priority
+  - Removed required from dynamically added subtasks and todos
+  - Only task name remains required
 
-- Todo List:
-  * Move Add Todo button to card footer
-  * Add proper theme support with Bootstrap 5 variables
-  * Fix table styling and vertical alignment
+- Fixed comment functionality:
+  - Fixed CSRF token header name
+  - Improved error handling and feedback
+  - Added proper collapse/expand behavior
+  - Fixed comment form submission
+  - Removed required attribute from comment textarea
 
-- Documentation:
-  * Add IMPROVEMENTS.md documenting all changes and implementation notes
-
-This commit improves the visual consistency and user experience of the projects plugin by fixing display issues and improving the layout of task and todo components.
+- Improved task form submission:
+  - Simplified to use standard HTML form submission
+  - Fixed form field associations with form="taskForm"
+  - Ensured tinymce content is synced before submission
+  - Moved "Save Changes" button to right column

@@ -37,179 +37,173 @@
 {% endblock %}
 
 {% block left_column %}
+<form id="taskForm" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <!-- Task Details -->
-    <form id="taskForm" method="POST">
-        <div class="card mb-4">
-            <div class="card-header">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <i class="fas fa-tasks me-1"></i>
+                Task Details
+            </h3>
+        </div>
+        <div class="card-body">
+            <!-- Name -->
+            <div class="form-group mb-3">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-control" name="name" value="{{ task.name }}" required>
+            </div>
+
+            <!-- Summary -->
+            <div class="form-group mb-3">
+                <label class="form-label">Summary</label>
+                <input type="text" class="form-control" name="summary" value="{{ task.summary }}">
+            </div>
+
+            <!-- Description -->
+            <div class="form-group mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" name="description" rows="5">{{ task.description }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub Tasks -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#subTasksCollapse" aria-expanded="true" aria-controls="subTasksCollapse">
+            <div class="d-flex justify-content-between align-items-center">
                 <h3 class="card-title mb-0">
                     <i class="fas fa-tasks me-1"></i>
-                    Task Details
+                    Sub Tasks
                 </h3>
-            </div>
-            <div class="card-body">
-                <!-- Name -->
-                <div class="form-group mb-3">
-                    <label class="form-label">Name</label>
-                    <input type="text" class="form-control" name="name" value="{{ task.name }}" required>
-                </div>
-
-                <!-- Summary -->
-                <div class="form-group mb-3">
-                    <label class="form-label">Summary</label>
-                    <input type="text" class="form-control" name="summary" value="{{ task.summary }}">
-                </div>
-
-                <!-- Description -->
-                <div class="form-group mb-3">
-                    <label class="form-label">Description</label>
-                    <textarea class="form-control" name="description" rows="5">{{ task.description }}</textarea>
+                <div>
+                    <button type="button" class="btn btn-sm btn-primary me-2" id="addSubTaskBtn">
+                        <i class="fas fa-plus"></i> Add Sub Task
+                    </button>
+                    <i class="fas fa-minus collapse-icon"></i>
                 </div>
             </div>
         </div>
-
-        <!-- Sub Tasks -->
-        <div class="card mb-4">
-            <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#subTasksCollapse" aria-expanded="true" aria-controls="subTasksCollapse">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-tasks me-1"></i>
-                        Sub Tasks
-                    </h3>
-                    <div>
-                        <button type="button" class="btn btn-sm btn-primary me-2" id="addSubTaskBtn">
-                            <i class="fas fa-plus"></i> Add Sub Task
-                        </button>
-                        <i class="fas fa-minus collapse-icon"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="collapse show" id="subTasksCollapse">
-                <div class="card-body">
-                    <div id="subTasksList">
-                        {% if task.subtasks %}
-                        {% for subtask in task.subtasks %}
-                        <div class="subtask-item mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group mb-2">
-                                                <label class="form-label">Name</label>
-                                                <input type="text" class="form-control" name="subtasks[{{ loop.index0 }}][name]" value="{{ subtask.name }}" required>
-                                            </div>
-                                            <div class="form-group mb-2">
-                                                <label class="form-label">Description</label>
-                                                <textarea class="form-control" name="subtasks[{{ loop.index0 }}][description]" rows="2">{{ subtask.description }}</textarea>
-                                            </div>
+        <div class="collapse show" id="subTasksCollapse">
+            <div class="card-body">
+                <div id="subTasksList">
+                    {% if task.subtasks %}
+                    {% for subtask in task.subtasks %}
+                    <div class="subtask-item mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-2">
+                                            <label class="form-label">Name</label>
+                                            <input type="text" class="form-control" name="subtasks[{{ loop.index0 }}][name]" value="{{ subtask.name }}">
                                         </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group mb-2">
-                                                <label class="form-label">Status</label>
-                                                <select class="form-select" name="subtasks[{{ loop.index0 }}][status]">
-                                                    {% for status in statuses %}
-                                                    <option value="{{ status.name }}" data-color="{{ status.color }}" {% if subtask.status and subtask.status.name == status.name %}selected{% endif %}>
-                                                        {{ status.name }}
-                                                    </option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                            <div class="form-group mb-2">
-                                                <label class="form-label">Priority</label>
-                                                <select class="form-select" name="subtasks[{{ loop.index0 }}][priority]">
-                                                    {% for priority in priorities %}
-                                                    <option value="{{ priority.name }}" data-color="{{ priority.color }}" {% if subtask.priority and subtask.priority.name == priority.name %}selected{% endif %}>
-                                                        {{ priority.name }}
-                                                    </option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                            <div class="form-group">
-                                                <label class="form-label">Lead</label>
-                                                <select class="form-select" name="subtasks[{{ loop.index0 }}][assigned_to_id]">
-                                                    <option value="">Unassigned</option>
-                                                    {% for user in users %}
-                                                    <option value="{{ user.id }}" {% if subtask.assigned_to_id == user.id %}selected{% endif %}>
-                                                        {{ user.username }}
-                                                    </option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
+                                        <div class="form-group mb-2">
+                                            <label class="form-label">Description</label>
+                                            <textarea class="form-control" name="subtasks[{{ loop.index0 }}][description]" rows="2">{{ subtask.description }}</textarea>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-danger btn-sm mt-2 remove-subtask">
-                                        <i class="fas fa-trash"></i> Remove
-                                    </button>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-2">
+                                            <label class="form-label">Status</label>
+                                            <select class="form-select" name="subtasks[{{ loop.index0 }}][status]">
+                                                {% for status in statuses %}
+                                                <option value="{{ status.name }}" data-color="{{ status.color }}" {% if subtask.status and subtask.status.name == status.name %}selected{% endif %}>
+                                                    {{ status.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="form-group mb-2">
+                                            <label class="form-label">Priority</label>
+                                            <select class="form-select" name="subtasks[{{ loop.index0 }}][priority]">
+                                                {% for priority in priorities %}
+                                                <option value="{{ priority.name }}" data-color="{{ priority.color }}" {% if subtask.priority and subtask.priority.name == priority.name %}selected{% endif %}>
+                                                    {{ priority.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Lead</label>
+                                            <select class="form-select" name="subtasks[{{ loop.index0 }}][assigned_to_id]">
+                                                <option value="">Unassigned</option>
+                                                {% for user in users %}
+                                                <option value="{{ user.id }}" {% if subtask.assigned_to_id == user.id %}selected{% endif %}>
+                                                    {{ user.username }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
+                                <button type="button" class="btn btn-danger btn-sm mt-2 remove-subtask">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
                             </div>
                         </div>
-                        {% endfor %}
-                        {% endif %}
                     </div>
+                    {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Todo List -->
-        <div class="card mb-4">
-            <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#todosCollapse" aria-expanded="true" aria-controls="todosCollapse">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-check-square me-1"></i>
-                        Todo List
-                    </h3>
-                    <i class="fas fa-minus todos-collapse-icon"></i>
-                </div>
-            </div>
-            <div class="collapse show" id="todosCollapse">
-                <div class="card-body p-0">
-                    {% include 'projects/todos/_list.html' %}
-                </div>
+    <!-- Todo List -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#todosCollapse" aria-expanded="true" aria-controls="todosCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-check-square me-1"></i>
+                    Todo List
+                </h3>
+                <i class="fas fa-minus todos-collapse-icon"></i>
             </div>
         </div>
+        <div class="collapse show" id="todosCollapse">
+            <div class="card-body p-0">
+                {% include 'projects/todos/_list.html' %}
+            </div>
+        </div>
+    </div>
 
-        <!-- Comments Section -->
-        <div class="card mb-4">
-            <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#commentsCollapse" aria-expanded="false" aria-controls="commentsCollapse">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-comments me-1"></i>
-                        Comments
-                    </h3>
-                    <i class="fas fa-plus"></i>
-                </div>
-            </div>
-            <div class="collapse" id="commentsCollapse">
-                <div class="card-body">
-                    {% include 'projects/comments/_list.html' %}
-                </div>
+    <!-- Comments Section -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#commentsCollapse" aria-expanded="false" aria-controls="commentsCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-comments me-1"></i>
+                    Comments
+                </h3>
+                <i class="fas fa-plus"></i>
             </div>
         </div>
+        <div class="collapse" id="commentsCollapse">
+            <div class="card-body">
+                {% include 'projects/comments/_list.html' %}
+            </div>
+        </div>
+    </div>
 
-        <!-- History Table -->
-        <div class="card mb-4">
-            <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#historyCollapse" aria-expanded="false" aria-controls="historyCollapse">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-history me-1"></i>
-                        Task History
-                    </h3>
-                    <i class="fas fa-plus"></i>
-                </div>
-            </div>
-            <div class="collapse" id="historyCollapse">
-                <div class="card-body">
-                    {% include 'projects/history/_list.html' %}
-                </div>
+    <!-- History Table -->
+    <div class="card">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#historyCollapse" aria-expanded="false" aria-controls="historyCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-history me-1"></i>
+                    Task History
+                </h3>
+                <i class="fas fa-plus"></i>
             </div>
         </div>
-
-        <!-- Submit Button -->
-        <div class="text-center mb-4">
-            <button type="submit" class="btn btn-primary btn-lg">
-                <i class="fas fa-save me-1"></i> Save Changes
-            </button>
+        <div class="collapse" id="historyCollapse">
+            <div class="card-body">
+                {% include 'projects/history/_list.html' %}
+            </div>
         </div>
-    </form>
+    </div>
+</form>
 {% endblock %}
 
 {% block right_column %}
@@ -225,7 +219,7 @@
             <!-- Status -->
             <div class="form-group mb-3">
                 <label class="form-label">Status</label>
-                <select class="form-select" name="status">
+                <select class="form-select" name="status" form="taskForm">
                     {% for status in statuses %}
                     <option value="{{ status.name }}" data-color="{{ status.color }}" {% if task.status and task.status.name == status.name %}selected{% endif %}>
                         {{ status.name }}
@@ -237,7 +231,7 @@
             <!-- Priority -->
             <div class="form-group mb-3">
                 <label class="form-label">Priority</label>
-                <select class="form-select" name="priority">
+                <select class="form-select" name="priority" form="taskForm">
                     {% for priority in priorities %}
                     <option value="{{ priority.name }}" data-color="{{ priority.color }}" {% if task.priority and task.priority.name == priority.name %}selected{% endif %}>
                         {{ priority.name }}
@@ -249,7 +243,7 @@
             <!-- Lead -->
             <div class="form-group mb-3">
                 <label class="form-label">Lead</label>
-                <select class="form-select" name="assigned_to_id">
+                <select class="form-select" name="assigned_to_id" form="taskForm">
                     <option value="">Unassigned</option>
                     {% for user in users %}
                     <option value="{{ user.id }}" {% if task.assigned_to_id == user.id %}selected{% endif %}>
@@ -272,10 +266,27 @@
             </div>
         </div>
     </div>
+
+    <!-- Submit Button -->
+    <button type="submit" form="taskForm" class="btn btn-primary btn-lg w-100 mb-4">
+        <i class="fas fa-save me-1"></i> Save Changes
+    </button>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
 <script src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>
+<script>
+(function() {
+    'use strict';
+    
+    // Task variables
+    var taskModule = {
+        taskId: "{{ task.id }}",
+        currentUserId: "{{ current_user.id }}"
+    };
+    window.taskModule = taskModule;
+})();
+</script>
 {% endblock %}

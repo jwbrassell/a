@@ -8,7 +8,8 @@ const TaskManager = {
     },
 
     bindEvents: function() {
-        // Form submission
+        // Form submission is handled normally by the browser
+        // We only need to ensure tinymce content is synced
         const taskForm = document.getElementById('taskForm');
         if (taskForm) {
             taskForm.addEventListener('submit', this.handleFormSubmit.bind(this));
@@ -134,8 +135,7 @@ const TaskManager = {
                 </td>
                 <td>
                     <input type="text" class="form-control todo-description bg-dark text-light border-secondary" 
-                           name="todos[${index}][description]"
-                           required>
+                           name="todos[${index}][description]">
                 </td>
                 <td>
                     <input type="date" class="form-control todo-due-date bg-dark text-light border-secondary"
@@ -162,7 +162,7 @@ const TaskManager = {
                             <div class="col-md-6">
                                 <div class="form-group mb-2">
                                     <label class="form-label">Name</label>
-                                    <input type="text" class="form-control" name="subtasks[${index}][name]" required>
+                                    <input type="text" class="form-control" name="subtasks[${index}][name]">
                                 </div>
                                 <div class="form-group mb-2">
                                     <label class="form-label">Description</label>
@@ -223,41 +223,13 @@ const TaskManager = {
     },
 
     handleFormSubmit: function(e) {
-        e.preventDefault();
-        
-        // Get form data
-        const formData = new FormData(e.target);
-        
-        // If using tinymce, update description
+        // Only sync tinymce content before form submission
         if (typeof tinymce !== 'undefined') {
             const editor = tinymce.get('description');
             if (editor) {
-                formData.set('description', editor.getContent());
+                editor.save(); // This syncs the editor content to the textarea
             }
         }
-
-        // Submit form
-        fetch(e.target.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.href = data.redirect_url;
-            } else {
-                // Handle errors
-                console.error('Error:', data.message);
-                alert(data.message || 'An error occurred while saving the task.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while saving the task.');
-        });
     }
 };
 
