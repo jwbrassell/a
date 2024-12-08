@@ -45,6 +45,7 @@ This structure ensures proper route registration and navigation functionality, f
   - Task history tracking ✓
   - Task comments ✓
   - Role-based access control ✓
+  - Rich text editor for descriptions ✓
 - Todo checklist system ✓
 - Task assignment system ✓
 - Due date tracking ✓
@@ -92,12 +93,19 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
   - Collapsible task history
 - Task properties:
   - Name
-  - Description
+  - Description (with rich text editor)
   - Status (Open, In Progress, Review, Completed)
   - Priority (Low, Medium, High)
   - Assigned User
   - Due Date
   - Creation/Update Dates
+- Subtask management:
+  - Full CRUD operations
+  - Rich text editor for descriptions
+  - Status and priority tracking
+  - Assignment capabilities
+  - Due date management
+  - History tracking
 - Role-based access control for editing
 - Task comments and discussion
 - Task history tracking
@@ -145,7 +153,7 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
 ### Task
 - project_id: Reference to project
 - name: Task name
-- description: Task description
+- description: Task description (rich text)
 - status: Current status (open, in_progress, review, completed)
 - priority: Task priority (low, medium, high)
 - assigned_to_id: Reference to assigned user
@@ -191,7 +199,7 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
 - Bootstrap 5: UI framework
 - Font Awesome 5: Icons
 - DataTables: Data display and management
-- TinyMCE/Summernote: Rich text editing
+- TinyMCE: Rich text editing for task/subtask descriptions
 - Select2: Enhanced select boxes
 - FullCalendar: Due date management
 - SweetAlert2: Notifications
@@ -206,6 +214,7 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
 - Uses existing user authentication
 - Leverages existing activity tracking
 - Email notification system
+- TinyMCE integration for rich text editing
 
 ## UI Components
 
@@ -223,17 +232,24 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
 - Task board (Kanban style)
 - Task details modal with:
   - Task information
+  - Rich text description editor
   - Status and priority badges
   - Assignment details
   - Due date information
   - Comments section (read-only)
   - Collapsible task history
 - Task creation/edit modal with:
-  - Task name and description
+  - Task name and description (rich text)
   - Status selection
   - Priority selection
   - User assignment
   - Due date setting
+- Subtask modal with:
+  - Rich text description editor
+  - Status and priority management
+  - Assignment capabilities
+  - Due date setting
+  - History tracking
 - Todo checklist interface
 
 ### Collaboration Views
@@ -251,6 +267,7 @@ For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATIO
   - Priority updates
   - Assignment changes
   - Due date modifications
+  - Description updates
 - Todo completions
 - Comment additions
 - Role changes
@@ -276,3 +293,4 @@ Notifications sent for:
 - Email sending failures
 - User-friendly error messages
 - Toastr notifications for user feedback
+- Rich text editor initialization errors
