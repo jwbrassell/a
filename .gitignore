@@ -46,3 +46,46 @@ instance/
 
 # Environment variables
 .env
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Test files
+test_*.csv
+test_*.json
+test_*.xml
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Cache
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node modules (if using any JS tools)
+node_modules/
+package-lock.json
+
+# Generated files
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.mo
+*.pot
+
+# Local development settings
+local_settings.py

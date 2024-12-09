@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}On-Call Rotation{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Current On-Call</h3>
+                </div>
+                <div class="card-body" id="current-oncall">
+                    Loading...
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">Upload On-Call Schedule</h3>
+                </div>
+                <div class="card-body">
+                    <form id="upload-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group mb-3">
+                            <label for="year">Year</label>
+                            <input type="number" class="form-control" id="year" name="year" 
+                                value="{{ now.year }}" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="file">CSV File</label>
+                            <input type="file" class="form-control" id="file" name="file" 
+                                accept=".csv" required>
+                            <small class="form-text text-muted">
+                                CSV should have columns: week,name,phone
+                            </small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link href="{{ url_for('static', filename='src/fullcalendar/main.css') }}" rel="stylesheet">
+<style>
+#calendar {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.fc-event {
+    border: none;
+    padding: 2px 4px;
+    margin: 1px 0;
+    border-radius: 3px;
+}
+
+.fc-h-event {
+    background-color: #007bff;
+    border: none;
+}
+
+.fc-daygrid-event {
+    white-space: normal !important;
+    align-items: normal !important;
+}
+
+.fc-daygrid-event-dot {
+    border-color: #007bff;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='src/fullcalendar/main.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        themeSystem: 'bootstrap',
+        events: "{{ url_for('oncall.get_events') }}",
+        eventDidMount: function(info) {
+            $(info.el).tooltip({
+                title: info.event.extendedProps.description,
+                placement: 'top',
+                trigger: 'hover',
+                container: 'body'
+            });
+        },
+        eventContent: function(arg) {
+            return {
+                html: `
+                    <div class="fc-content">
+                        <div class="fc-title">${arg.event.title}</div>
+                        <div class="fc-description small">${arg.event.extendedProps.description}</div>
+                    </div>
+                `
+            };
+        },
+        displayEventEnd: true,
+        eventTimeFormat: {
+            hour: 'numeric',
+            minute: '2-digit',
+            meridiem: 'short'
+        }
+    });
+    calendar.render();
+
+    // Load current on-call information
+    function loadCurrentOnCall() {
+        fetch("{{ url_for('oncall.get_current_oncall') }}", {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('No one currently on call');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            const start = new Date(data.start);
+            const end = new Date(data.end);
+            document.getElementById('current-oncall').innerHTML = `
+                <div class="alert alert-info">
+                    <strong>${data.name}</strong><br>
+                    Phone: ${data.phone}<br>
+                    Until: ${end.toLocaleDateString()} ${end.toLocaleTimeString()}
+                </div>
+            `;
+        })
+        .catch(error => {
+            document.getElementById('current-oncall').innerHTML = 
+                '<div class="alert alert-warning">No one currently on call</div>';
+        });
+    }
+
+    // Load initial current on-call
+    loadCurrentOnCall();
+    // Refresh every minute
+    setInterval(loadCurrentOnCall, 60000);
+
+    // Handle CSV upload
+    document.getElementById('upload-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = new FormData(this);
+        
+        fetch("{{ url_for('oncall.upload_oncall') }}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                toastr.error(data.error);
+            } else {
+                toastr.success(data.message);
+                calendar.refetchEvents();
+                loadCurrentOnCall();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            toastr.error('An error occurred while uploading the file');
+        });
+    });
+});
+</script>
+{% endblock %}
