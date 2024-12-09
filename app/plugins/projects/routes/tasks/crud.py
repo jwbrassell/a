@@ -5,12 +5,11 @@ from flask_login import login_required, current_user
 from app.utils.rbac import requires_roles
 from app.utils.activity_tracking import track_activity
 from app.extensions import db
-from ...models import Project, Task, ProjectStatus, ProjectPriority, ValidationError
+from ...models import Project, Task, ProjectStatus, ProjectPriority, ValidationError, History, Todo
 from app.plugins.projects import bp
 from datetime import datetime
 from .utils import (
     serialize_date,
-    create_task_history,
     log_task_activity,
     track_task_changes,
     validate_task_data
@@ -53,6 +52,7 @@ def create_task(project_id):
         # Create task
         task = Task(
             name=data['name'],
+            summary=data.get('summary', ''),
             description=data.get('description', ''),
             status_id=status.id if status else None,
             priority_id=priority.id if priority else None,
@@ -64,23 +64,46 @@ def create_task(project_id):
             list_position=data.get('list_position', 'todo')
         )
         
-        # Validate task depth
-        task.validate_depth()
+        # Add task to session
+        db.session.add(task)
+        db.session.flush()  # This assigns an ID to the task
         
         # Create history entry
-        create_task_history(task, 'created', current_user.id, {
-            'name': task.name,
-            'description': task.description,
-            'status': status.name if status else None,
-            'priority': priority.name if priority else None,
-            'due_date': serialize_date(task.due_date),
-            'assigned_to_id': task.assigned_to_id
-        })
+        history = History(
+            entity_type='task',
+            action='created',
+            user_id=current_user.id,
+            project_id=project_id,
+            task_id=task.id,
+            details={
+                'name': task.name,
+                'summary': task.summary,
+                'description': task.description,
+                'status': status.name if status else None,
+                'priority': priority.name if priority else None,
+                'due_date': serialize_date(task.due_date),
+                'assigned_to_id': task.assigned_to_id
+            }
+        )
+        db.session.add(history)
+        
+        # Add todos if provided
+        if data.get('todos'):
+            for todo_data in data['todos']:
+                todo = Todo(
+                    description=todo_data['description'],
+                    completed=todo_data.get('completed', False),
+                    due_date=datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date() if todo_data.get('due_date') else None,
+                    task_id=task.id,
+                    project_id=project_id,
+                    assigned_to_id=todo_data.get('assigned_to_id')
+                )
+                db.session.add(todo)
         
         # Log activity
         log_task_activity(current_user.id, current_user.username, "Created", task.name)
         
-        db.session.add(task)
+        # Commit changes
         db.session.commit()
         
         return jsonify({
@@ -90,6 +113,7 @@ def create_task(project_id):
         })
         
     except ValidationError as e:
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': str(e)
@@ -139,7 +163,15 @@ def update_task(task_id):
                 setattr(task, field, change['new'])
             
             # Create history entry
-            create_task_history(task, 'updated', current_user.id, changes)
+            history = History(
+                entity_type='task',
+                action='updated',
+                user_id=current_user.id,
+                project_id=task.project_id,
+                task_id=task.id,
+                details=changes
+            )
+            db.session.add(history)
             
             # Log activity
             log_task_activity(current_user.id, current_user.username, "Updated", task.name)
@@ -153,6 +185,7 @@ def update_task(task_id):
         })
         
     except ValidationError as e:
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': str(e)
@@ -175,7 +208,14 @@ def delete_task(task_id):
     
     try:
         # Create history entry
-        create_task_history(task, 'deleted', current_user.id, {'name': task_name})
+        history = History(
+            entity_type='task',
+            action='deleted',
+            user_id=current_user.id,
+            project_id=task.project_id,
+            details={'name': task_name}
+        )
+        db.session.add(history)
         
         # Log activity
         log_task_activity(current_user.id, current_user.username, "Deleted", task_name)

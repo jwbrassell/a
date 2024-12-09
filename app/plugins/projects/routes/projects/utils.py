@@ -59,16 +59,6 @@ def validate_project_data(data):
     if not data.get('name'):
         errors.append('Project name is required')
     
-    # Status validation
-    valid_statuses = ['new', 'active', 'on_hold', 'completed', 'archived']
-    if data.get('status') and data['status'] not in valid_statuses:
-        errors.append(f'Invalid status. Must be one of: {", ".join(valid_statuses)}')
-    
-    # Priority validation
-    valid_priorities = ['low', 'medium', 'high']
-    if data.get('priority') and data['priority'] not in valid_priorities:
-        errors.append(f'Invalid priority. Must be one of: {", ".join(valid_priorities)}')
-    
     # Percent complete validation
     if 'percent_complete' in data:
         try:

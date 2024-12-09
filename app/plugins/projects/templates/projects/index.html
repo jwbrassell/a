@@ -78,67 +78,13 @@
         </div>
     </div>
 
-    <!-- Active Projects -->
+    <!-- Projects Table -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">Active Projects</h3>
+            <h3 class="card-title">All Projects</h3>
         </div>
         <div class="card-body">
-            <table id="active-projects-table" class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Lead</th>
-                        <th>Status</th>
-                        <th>Team Size</th>
-                        <th>Tasks</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
-    </div>
-
-    <!-- Archived Projects -->
-    <div class="card collapsed-card">
-        <div class="card-header">
-            <h3 class="card-title">Archived Projects</h3>
-            <div class="card-tools">
-                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-        </div>
-        <div class="card-body" style="display: none;">
-            <table id="archived-projects-table" class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Lead</th>
-                        <th>Status</th>
-                        <th>Team Size</th>
-                        <th>Tasks</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
-    </div>
-
-    <!-- Completed Projects -->
-    <div class="card collapsed-card">
-        <div class="card-header">
-            <h3 class="card-title">Completed Projects</h3>
-            <div class="card-tools">
-                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-        </div>
-        <div class="card-body" style="display: none;">
-            <table id="completed-projects-table" class="table table-bordered table-striped">
+            <table id="projects-table" class="table table-bordered table-striped">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -196,37 +142,13 @@ $.ajaxSetup({
 
 let projectToDelete = null;
 
-function initializeDataTable(tableId, projectStatus) {
-    const buttons = [
-        {
-            extend: 'copy',
-            exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5]
-            }
-        },
-        {
-            extend: 'csv',
-            exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5]
-            }
-        },
-        {
-            extend: 'excel',
-            title: 'Projects_Export_' + projectStatus,
-            exportOptions: {
-                columns: [0, 1, 2, 3, 4, 5]
-            }
-        }
-    ];
-
-    return $(tableId).DataTable({
+$(document).ready(function() {
+    // Initialize DataTable
+    const projectsTable = $('#projects-table').DataTable({
         "processing": true,
         "serverSide": true,
         "ajax": {
             "url": "{{ url_for('projects.list_projects') }}",
-            "data": function(d) {
-                d.status = projectStatus;
-            },
             "error": function(xhr, error, thrown) {
                 Swal.fire({
                     icon: 'error',
@@ -267,9 +189,29 @@ function initializeDataTable(tableId, projectStatus) {
                "<'row'<'col-sm-12'tr>>" +
                "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>" +
                "<'row'<'col-sm-12'B>>",
-        "buttons": buttons,
+        "buttons": [
+            {
+                extend: 'copy',
+                exportOptions: {
+                    columns: [0, 1, 2, 3, 4, 5]
+                }
+            },
+            {
+                extend: 'csv',
+                exportOptions: {
+                    columns: [0, 1, 2, 3, 4, 5]
+                }
+            },
+            {
+                extend: 'excel',
+                title: 'Projects_Export',
+                exportOptions: {
+                    columns: [0, 1, 2, 3, 4, 5]
+                }
+            }
+        ],
         "language": {
-            "emptyTable": "No " + projectStatus + " projects available",
+            "emptyTable": "No projects available",
             "zeroRecords": "No matching projects found",
             "info": "Showing _START_ to _END_ of _TOTAL_ projects",
             "infoEmpty": "Showing 0 to 0 of 0 projects",
@@ -278,23 +220,6 @@ function initializeDataTable(tableId, projectStatus) {
         },
         "createdRow": function(row, data, dataIndex) {
             $(row).attr('data-project-id', data.id);
-        }
-    });
-}
-
-$(document).ready(function() {
-    // Initialize DataTables
-    const activeTable = initializeDataTable('#active-projects-table', 'active');
-    const archivedTable = initializeDataTable('#archived-projects-table', 'archived');
-    const completedTable = initializeDataTable('#completed-projects-table', 'completed');
-
-    // Reload tables when cards are expanded
-    $('.card').on('expanded.lte.cardwidget', function() {
-        const tableId = $(this).find('table').attr('id');
-        if (tableId === 'archived-projects-table') {
-            archivedTable.ajax.reload();
-        } else if (tableId === 'completed-projects-table') {
-            completedTable.ajax.reload();
         }
     });
 
@@ -325,20 +250,18 @@ function confirmDelete() {
     
     $.ajax({
         url: "{{ url_for('projects.delete_project', project_id=0) }}".replace('0', projectToDelete),
-        method: 'POST',
+        method: 'DELETE',
         success: function(response) {
             $('#deleteProjectModal').modal('hide');
-            if (response.status === 'success') {
+            if (response.success) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Project deleted successfully',
                     showConfirmButton: false,
                     timer: 1500
                 }).then(function() {
-                    // Reload all tables
-                    $('#active-projects-table').DataTable().ajax.reload();
-                    $('#archived-projects-table').DataTable().ajax.reload();
-                    $('#completed-projects-table').DataTable().ajax.reload();
+                    // Reload table
+                    $('#projects-table').DataTable().ajax.reload();
                 });
             } else {
                 Swal.fire({

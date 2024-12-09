@@ -160,7 +160,7 @@ window.todoModule = (function() {
             const todoRows = Array.from(document.querySelectorAll('tr[data-todo-id]'));
             const todos = todoRows.map((row, index) => ({
                 id: parseInt(row.getAttribute('data-todo-id')),
-                order: index
+                sort_order: index  // Changed from 'order' to 'sort_order'
             }));
 
             const response = await fetch('/projects/todo/reorder', {

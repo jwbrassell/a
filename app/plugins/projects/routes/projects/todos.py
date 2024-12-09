@@ -25,7 +25,7 @@ def get_project_todos(project_id):
     todos = Todo.query.filter_by(
         project_id=project_id,
         task_id=None  # Only get project-level todos
-    ).order_by(Todo.order).all()
+    ).order_by(Todo.sort_order).all()
     
     return jsonify({
         'success': True,
@@ -56,8 +56,8 @@ def create_project_todo(project_id):
                 'message': 'Todo description is required'
             }), 400
         
-        # Get the highest current order
-        max_order = db.session.query(db.func.max(Todo.order)).filter_by(
+        # Get the highest current sort_order
+        max_order = db.session.query(db.func.max(Todo.sort_order)).filter_by(
             project_id=project_id,
             task_id=None
         ).scalar() or -1
@@ -67,7 +67,7 @@ def create_project_todo(project_id):
             project_id=project_id,
             description=data['description'],
             completed=data.get('completed', False),
-            order=max_order + 1
+            sort_order=max_order + 1
         )
         
         # Handle due date
@@ -132,14 +132,14 @@ def reorder_project_todos(project_id):
         
         # Track old positions
         old_positions = {
-            todo.id: todo.order
+            todo.id: todo.sort_order
             for todo in Todo.query.filter(Todo.id.in_(todo_ids)).all()
         }
         
         # Update positions
         for index, todo_id in enumerate(todo_ids):
             Todo.query.filter_by(id=todo_id).update({
-                'order': index
+                'sort_order': index
             })
         
         # Create history entry

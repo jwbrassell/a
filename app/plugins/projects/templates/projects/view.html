@@ -98,7 +98,7 @@ textarea.form-control[readonly] {
         </div>
         <div class="collapse show" id="tasksCollapse">
             <div class="card-body">
-                {% with readonly=True %}
+                {% with readonly=not can_edit %}
                 {% include 'projects/tasks/_table.html' %}
                 {% endwith %}
             </div>
@@ -171,64 +171,67 @@ textarea.form-control[readonly] {
     {% endwith %}
 
     {% if can_edit %}
-    <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary btn-lg w-100 mb-4">
-        <i class="fas fa-edit me-1"></i> Edit Project
-    </a>
+    <div class="d-grid gap-2">
+        <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary btn-lg mb-2">
+            <i class="fas fa-edit me-1"></i> Edit Project
+        </a>
+        <button onclick="window.deleteProject({{ project.id }})" class="btn btn-danger btn-lg">
+            <i class="fas fa-trash me-1"></i> Delete Project
+        </button>
+    </div>
     {% endif %}
 {% endblock %}
 
 {% block modals %}
 <!-- Task Modal -->
-{% with readonly=True %}
+{% with readonly=not can_edit %}
 {% include 'projects/tasks/_task_modal.html' %}
 {% endwith %}
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
+
+<!-- Project functionality -->
+<script src="{{ url_for('projects.static', filename='js/project.js') }}"></script>
 <script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
 <script src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>
 <script>
-(function() {
-    'use strict';
+// Initialize global variables
+window.APP = {
+    projectId: Number('{{ project.id }}'),
+    currentUserId: Number('{{ current_user.id }}')
+};
+
+// Document ready handler
+document.addEventListener('DOMContentLoaded', function() {
+    // Tasks collapse functionality
+    var tasksCollapse = document.getElementById('tasksCollapse');
+    var tasksCollapseIcon = tasksCollapse.previousElementSibling.querySelector('.collapse-icon');
     
-    // Project variables
-    var projectModule = {
-        projectId: "{{ project.id }}",
-        currentUserId: "{{ current_user.id }}"
-    };
-    window.projectModule = projectModule;
-
-    // Handle collapse icon changes
-    document.addEventListener('DOMContentLoaded', function() {
-        // Tasks collapse functionality
-        const tasksCollapse = document.getElementById('tasksCollapse');
-        const tasksCollapseIcon = tasksCollapse.previousElementSibling.querySelector('.collapse-icon');
-        
-        tasksCollapse.addEventListener('show.bs.collapse', function() {
-            tasksCollapseIcon.classList.remove('fa-plus');
-            tasksCollapseIcon.classList.add('fa-minus');
-        });
-        
-        tasksCollapse.addEventListener('hide.bs.collapse', function() {
-            tasksCollapseIcon.classList.remove('fa-minus');
-            tasksCollapseIcon.classList.add('fa-plus');
-        });
-
-        // Todos collapse functionality
-        const todosCollapse = document.getElementById('todosCollapse');
-        const todosCollapseIcon = todosCollapse.previousElementSibling.querySelector('.todos-collapse-icon');
-        
-        todosCollapse.addEventListener('show.bs.collapse', function() {
-            todosCollapseIcon.classList.remove('fa-plus');
-            todosCollapseIcon.classList.add('fa-minus');
-        });
-        
-        todosCollapse.addEventListener('hide.bs.collapse', function() {
-            todosCollapseIcon.classList.remove('fa-minus');
-            todosCollapseIcon.classList.add('fa-plus');
-        });
+    tasksCollapse.addEventListener('show.bs.collapse', function() {
+        tasksCollapseIcon.classList.remove('fa-plus');
+        tasksCollapseIcon.classList.add('fa-minus');
     });
-})();
+    
+    tasksCollapse.addEventListener('hide.bs.collapse', function() {
+        tasksCollapseIcon.classList.remove('fa-minus');
+        tasksCollapseIcon.classList.add('fa-plus');
+    });
+
+    // Todos collapse functionality
+    var todosCollapse = document.getElementById('todosCollapse');
+    var todosCollapseIcon = todosCollapse.previousElementSibling.querySelector('.todos-collapse-icon');
+    
+    todosCollapse.addEventListener('show.bs.collapse', function() {
+        todosCollapseIcon.classList.remove('fa-plus');
+        todosCollapseIcon.classList.add('fa-minus');
+    });
+    
+    todosCollapse.addEventListener('hide.bs.collapse', function() {
+        todosCollapseIcon.classList.remove('fa-minus');
+        todosCollapseIcon.classList.add('fa-plus');
+    });
+});
 </script>
 {% endblock %}

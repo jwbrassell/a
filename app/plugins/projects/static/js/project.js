@@ -174,7 +174,7 @@ window.projectModule = (function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken()
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify(formData)
             });
@@ -203,7 +203,7 @@ window.projectModule = (function() {
             if (action === 'edit') {
                 window.location.href = `/projects/${result.project.id}/edit`;
             } else {
-                window.location.href = '/projects/list';
+                window.location.href = '/projects/';  // Redirect to index page
             }
         } catch (error) {
             showError('Error creating project: ' + error.message);
@@ -223,7 +223,7 @@ window.projectModule = (function() {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken()
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify(formData)
             });
@@ -286,6 +286,40 @@ window.projectModule = (function() {
         } catch (error) {
             showError('Error saving project: ' + error.message);
             console.error('Save error:', error);
+        }
+    }
+
+    async function deleteProject(projectId) {
+        if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/projects/${projectId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
+                }
+            });
+
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type');
+                let errorMessage = 'Failed to delete project';
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+            showSuccess('Project deleted successfully');
+            
+            // Redirect to projects index
+            window.location.href = '/projects/';
+        } catch (error) {
+            showError('Error deleting project: ' + error.message);
         }
     }
 
@@ -593,6 +627,7 @@ window.projectModule = (function() {
     return {
         saveProject,
         createProject,
+        deleteProject,
         openIconPicker,
         updateIconPreview,
         selectIcon,
@@ -603,3 +638,12 @@ window.projectModule = (function() {
         getCsrfToken
     };
 })();
+
+// Make functions globally available
+window.createProject = function(action) {
+    projectModule.createProject(action);
+};
+
+window.deleteProject = function(projectId) {
+    projectModule.deleteProject(projectId);
+};

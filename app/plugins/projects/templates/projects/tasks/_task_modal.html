@@ -11,6 +11,10 @@
       </div>
       <div class="modal-body">
         <form id="taskForm">
+          <!-- CSRF Token -->
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <meta name="csrf-token" content="{{ csrf_token() }}">
+          
           <div class="row">
             <!-- Left Column (8 columns) -->
             <div class="col-md-8">
@@ -152,7 +156,8 @@
                       Status
                     </label>
                     <select class="form-select bg-dark text-light border-secondary" id="task-status" name="status" 
-                            {% if readonly %}disabled{% endif %} required>
+                            {% if readonly %}disabled{% endif %}>
+                      <option value="">Select Status</option>
                       {% for status in statuses %}
                       <option value="{{ status.name }}" data-color="{{ status.color }}" {% if task and task.status and task.status.name == status.name %}selected{% endif %}>
                         {{ status.name }}
@@ -168,7 +173,8 @@
                       Priority
                     </label>
                     <select class="form-select bg-dark text-light border-secondary" id="task-priority" name="priority" 
-                            {% if readonly %}disabled{% endif %} required>
+                            {% if readonly %}disabled{% endif %}>
+                      <option value="">Select Priority</option>
                       {% for priority in priorities %}
                       <option value="{{ priority.name }}" data-color="{{ priority.color }}" {% if task and task.priority and task.priority.name == priority.name %}selected{% endif %}>
                         {{ priority.name }}
@@ -261,3 +267,8 @@
     </div>
   </div>
 </div>
+
+<!-- Initialize project ID for JavaScript -->
+<script>
+window.projectId = {{ project.id|tojson|safe if project else 'null' }};
+</script>

@@ -176,12 +176,54 @@ const TaskManager = {
         if (typeof tinymce !== 'undefined') {
             const editor = tinymce.get('description');
             if (editor) {
-                editor.save(); // This will update the textarea with the current content
+                editor.save();
             }
         }
 
-        // Submit the form
-        e.target.submit();
+        // Get form data
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Add project ID
+        data.project_id = window.projectId;
+
+        // Get todos
+        const todos = [];
+        const todoRows = document.querySelectorAll('#todoList tr[data-todo-id]');
+        todoRows.forEach(row => {
+            const todo = {
+                description: row.querySelector('.todo-description').value,
+                completed: row.querySelector('.todo-checkbox').checked,
+                due_date: row.querySelector('.todo-due-date').value || null
+            };
+            todos.push(todo);
+        });
+        data.todos = todos;
+
+        // Send request to create task
+        fetch(`/projects/${window.projectId}/task`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                toastr.success('Task created successfully');
+                $('#taskModal').modal('hide');
+                // Reload the page to show the new task
+                location.reload();
+            } else {
+                toastr.error(result.message || 'Error creating task');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            toastr.error('Error creating task');
+        });
     },
 
     addComment: function() {
@@ -198,7 +240,7 @@ const TaskManager = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('input[name="csrf_token"]').value
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
             body: JSON.stringify({ content })
         })

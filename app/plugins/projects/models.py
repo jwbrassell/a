@@ -79,8 +79,8 @@ class Project(db.Model):
     summary = db.Column(db.String(500))
     icon = db.Column(db.String(50))
     description = db.Column(db.Text)
-    status = db.Column(db.String(50), default='active')
-    priority = db.Column(db.String(50), default='medium')
+    status = db.Column(db.String(50))
+    priority = db.Column(db.String(50))
     percent_complete = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -100,7 +100,7 @@ class Project(db.Model):
     roles = db.relationship('Role', secondary=project_roles, lazy='subquery')
     tasks = db.relationship('Task', backref='project', lazy=True, cascade='all, delete-orphan')
     todos = db.relationship('Todo', backref='project', lazy=True, cascade='all, delete-orphan',
-                          order_by='Todo.order')
+                          order_by='Todo.sort_order')
     comments = db.relationship('Comment', backref='project', lazy=True, cascade='all, delete-orphan')
     history = db.relationship('History', backref='project', lazy=True, cascade='all, delete-orphan')
 
@@ -108,26 +108,30 @@ class Project(db.Model):
         return f'<Project {self.name}>'
 
     @property
+    def status_obj(self):
+        """Get the ProjectStatus object for this project's status"""
+        if self.status:
+            return ProjectStatus.query.filter_by(name=self.status).first()
+        return None
+
+    @property
+    def priority_obj(self):
+        """Get the ProjectPriority object for this project's priority"""
+        if self.priority:
+            return ProjectPriority.query.filter_by(name=self.priority).first()
+        return None
+
+    @property
     def status_class(self):
         """Return Bootstrap class based on status"""
-        status_classes = {
-            'planning': 'info',
-            'active': 'success',
-            'on_hold': 'warning',
-            'completed': 'secondary',
-            'archived': 'dark'
-        }
-        return status_classes.get(self.status, 'secondary')
+        status = self.status_obj
+        return status.color if status else 'secondary'
 
     @property
     def priority_class(self):
         """Return Bootstrap class based on priority"""
-        priority_classes = {
-            'low': 'success',
-            'medium': 'warning',
-            'high': 'danger'
-        }
-        return priority_classes.get(self.priority, 'secondary')
+        priority = self.priority_obj
+        return priority.color if priority else 'secondary'
     
     def to_dict(self):
         return {
@@ -177,7 +181,7 @@ class Task(db.Model):
     subtasks = db.relationship('Task', backref=db.backref('parent', remote_side=[id]),
                              cascade='all, delete-orphan')
     todos = db.relationship('Todo', backref='task', lazy=True, cascade='all, delete-orphan',
-                          order_by='Todo.order')
+                          order_by='Todo.sort_order')
     comments = db.relationship('Comment', backref='task', lazy=True, cascade='all, delete-orphan')
     history = db.relationship('History', backref='task', lazy=True, cascade='all, delete-orphan')
     
@@ -280,7 +284,7 @@ class Todo(db.Model):
     completed_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     due_date = db.Column(db.Date)
-    order = db.Column(db.Integer, default=0)
+    sort_order = db.Column(db.Integer, default=0)
     
     # Relationships
     assigned_to_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -330,7 +334,8 @@ class Todo(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'assigned_to': self.assigned_to.username if self.assigned_to else None,
             'badge_color': self.badge_color,
-            'due_text': self.due_text
+            'due_text': self.due_text,
+            'sort_order': self.sort_order
         }
 
 class Comment(db.Model):

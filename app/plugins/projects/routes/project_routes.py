@@ -1,6 +1,6 @@
 """Project view routes for the projects plugin."""
 
-from flask import render_template, jsonify
+from flask import render_template, jsonify, redirect, url_for
 from flask_login import login_required, current_user
 from app.utils.rbac import requires_roles
 from app.models import User
@@ -11,6 +11,30 @@ from .projects.utils import (
     can_view_project,
     get_project_stats
 )
+
+@bp.route('/<int:project_id>/view')
+@login_required
+@requires_roles('user')
+def view_project(project_id):
+    """View project details"""
+    project = Project.query.get_or_404(project_id)
+    if not can_view_project(current_user, project):
+        return redirect(url_for('projects.project_dashboard'))
+    
+    # Get all users, statuses, and priorities for dropdowns
+    users = User.query.all()
+    statuses = ProjectStatus.query.all()
+    priorities = ProjectPriority.query.all()
+    
+    return render_template(
+        'projects/view.html',
+        project=project,
+        users=users,
+        statuses=statuses,
+        priorities=priorities,
+        readonly=True,
+        can_edit=can_edit_project(current_user, project)
+    )
 
 @bp.route('/dashboard')
 @login_required

@@ -1,27 +1,14 @@
-fix(projects): resolve blueprint registration and route organization
+refactor(projects): reorganize route imports to prevent conflicts
 
-- Remove duplicate projects_bp from projects/__init__.py
-- Use main bp from plugin's __init__.py consistently
-- Fix route organization:
-  * Move CRUD operations to projects/crud.py
-  * Keep view routes in project_routes.py
-  * Keep management routes in management_routes.py
-- Fix Task model filtering:
-  * Use list_position instead of status relationship
-  * Update task count queries in main_routes.py
-- Fix create project form:
-  * Add dummy project object for template
-  * Initialize empty relationships
-  * Add proper status and priority lists
+- Remove duplicate view_project route definitions
+- Organize route imports in a hierarchical structure:
+  1. Core project routes (crud, team, todos)
+  2. Task-specific routes (crud, dependencies, ordering)
+  3. Supporting feature routes (comments, subtasks)
+- Add detailed documentation explaining route organization
+- Fix task creation by ensuring proper route registration
+- Maintain separation of concerns between route modules
 
-This fixes issues with:
-- Blueprint registration conflicts
-- Route duplication
-- Task status filtering
-- Project creation form display
-
-Testing:
-1. Project listing works
-2. Create project form displays properly
-3. Task counts show correctly
-4. Project management features work
+This change resolves route conflicts and provides a clearer structure
+for the project plugin's routing system, making it easier to maintain
+and extend in the future.
