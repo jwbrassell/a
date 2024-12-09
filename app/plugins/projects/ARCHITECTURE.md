@@ -1,183 +1,352 @@
 # Projects Plugin Architecture
 
-This document provides a comprehensive overview of the Projects plugin architecture, functionality, and relationships.
+This document outlines the architectural decisions and patterns used in the Projects plugin.
 
-## Overview
+## Architecture Overview
 
-The Projects plugin is a powerful task management system that supports:
-- Project management with hierarchical tasks
-- Todo items for both projects and tasks
-- Status and priority management
-- User roles and permissions
-- Activity tracking and history
-- Comments and notifications
-- Flexible assignment capabilities
+The Projects plugin follows a modular, layered architecture with clear separation of concerns:
 
-## Entity Relationship Diagram
-
-```mermaid
-erDiagram
-    Project ||--o{ Task : contains
-    Project ||--o{ Todo : contains
-    Project ||--o{ Comment : has
-    Project ||--o{ History : tracks
-    Project }|--|| User : led_by
-    Project }o--o{ User : watched_by
-    Project }o--o{ User : stakeholders
-    Project }o--o{ User : shareholders
-    Project }o--o{ Role : has
-
-    Task ||--o{ Task : parent_of
-    Task ||--o{ Todo : contains
-    Task ||--o{ Comment : has
-    Task ||--o{ History : tracks
-    Task }|--|| User : assigned_to
-    Task }|--|| ProjectStatus : has
-    Task }|--|| ProjectPriority : has
-
-    Todo }|--|| User : assigned_to
-
-    Comment }|--|| User : created_by
-    History }|--|| User : created_by
+```
+┌─────────────────┐
+│    Templates    │ Presentation Layer
+├─────────────────┤
+│   JavaScript    │ Client-side Logic
+├─────────────────┤
+│     Routes      │ Application Layer
+├─────────────────┤
+│     Models      │ Domain Layer
+└─────────────────┘
 ```
 
-## Project Workflow States
+## Design Patterns
 
-```mermaid
-stateDiagram-v2
-    [*] --> Planning
-    Planning --> Active
-    Active --> OnHold
-    Active --> Completed
-    OnHold --> Active
-    Completed --> Archived
-    Active --> Archived
-    OnHold --> Archived
+### 1. Model-View-Controller (MVC)
+- **Models**: Database models in models.py
+- **Views**: Jinja2 templates in templates/
+- **Controllers**: Route handlers in routes/
+
+### 2. Repository Pattern
+- Database operations are encapsulated in model classes
+- Complex queries are abstracted into utility functions
+
+### 3. Factory Pattern
+- Plugin initialization using factory functions
+- Dynamic component creation in JavaScript
+
+### 4. Observer Pattern
+- Event-driven updates in JavaScript
+- Real-time UI updates
+
+### 5. Module Pattern
+- JavaScript code organized into modules
+- Each module handles specific functionality
+
+## Data Flow
+
+1. **Project Creation Flow**
+```
+User Input → Form Submission → Route Handler → Model Creation → Database → Response → UI Update
 ```
 
-## Task Management Structure
-
-```mermaid
-graph TD
-    Project --> Task1[Task]
-    Project --> Task2[Task]
-    Task1 --> Subtask1[Subtask]
-    Task1 --> Subtask2[Subtask]
-    Task2 --> Subtask3[Subtask]
-    
-    Task1 --> Todo1[Todo Item]
-    Task1 --> Todo2[Todo Item]
-    Subtask1 --> Todo3[Todo Item]
-    
-    Project --> ProjectTodo1[Project Todo]
-    Project --> ProjectTodo2[Project Todo]
+2. **Task Management Flow**
+```
+Task Action → JavaScript Handler → API Request → Route Handler → Database Update → Response → UI Refresh
 ```
 
-## Core Components
+3. **Todo Management Flow**
+```
+Todo Action → Event Handler → Data Collection → API Request → Database Update → UI Update
+```
 
-### Project Model
-- Central entity for organizing work
-- Supports private/public visibility
-- Configurable notification settings
-- Tracks completion percentage
-- Maintains activity history
+## Component Relationships
 
-### Task Model
-- Hierarchical structure supporting subtasks
-- Status and priority tracking
-- Due date management
-- Assignment capabilities
-- Comment thread support
+### Project-Task Relationship
+```
+Project
+  ├── Tasks
+  │     ├── Task Todos
+  │     ├── Comments
+  │     └── History
+  ├── Project Todos
+  ├── Comments
+  └── History
+```
 
-### Todo Model
-- Checklist functionality for both projects and tasks
-- Due date tracking
-- Assignment capabilities
-- Order management for prioritization
+### User-Project Relationship
+```
+User
+  ├── Owned Projects (as lead)
+  ├── Assigned Tasks
+  ├── Comments
+  └── History Entries
+```
 
-### Comment System
-- Threaded discussions on projects and tasks
-- User attribution
-- Timestamp tracking
-- Avatar support
+## Database Schema
 
-### History Tracking
-- Comprehensive change logging
-- Action categorization (created, updated, deleted, etc.)
-- JSON-based detail storage
-- User attribution
+### Core Tables
+```sql
+CREATE TABLE project (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    summary VARCHAR(500),
+    description TEXT,
+    status VARCHAR(50),
+    priority VARCHAR(50),
+    lead_id INTEGER REFERENCES user(id),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
 
-## User Roles and Relationships
+CREATE TABLE task (
+    id INTEGER PRIMARY KEY,
+    project_id INTEGER REFERENCES project(id),
+    name VARCHAR(200) NOT NULL,
+    summary VARCHAR(500),
+    description TEXT,
+    status_id INTEGER REFERENCES project_status(id),
+    priority_id INTEGER REFERENCES project_priority(id),
+    assigned_to_id INTEGER REFERENCES user(id),
+    due_date DATE,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
 
-### Project Roles
-1. **Lead**: Primary project manager
-2. **Watchers**: Users following project updates
-3. **Stakeholders**: Key decision makers
-4. **Shareholders**: Extended team members
+CREATE TABLE todo (
+    id INTEGER PRIMARY KEY,
+    project_id INTEGER REFERENCES project(id),
+    task_id INTEGER REFERENCES task(id),
+    description VARCHAR(500) NOT NULL,
+    completed BOOLEAN DEFAULT FALSE,
+    due_date DATE,
+    sort_order INTEGER DEFAULT 0
+);
+```
 
-### Access Control
-- Private/Public project visibility
-- Role-based access control
-- Granular notification settings
+## Security Architecture
 
-## Status and Priority Management
+### Authentication
+- Flask-Login for user authentication
+- Session-based authentication
+- CSRF protection on all forms
 
-### Status Configuration
-- Customizable status definitions
-- Color coding support
-- Progress tracking
+### Authorization
+- Role-based access control (RBAC)
+- Project-level permissions
+- Task-level permissions
 
-### Priority Levels
-- Configurable priority levels
-- Visual indicators
-- Impact on task organization
+### Data Protection
+- Input validation
+- SQL injection prevention
+- XSS protection
+- CSRF tokens
 
-## Notification System
+## Frontend Architecture
 
-The plugin supports configurable notifications for:
-- Task creation
-- Task completion
-- Comment activity
-- Status changes
-- Assignment updates
+### JavaScript Modules
 
-## Technical Implementation
+1. **Project Module**
+```javascript
+// Project management and operations
+const projectModule = {
+    state: {},
+    init() {},
+    handlers: {},
+    api: {}
+};
+```
 
-### Database Schema
-- Leverages SQLAlchemy ORM
-- Implements proper foreign key relationships
-- Supports cascading deletions
-- Maintains data integrity
+2. **Task Module**
+```javascript
+// Task management and operations
+const TaskManager = {
+    state: {},
+    init() {},
+    handlers: {},
+    api: {}
+};
+```
 
-### API Structure
-- RESTful endpoints
-- JSON response formatting
-- Proper error handling
-- Activity logging
+3. **Todo Module**
+```javascript
+// Todo management for both projects and tasks
+const todoModule = {
+    state: {},
+    init() {},
+    handlers: {},
+    api: {}
+};
+```
 
-### Frontend Integration
-- Bootstrap styling support
-- Dynamic UI updates
-- Real-time status indicators
-- Interactive task management
+### Event Handling
+
+1. **Form Submissions**
+```javascript
+// Async form handling with validation
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    const data = collectFormData();
+    await saveData(url, method, data);
+}
+```
+
+2. **Dynamic Updates**
+```javascript
+// Real-time UI updates
+function updateUI(data) {
+    updateElements();
+    showNotification();
+}
+```
+
+## API Design
+
+### RESTful Endpoints
+
+1. **Projects**
+```
+GET    /projects          - List projects
+POST   /projects/create   - Create project
+GET    /projects/:id      - Get project
+PUT    /projects/:id      - Update project
+DELETE /projects/:id      - Delete project
+```
+
+2. **Tasks**
+```
+GET    /projects/:id/tasks    - List tasks
+POST   /projects/:id/task     - Create task
+GET    /projects/task/:id     - Get task
+PUT    /projects/task/:id     - Update task
+DELETE /projects/task/:id     - Delete task
+```
+
+### Response Format
+```json
+{
+    "success": true,
+    "message": "Operation successful",
+    "data": {
+        // Response data
+    }
+}
+```
+
+## Error Handling
+
+### Backend
+```python
+try:
+    # Operation
+    db.session.commit()
+except ValidationError as e:
+    db.session.rollback()
+    return jsonify({'success': False, 'message': str(e)}), 400
+except Exception as e:
+    db.session.rollback()
+    return jsonify({'success': False, 'message': str(e)}), 500
+```
+
+### Frontend
+```javascript
+try {
+    const result = await api.operation();
+    handleSuccess(result);
+} catch (error) {
+    handleError(error);
+    showErrorNotification();
+}
+```
+
+## Performance Considerations
+
+1. **Database Optimization**
+- Indexed fields for frequent queries
+- Efficient relationship loading
+- Query optimization
+
+2. **Frontend Performance**
+- Minimal DOM manipulation
+- Event delegation
+- Efficient data structures
+
+3. **Caching Strategy**
+- Browser caching for static assets
+- Response caching where appropriate
+- Session data caching
+
+## Testing Strategy
+
+1. **Unit Tests**
+- Model tests
+- Utility function tests
+- Form validation tests
+
+2. **Integration Tests**
+- API endpoint tests
+- Database interaction tests
+- Authentication flow tests
+
+3. **Frontend Tests**
+- JavaScript module tests
+- UI interaction tests
+- Form submission tests
+
+## Deployment Considerations
+
+1. **Database Migrations**
+```bash
+flask db migrate -m "Add new feature"
+flask db upgrade
+```
+
+2. **Static Assets**
+- Minification
+- Compression
+- CDN usage
+
+3. **Environment Configuration**
+```python
+class Config:
+    PROJECTS_PER_PAGE = 20
+    ENABLE_NOTIFICATIONS = True
+    # Other settings
+```
 
 ## Future Improvements
 
-1. **Enhanced Reporting**
-   - Burndown charts
-   - Velocity tracking
-   - Time estimation
+1. **Technical Improvements**
+- Real-time updates using WebSockets
+- Enhanced caching
+- Full-text search
+- API rate limiting
 
-2. **Advanced Features**
-   - File attachments
-   - Time tracking
-   - Custom fields
-   - Template support
+2. **Feature Additions**
+- Project templates
+- Advanced reporting
+- Integration with external services
+- Enhanced notification system
 
-3. **Integration Capabilities**
-   - Calendar sync
-   - Email integration
-   - API webhooks
-   - External tool connections
+3. **Performance Optimizations**
+- Lazy loading of components
+- Database query optimization
+- Frontend bundle optimization
 
-This document will be continuously updated as new features and improvements are added to the Projects plugin.
+## Monitoring and Logging
+
+1. **Application Logging**
+```python
+logger.info("Project created: %s", project.name)
+logger.error("Error updating task: %s", error)
+```
+
+2. **User Activity Tracking**
+```python
+@track_activity
+def update_project(project_id):
+    # Operation
+```
+
+3. **Performance Monitoring**
+- Request timing
+- Database query performance
+- Frontend performance metrics

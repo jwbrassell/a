@@ -1,6 +1,9 @@
-Fixed task and project todo management:
+Fixed task and project todo management + documentation:
 - Fixed task edit functionality and save button
 - Separated task todos from project todos
 - Removed sub tasks section
 - Fixed todo operations in both task and project contexts
-- Improved form handling and error feedback
+- Added comprehensive documentation:
+  - README.md with features and setup
+  - ARCHITECTURE.md with technical design
+  - CONTRIBUTING.md with development guidelines

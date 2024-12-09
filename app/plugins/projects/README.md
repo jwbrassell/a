@@ -1,296 +1,329 @@
 # Projects Plugin
 
-A comprehensive Flask plugin for managing projects, tasks, and collaboration with full tracking and notification capabilities.
-
-## Implementation Status
-
-### ✅ Phase 1: Core Structure (Completed)
-- Database models for Projects, Tasks, Todos, Comments, and History ✓
-- Basic routing and views ✓
-- Base templates extending base.html ✓
-- Navigation system integration ✓
-
-### Plugin Structure
-The plugin follows a standardized structure for optimal organization and maintainability:
-
-- `__init__.py`: Contains only blueprint creation and metadata
-  ```python
-  bp = Blueprint('projects', __name__, 
-                template_folder='templates',
-                static_folder='static',
-                url_prefix='/projects')
-  ```
-
-- `routes.py`: Contains all route definitions including:
-  - Index route ('/projects/' and '/projects/index')
-  - Project management routes
-  - Task management routes
-  - Todo management routes
-  - Comment management routes
-
-This structure ensures proper route registration and navigation functionality, following the same pattern as other plugins like the dispatch tool.
-
-### ✅ Phase 2: Project Features (Completed)
-- Project CRUD operations ✓
-- Role management system ✓
-- Project status workflow ✓
-- Project history tracking ✓
-- Basic email notifications ✓
-- Project overview dashboard ✓
-
-### ✅ Phase 3: Task & Todo System (Completed)
-- Task management system ✓
-  - Create and edit tasks ✓
-  - View detailed task information ✓
-  - Task history tracking ✓
-  - Task comments ✓
-  - Role-based access control ✓
-  - Rich text editor for descriptions ✓
-- Todo checklist system ✓
-- Task assignment system ✓
-- Due date tracking ✓
-- Priority management ✓
-- Status workflows ✓
-
-### 🚧 Phase 4: Comments & Collaboration (In Progress)
-- Comment system implementation
-- User mentions
-- Rich text editor integration
-- File attachment system
-- Email notification system
-- Activity feeds
-
-### ⏳ Phase 5: History & Reporting (Pending)
-- Transaction history system
-- Activity tracking
-- Report generation
-- Dashboard analytics
-- Export capabilities
-
-For detailed implementation documentation, see [IMPLEMENTATION.md](IMPLEMENTATION.md)
+A comprehensive project management plugin for Flask applications. This plugin provides functionality for managing projects, tasks, todos, and comments with a modern, responsive interface.
 
 ## Features
 
+- **Project Management**
+  - Create, edit, and delete projects
+  - Track project status and priority
+  - Assign project leads
+  - Add project-level todos
+  - Project history tracking
+  - Project comments
+
+- **Task Management**
+  - Create and manage tasks within projects
+  - Task status and priority tracking
+  - Task assignments
+  - Task-specific todos
+  - Task history tracking
+  - Task comments
+
+- **Todo Management**
+  - Separate todos for projects and tasks
+  - Todo completion tracking
+  - Due dates for todos
+  - Todo reordering
+
+- **User Interface**
+  - Modern, responsive design
+  - Dark theme support
+  - Rich text editing for descriptions
+  - Dynamic updates
+  - Toast notifications
+
+## Project Structure
+
+```
+app/plugins/projects/
+├── __init__.py              # Plugin initialization
+├── config.py               # Plugin configuration
+├── models.py              # Database models
+├── plugin.py             # Plugin setup
+├── routes/               # Route handlers
+│   ├── __init__.py
+│   ├── projects/        # Project-related routes
+│   │   ├── crud.py     # Create, Read, Update, Delete operations
+│   │   └── utils.py    # Helper functions
+│   └── tasks/          # Task-related routes
+│       ├── crud.py     # Task CRUD operations
+│       └── utils.py    # Task helper functions
+├── static/             # Static assets
+│   ├── js/
+│   │   ├── project.js  # Project management JavaScript
+│   │   ├── tasks.js    # Task management JavaScript
+│   │   └── todos.js    # Todo management JavaScript
+│   └── css/           # Custom styles
+└── templates/         # HTML templates
+    └── projects/      # Project-related templates
+        ├── create.html
+        ├── edit.html
+        ├── view.html
+        └── components/  # Reusable components
+```
+
+## Models
+
+### Project Model
+
+```python
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    summary = db.Column(db.String(500))
+    description = db.Column(db.Text)
+    status = db.Column(db.String(50))
+    priority = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    
+    # Relationships
+    lead_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    tasks = db.relationship('Task', backref='project')
+    todos = db.relationship('Todo', backref='project')
+    comments = db.relationship('Comment', backref='project')
+    history = db.relationship('History', backref='project')
+```
+
+### Task Model
+
+```python
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
+    name = db.Column(db.String(200), nullable=False)
+    summary = db.Column(db.String(500))
+    description = db.Column(db.Text)
+    status_id = db.Column(db.Integer, db.ForeignKey('project_status.id'))
+    priority_id = db.Column(db.Integer, db.ForeignKey('project_priority.id'))
+    due_date = db.Column(db.Date)
+    
+    # Relationships
+    assigned_to_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    todos = db.relationship('Todo', backref='task')
+    comments = db.relationship('Comment', backref='task')
+    history = db.relationship('History', backref='task')
+```
+
+### Todo Model
+
+```python
+class Todo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
+    description = db.Column(db.String(500), nullable=False)
+    completed = db.Column(db.Boolean, default=False)
+    due_date = db.Column(db.Date)
+    sort_order = db.Column(db.Integer, default=0)
+```
+
+## API Endpoints
+
+### Projects
+
+- `GET /projects/<int:project_id>` - View project details
+- `POST /projects/create` - Create a new project
+- `PUT /projects/<int:project_id>` - Update project
+- `DELETE /projects/<int:project_id>` - Delete project
+
+### Tasks
+
+- `GET /projects/<int:project_id>/tasks` - List project tasks
+- `POST /projects/<int:project_id>/task` - Create task
+- `GET /projects/task/<int:task_id>` - Get task details
+- `PUT /projects/task/<int:task_id>` - Update task
+- `DELETE /projects/task/<int:task_id>` - Delete task
+
+### Comments
+
+- `POST /projects/task/<int:task_id>/comment` - Add comment to task
+- `POST /projects/<int:project_id>/comment` - Add comment to project
+
+## Frontend Components
+
 ### Project Management
-- Create and manage projects with detailed information
-- Track project status and progress
-- Assign project roles:
-  - Project Lead
-  - Watchers
-  - Stakeholders
-  - Shareholders
-- Full project history and activity tracking
-- Email notifications for project updates
 
-### Task Management
-- Create and edit tasks within projects
-- Detailed task view with:
-  - Task information
-  - Status and priority
-  - Assignment details
-  - Due dates
-  - Comments section (read-only)
-  - Collapsible task history
-- Task properties:
-  - Name
-  - Description (with rich text editor)
-  - Status (Open, In Progress, Review, Completed)
-  - Priority (Low, Medium, High)
-  - Assigned User
-  - Due Date
-  - Creation/Update Dates
-- Subtask management:
-  - Full CRUD operations
-  - Rich text editor for descriptions
-  - Status and priority tracking
-  - Assignment capabilities
-  - Due date management
-  - History tracking
-- Role-based access control for editing
-- Task comments and discussion
-- Task history tracking
-- Email notifications for task updates
+The frontend uses vanilla JavaScript organized into modules:
 
-### Todo Management
-- Create todo checklists for projects
-- Create todo items within tasks
-- Track completion status
-- Assign responsibilities
-- Progress tracking
-- Integrated with project description for better context
+```javascript
+// Project management
+const projectModule = {
+    init() {
+        // Initialize project functionality
+    },
+    saveProject() {
+        // Save project changes
+    },
+    // ... other project methods
+};
 
-### Comments & Collaboration
-- Comment system on projects and tasks (read-only in view mode)
-- Mention users in comments
-- Rich text formatting
-- File attachments
-- Email notifications for mentions
+// Task management
+const TaskManager = {
+    init() {
+        // Initialize task functionality
+    },
+    handleFormSubmit() {
+        // Handle task form submission
+    },
+    // ... other task methods
+};
 
-### History & Tracking
-- Complete transaction history for:
-  - Projects
-  - Tasks
-  - Subtasks
-  - Comments
-  - Status Changes
-  - Assignment Changes
-- Audit trail of all modifications
-- Collapsible history views for better space management
+// Todo management
+const todoModule = {
+    init() {
+        // Initialize todo functionality
+    },
+    addTodoItem() {
+        // Add new todo
+    },
+    // ... other todo methods
+};
+```
 
-## Database Models
+## Usage Examples
 
-### Project
-- name: Project name
-- description: Project description
-- status: Current status
-- created_at: Creation timestamp
-- updated_at: Last update timestamp
-- lead_id: Reference to lead user
-- watchers: Many-to-many relationship with users
-- stakeholders: Many-to-many relationship with users
-- shareholders: Many-to-many relationship with users
+### Creating a Project
 
-### Task
-- project_id: Reference to project
-- name: Task name
-- description: Task description (rich text)
-- status: Current status (open, in_progress, review, completed)
-- priority: Task priority (low, medium, high)
-- assigned_to_id: Reference to assigned user
-- due_date: Due date
-- created_at: Creation timestamp
-- updated_at: Last update timestamp
+```python
+# Backend
+@bp.route('/create', methods=['POST'])
+@login_required
+@requires_roles('user')
+def create_project():
+    data = request.get_json()
+    project = Project(
+        name=data['name'],
+        summary=data.get('summary', ''),
+        description=data.get('description', ''),
+        status=data.get('status'),
+        priority=data.get('priority')
+    )
+    db.session.add(project)
+    db.session.commit()
+    return jsonify({'success': True, 'project': project.to_dict()})
 
-### Todo
-- project_id: Optional reference to project
-- task_id: Optional reference to task
-- description: Todo description
-- completed: Completion status
-- completed_at: Completion timestamp
-- assigned_to_id: Reference to assigned user
-- created_at: Creation timestamp
+# Frontend
+async function createProject(data) {
+    const response = await fetch('/projects/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': getCsrfToken()
+        },
+        body: JSON.stringify(data)
+    });
+    return response.json();
+}
+```
 
-### Comment
-- project_id: Optional reference to project
-- task_id: Optional reference to task
-- user_id: Reference to commenting user
-- content: Comment content
-- created_at: Creation timestamp
-- updated_at: Last update timestamp
+### Adding a Task
 
-### History
-- entity_type: Type of entity (Project/Task/Todo)
-- entity_id: ID of the entity
-- action: Action performed
-- user_id: User who performed action
-- details: JSON details of changes
-- created_at: Timestamp of action
+```python
+# Backend
+@bp.route('/<int:project_id>/task', methods=['POST'])
+@login_required
+def create_task(project_id):
+    data = request.get_json()
+    task = Task(
+        name=data['name'],
+        project_id=project_id,
+        summary=data.get('summary', ''),
+        description=data.get('description', '')
+    )
+    db.session.add(task)
+    db.session.commit()
+    return jsonify({'success': True, 'task': task.to_dict()})
 
-## Required Roles
+# Frontend
+async function createTask(projectId, data) {
+    const response = await fetch(`/projects/${projectId}/task`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': getCsrfToken()
+        },
+        body: JSON.stringify(data)
+    });
+    return response.json();
+}
+```
 
-- `user`: Basic access to view and interact with projects
-- `project_lead`: Can create and manage projects
-- `admin`: Full system access
+## Installation
+
+1. Copy the projects plugin directory to your Flask application's plugins directory
+2. Register the plugin in your Flask application:
+
+```python
+from flask import Flask
+from app.plugins.projects import init_app as init_projects
+
+app = Flask(__name__)
+init_projects(app)
+```
+
+3. Run database migrations:
+
+```bash
+flask db upgrade
+```
+
+## Configuration
+
+The plugin can be configured through your Flask application's config:
+
+```python
+# config.py
+PROJECTS_PER_PAGE = 20
+TASKS_PER_PAGE = 50
+ENABLE_TASK_NOTIFICATIONS = True
+```
 
 ## Dependencies
 
-- Flask-SQLAlchemy: Database models
-- Flask-Login: Authentication
-- Bootstrap 5: UI framework
-- Font Awesome 5: Icons
-- DataTables: Data display and management
-- TinyMCE: Rich text editing for task/subtask descriptions
-- Select2: Enhanced select boxes
-- FullCalendar: Due date management
-- SweetAlert2: Notifications
-- Moment.js: Date handling
-- Toastr: User notifications
+- Flask
+- SQLAlchemy
+- Flask-Login
+- TinyMCE (for rich text editing)
+- Bootstrap 5
+- Font Awesome
+- Toastr (for notifications)
 
-## Integration Points
+## Security
 
-- Extends base.html template
-- Uses page_content block for main content
-- Integrates with navigation system
-- Uses existing user authentication
-- Leverages existing activity tracking
-- Email notification system
-- TinyMCE integration for rich text editing
+The plugin implements several security measures:
 
-## UI Components
+- CSRF protection on all forms
+- Role-based access control
+- Input validation and sanitization
+- XSS protection
+- SQL injection prevention
 
-### Project Views
-- Project listing (DataTables)
-- Project details view
-- Project creation/edit forms with:
-  - Project information
-  - Integrated todo section below description
-  - Role management
-  - Status tracking
-- Project dashboard
+## Best Practices
 
-### Task Views
-- Task board (Kanban style)
-- Task details modal with:
-  - Task information
-  - Rich text description editor
-  - Status and priority badges
-  - Assignment details
-  - Due date information
-  - Comments section (read-only)
-  - Collapsible task history
-- Task creation/edit modal with:
-  - Task name and description (rich text)
-  - Status selection
-  - Priority selection
-  - User assignment
-  - Due date setting
-- Subtask modal with:
-  - Rich text description editor
-  - Status and priority management
-  - Assignment capabilities
-  - Due date setting
-  - History tracking
-- Todo checklist interface
+1. **Project Organization**
+   - Keep projects focused and well-scoped
+   - Use clear, descriptive names
+   - Maintain up-to-date status and priority
 
-### Collaboration Views
-- Comment threads
-- Activity feeds
-- User mention interface
-- File attachment handling
+2. **Task Management**
+   - Break down large tasks into smaller ones
+   - Set realistic due dates
+   - Keep task descriptions clear and concise
 
-## Activity Tracking
+3. **Todo Usage**
+   - Use project todos for high-level items
+   - Use task todos for specific implementation steps
+   - Keep todos actionable and specific
 
-- Project creation and updates
-- Task management
-  - Task creation
-  - Status changes
-  - Priority updates
-  - Assignment changes
-  - Due date modifications
-  - Description updates
-- Todo completions
-- Comment additions
-- Role changes
-- Status changes
-- Assignment changes
+## Contributing
 
-## Email Notifications
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-Notifications sent for:
-- Project role assignments
-- Task assignments
-- Due date reminders
-- Comment mentions
-- Status changes
-- Important updates
+## License
 
-## Error Handling
-
-- Form validation
-- Permission checking
-- Database transaction management
-- File upload validation
-- Email sending failures
-- User-friendly error messages
-- Toastr notifications for user feedback
-- Rich text editor initialization errors
+MIT License - See LICENSE file for details
