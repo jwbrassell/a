@@ -6,7 +6,7 @@ from app.utils.rbac import requires_roles
 from app.utils.activity_tracking import track_activity
 from app.extensions import db
 from app.models import UserActivity
-from ..models import Project, Comment, History
+from ..models import Project, Comment, History, Task
 from app.plugins.projects import bp
 
 @bp.route('/<int:project_id>/comments', methods=['GET'])
@@ -25,14 +25,25 @@ def get_project_comments(project_id):
 @requires_roles('user')
 @track_activity
 def create_comment(project_id):
-    """Create a new comment for a project"""
+    """Create a new comment for a project or task"""
     project = Project.query.get_or_404(project_id)
     data = request.get_json()
+    
+    # Check if this is a task comment
+    task_id = data.get('task_id')
+    if task_id:
+        task = Task.query.get_or_404(task_id)
+        if task.project_id != project_id:
+            return jsonify({
+                'success': False,
+                'message': 'Task does not belong to this project'
+            }), 400
     
     comment = Comment(
         content=data['content'],
         user_id=current_user.id,
-        project_id=project_id
+        project_id=project_id,
+        task_id=task_id
     )
     
     # Create history entry
@@ -41,6 +52,7 @@ def create_comment(project_id):
         action='created',
         user_id=current_user.id,
         project_id=project.id,
+        task_id=task_id,
         details={'content': data['content']}
     )
     project.history.append(history)
@@ -49,7 +61,7 @@ def create_comment(project_id):
     activity = UserActivity(
         user_id=current_user.id,
         username=current_user.username,
-        activity=f"Added comment to project: {project.name}"
+        activity=f"Added comment to {'task in ' if task_id else ''}project: {project.name}"
     )
     
     db.session.add(comment)
@@ -98,6 +110,7 @@ def update_comment(comment_id):
         action='updated',
         user_id=current_user.id,
         project_id=comment.project_id,
+        task_id=comment.task_id,
         details={
             'old_content': old_content,
             'new_content': comment.content
@@ -109,7 +122,7 @@ def update_comment(comment_id):
     activity = UserActivity(
         user_id=current_user.id,
         username=current_user.username,
-        activity=f"Updated comment in project: {comment.project.name}"
+        activity=f"Updated comment in {'task in ' if comment.task_id else ''}project: {comment.project.name}"
     )
     
     db.session.add(activity)
@@ -137,6 +150,7 @@ def delete_comment(comment_id):
         }), 403
     
     project = comment.project
+    task_id = comment.task_id
     
     # Create history entry
     history = History(
@@ -144,6 +158,7 @@ def delete_comment(comment_id):
         action='deleted',
         user_id=current_user.id,
         project_id=project.id,
+        task_id=task_id,
         details={'content': comment.content}
     )
     project.history.append(history)
@@ -152,7 +167,7 @@ def delete_comment(comment_id):
     activity = UserActivity(
         user_id=current_user.id,
         username=current_user.username,
-        activity=f"Deleted comment from project: {project.name}"
+        activity=f"Deleted comment from {'task in ' if task_id else ''}project: {project.name}"
     )
     
     db.session.add(activity)

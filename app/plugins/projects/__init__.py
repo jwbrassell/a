@@ -21,19 +21,23 @@ plugin_metadata = PluginMetadata(
     weight=200
 )
 
-# Import routes and models after blueprint creation
+# Import models and utils first
+from app.plugins.projects import models
+from .utils import init_project_settings
+
+# Import routes after models and utils
 from app.plugins.projects.routes import (
     main_routes,
     project_routes,
-    status_routes,
-    priority_routes,
     task_routes,
-    todo_routes,
     comment_routes,
-    subtask_routes
+    subtask_routes,
+    management_routes
 )
-from app.plugins.projects import models
-from .utils import init_project_settings
+
+# Import task and project specific routes
+from app.plugins.projects.routes.tasks import crud as task_crud, dependencies, ordering
+from app.plugins.projects.routes.projects import crud, team, todos
 
 # Initialize project settings
 init_project_settings()

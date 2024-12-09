@@ -5,14 +5,38 @@ const TaskManager = {
         this.initTodoHandlers();
         this.initRichTextEditor();
         this.initStatusPriorityHandlers();
+        this.tempTaskId = null;
+    },
+
+    generateTempId: function() {
+        return 'temp_' + Math.random().toString(36).substr(2, 9);
     },
 
     bindEvents: function() {
-        // Form submission is handled normally by the browser
-        // We only need to ensure tinymce content is synced
+        // Handle task form submission
         const taskForm = document.getElementById('taskForm');
         if (taskForm) {
             taskForm.addEventListener('submit', this.handleFormSubmit.bind(this));
+        }
+
+        // Handle "Add Task" button click
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        if (addTaskBtn) {
+            addTaskBtn.addEventListener('click', () => {
+                this.tempTaskId = this.generateTempId();
+                this.resetTaskForm();
+                $('#taskModal').modal('show');
+            });
+        }
+
+        // Handle comment form submission
+        const commentInput = document.getElementById('commentInput');
+        const commentBtn = document.querySelector('button[onclick="addComment()"]');
+        if (commentBtn) {
+            commentBtn.onclick = (e) => {
+                e.preventDefault();
+                this.addComment();
+            };
         }
     },
 
@@ -94,38 +118,145 @@ const TaskManager = {
                 ],
                 toolbar: 'undo redo | formatselect | bold italic backcolor | \
                     alignleft aligncenter alignright alignjustify | \
-                    bullist numlist outdent indent | removeformat | help'
+                    bullist numlist outdent indent | removeformat | help',
+                setup: function(editor) {
+                    editor.on('change', function() {
+                        editor.save();
+                    });
+                }
             });
         }
     },
 
-    getStatusOptionsTemplate: function() {
-        const statusSelect = document.querySelector('select[name="status"]');
-        return Array.from(statusSelect.options)
-            .map(option => `<option value="${option.value}" data-color="${option.dataset.color}">${option.text}</option>`)
-            .join('');
+    resetTaskForm: function() {
+        const form = document.getElementById('taskForm');
+        if (form) {
+            form.reset();
+            // Reset TinyMCE if it exists
+            if (typeof tinymce !== 'undefined') {
+                const editor = tinymce.get('description');
+                if (editor) {
+                    editor.setContent('');
+                }
+            }
+            // Reset status and priority colors
+            const selects = form.querySelectorAll('select[name="status"], select[name="priority"]');
+            selects.forEach(select => this.updateSelectColor(select));
+            
+            // Clear todos
+            const todoList = document.getElementById('todoList');
+            if (todoList) {
+                todoList.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            No todo items found.
+                        </td>
+                    </tr>
+                `;
+            }
+
+            // Clear comments
+            const commentsList = document.getElementById('commentsList');
+            if (commentsList) {
+                commentsList.innerHTML = '<div class="text-center text-muted">No comments yet</div>';
+            }
+
+            // Clear subtasks
+            const subTasksList = document.getElementById('subTasksList');
+            if (subTasksList) {
+                subTasksList.innerHTML = '';
+            }
+        }
     },
 
-    getPriorityOptionsTemplate: function() {
-        const prioritySelect = document.querySelector('select[name="priority"]');
-        return Array.from(prioritySelect.options)
-            .map(option => `<option value="${option.value}" data-color="${option.dataset.color}">${option.text}</option>`)
-            .join('');
+    handleFormSubmit: function(e) {
+        e.preventDefault();
+        
+        // Update TinyMCE content before submitting
+        if (typeof tinymce !== 'undefined') {
+            const editor = tinymce.get('description');
+            if (editor) {
+                editor.save(); // This will update the textarea with the current content
+            }
+        }
+
+        // Submit the form
+        e.target.submit();
     },
 
-    getUserOptionsTemplate: function() {
-        const userSelect = document.querySelector('select[name="assigned_to_id"]');
-        return Array.from(userSelect.options)
-            .map(option => `<option value="${option.value}">${option.text}</option>`)
-            .join('');
+    addComment: function() {
+        const commentInput = document.getElementById('commentInput');
+        const content = commentInput.value.trim();
+        const taskId = window.taskModule.taskId;
+
+        if (!content) {
+            toastr.error('Comment cannot be empty');
+            return;
+        }
+
+        fetch(`/projects/task/${taskId}/comment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('input[name="csrf_token"]').value
+            },
+            body: JSON.stringify({ content })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                toastr.success(data.message);
+                commentInput.value = '';
+                // Reload comments
+                this.loadComments(taskId);
+            } else {
+                toastr.error(data.message || 'Error adding comment');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            toastr.error('Error adding comment');
+        });
+    },
+
+    loadComments: function(taskId) {
+        fetch(`/projects/task/${taskId}/comments`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const commentsList = document.getElementById('commentsList');
+                    if (commentsList) {
+                        commentsList.innerHTML = data.comments.map(comment => `
+                            <div class="direct-chat-msg">
+                                <div class="direct-chat-infos clearfix">
+                                    <span class="direct-chat-name float-left">${comment.user}</span>
+                                    <span class="direct-chat-timestamp float-right">${comment.created_at}</span>
+                                </div>
+                                <div class="direct-chat-text">${comment.content}</div>
+                            </div>
+                        `).join('') || '<div class="text-center text-muted">No comments yet</div>';
+                    }
+                } else {
+                    toastr.error(data.message || 'Error loading comments');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                toastr.error('Error loading comments');
+            });
     },
 
     addTodoItem: function() {
         const todoList = document.getElementById('todoList');
+        const noTodosRow = todoList.querySelector('tr td[colspan]');
+        if (noTodosRow) {
+            noTodosRow.remove();
+        }
+
         const index = todoList.getElementsByTagName('tr').length;
         const template = `
-            <tr>
-                <td>
+            <tr data-todo-id="new_${index}">
+                <td class="text-center">
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input todo-checkbox" 
                                id="todoCheck_new_${index}" 
@@ -134,15 +265,16 @@ const TaskManager = {
                     </div>
                 </td>
                 <td>
-                    <input type="text" class="form-control todo-description bg-dark text-light border-secondary" 
-                           name="todos[${index}][description]">
+                    <input type="text" class="form-control form-control-sm todo-description" 
+                           name="todos[${index}][description]"
+                           required>
                 </td>
                 <td>
-                    <input type="date" class="form-control todo-due-date bg-dark text-light border-secondary"
+                    <input type="date" class="form-control form-control-sm todo-due-date"
                            name="todos[${index}][due_date]">
                 </td>
-                <td>
-                    <button type="button" class="btn btn-danger btn-sm remove-todo">
+                <td class="text-center">
+                    <button type="button" class="btn btn-danger btn-sm remove-todo" title="Remove Todo">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -151,66 +283,21 @@ const TaskManager = {
         todoList.insertAdjacentHTML('beforeend', template);
     },
 
-    addSubTask: function() {
-        const subTasksList = document.getElementById('subTasksList');
-        const index = document.querySelectorAll('.subtask-item').length;
-        const template = `
-            <div class="subtask-item mb-3">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group mb-2">
-                                    <label class="form-label">Name</label>
-                                    <input type="text" class="form-control" name="subtasks[${index}][name]">
-                                </div>
-                                <div class="form-group mb-2">
-                                    <label class="form-label">Description</label>
-                                    <textarea class="form-control" name="subtasks[${index}][description]" rows="2"></textarea>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group mb-2">
-                                    <label class="form-label">Status</label>
-                                    <select class="form-select" name="subtasks[${index}][status]">
-                                        ${this.getStatusOptionsTemplate()}
-                                    </select>
-                                </div>
-                                <div class="form-group mb-2">
-                                    <label class="form-label">Priority</label>
-                                    <select class="form-select" name="subtasks[${index}][priority]">
-                                        ${this.getPriorityOptionsTemplate()}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Lead</label>
-                                    <select class="form-select" name="subtasks[${index}][assigned_to_id]">
-                                        ${this.getUserOptionsTemplate()}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-danger btn-sm mt-2 remove-subtask">
-                            <i class="fas fa-trash"></i> Remove
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        subTasksList.insertAdjacentHTML('beforeend', template);
-
-        // Initialize status/priority colors for new selects
-        const newSubtask = subTasksList.lastElementChild;
-        const newSelects = newSubtask.querySelectorAll('select[name*="[status]"], select[name*="[priority]"]');
-        newSelects.forEach(select => {
-            this.updateSelectColor(select);
-            select.addEventListener('change', () => this.updateSelectColor(select));
-        });
-    },
-
     reindexTodos: function() {
         const todoList = document.getElementById('todoList');
         const todos = todoList.getElementsByTagName('tr');
+        
+        if (todos.length === 0) {
+            todoList.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-muted">
+                        No todo items found.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
         Array.from(todos).forEach((todo, index) => {
             const checkbox = todo.querySelector('.todo-checkbox');
             const description = todo.querySelector('.todo-description');
@@ -220,37 +307,10 @@ const TaskManager = {
             if (description) description.name = `todos[${index}][description]`;
             if (dueDate) dueDate.name = `todos[${index}][due_date]`;
         });
-    },
-
-    handleFormSubmit: function(e) {
-        // Only sync tinymce content before form submission
-        if (typeof tinymce !== 'undefined') {
-            const editor = tinymce.get('description');
-            if (editor) {
-                editor.save(); // This syncs the editor content to the textarea
-            }
-        }
     }
 };
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     TaskManager.init();
-
-    // Add Sub Task button handler
-    const addSubTaskBtn = document.getElementById('addSubTaskBtn');
-    if (addSubTaskBtn) {
-        addSubTaskBtn.addEventListener('click', () => TaskManager.addSubTask());
-    }
-
-    // Remove Sub Task handler
-    const subTasksList = document.getElementById('subTasksList');
-    if (subTasksList) {
-        subTasksList.addEventListener('click', function(e) {
-            if (e.target.classList.contains('remove-subtask') || e.target.closest('.remove-subtask')) {
-                const subtaskItem = e.target.closest('.subtask-item');
-                subtaskItem.remove();
-            }
-        });
-    }
 });

@@ -1,10 +1,27 @@
-fix: Subtask description field not displaying or saving correctly
+fix(projects): resolve blueprint registration and route organization
 
-- Added rich-text-editor class to description textarea to enable TinyMCE
-- Added dark mode styling for TinyMCE editor to match theme
-- Updated JavaScript to properly handle TinyMCE initialization and content
-- Added proper handling of readonly mode for description field
-- Added proper cleanup when modal is closed
-- Fixed timing issues by adding delay when setting editor content
+- Remove duplicate projects_bp from projects/__init__.py
+- Use main bp from plugin's __init__.py consistently
+- Fix route organization:
+  * Move CRUD operations to projects/crud.py
+  * Keep view routes in project_routes.py
+  * Keep management routes in management_routes.py
+- Fix Task model filtering:
+  * Use list_position instead of status relationship
+  * Update task count queries in main_routes.py
+- Fix create project form:
+  * Add dummy project object for template
+  * Initialize empty relationships
+  * Add proper status and priority lists
 
-This fixes the issue where subtask descriptions were being sent but not displayed in the form.
+This fixes issues with:
+- Blueprint registration conflicts
+- Route duplication
+- Task status filtering
+- Project creation form display
+
+Testing:
+1. Project listing works
+2. Create project form displays properly
+3. Task counts show correctly
+4. Project management features work

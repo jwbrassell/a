@@ -1,370 +1,219 @@
-"""Project CRUD routes for the projects plugin."""
+"""Project view routes for the projects plugin."""
 
-from flask import jsonify, request, render_template, url_for, redirect
+from flask import render_template, jsonify
 from flask_login import login_required, current_user
 from app.utils.rbac import requires_roles
-from app.utils.activity_tracking import track_activity
-from app.extensions import db
-from app.models import UserActivity, User, Role
-from ..models import Project, History, ProjectStatus, ProjectPriority
+from app.models import User
+from ..models import Project, ProjectStatus, ProjectPriority, Task
 from app.plugins.projects import bp
+from .projects.utils import (
+    can_edit_project,
+    can_view_project,
+    get_project_stats
+)
 
-@bp.route('/list')
+@bp.route('/dashboard')
 @login_required
 @requires_roles('user')
-def list_projects():
-    """List all projects grouped by status"""
+def project_dashboard():
+    """Project dashboard view"""
+    # Get all statuses and priorities
     statuses = ProjectStatus.query.all()
-    projects = Project.query.all()
+    priorities = ProjectPriority.query.all()
     
-    # Group projects by status
-    projects_by_status = {}
+    # Get projects user can view
+    all_projects = Project.query.all()
+    visible_projects = [p for p in all_projects if can_view_project(current_user, p)]
+    
+    # Calculate status distribution
+    status_counts = {}
     for status in statuses:
-        projects_by_status[status.name] = [
-            p for p in projects if p.status == status.name
-        ]
+        count = len([p for p in visible_projects if p.status == status.name])
+        status_counts[status.name] = count
+    
+    status_labels = list(status_counts.keys()) if status_counts else []
+    status_data = list(status_counts.values()) if status_counts else []
+    
+    # Calculate priority distribution
+    priority_counts = {}
+    for priority in priorities:
+        count = len([p for p in visible_projects if p.priority == priority.name])
+        priority_counts[priority.name] = count
+    
+    priority_labels = list(priority_counts.keys()) if priority_counts else []
+    priority_data = list(priority_counts.values()) if priority_counts else []
+    
+    # Calculate team assignments
+    team_assignments = {}
+    for project in visible_projects:
+        for task in project.tasks:
+            if task.assigned_to:
+                username = task.assigned_to.username
+                team_assignments[username] = team_assignments.get(username, 0) + 1
+    
+    team_labels = list(team_assignments.keys()) if team_assignments else []
+    team_data = list(team_assignments.values()) if team_assignments else []
+    
+    # Get statistics
+    total_projects = len(visible_projects)
+    active_projects = len([p for p in visible_projects if p.status == 'active'])
+    completed_projects = len([p for p in visible_projects if p.status == 'completed'])
+    
+    # Get recent activity
+    recent_projects = sorted(
+        visible_projects,
+        key=lambda p: p.updated_at or p.created_at,
+        reverse=True
+    )[:5]
     
     return render_template(
-        'projects/list.html',
+        'projects/dashboard.html',
+        total_projects=total_projects,
+        active_projects=active_projects,
+        completed_projects=completed_projects,
+        recent_projects=recent_projects,
         statuses=statuses,
+        priorities=priorities,
+        status_labels=status_labels or [],
+        status_data=status_data or [],
+        priority_labels=priority_labels or [],
+        priority_data=priority_data or [],
+        team_labels=team_labels or [],
+        team_data=team_data or []
+    )
+
+@bp.route('/kanban')
+@login_required
+@requires_roles('user')
+def project_kanban():
+    """Kanban board view for projects"""
+    # Get projects user can view
+    all_projects = Project.query.all()
+    visible_projects = [p for p in all_projects if can_view_project(current_user, p)]
+    
+    # Group projects by status
+    projects_by_status = {
+        'planning': [],
+        'active': [],
+        'on_hold': [],
+        'completed': [],
+        'archived': []
+    }
+    
+    for project in visible_projects:
+        status = project.status or 'planning'
+        if status in projects_by_status:
+            projects_by_status[status].append(project)
+    
+    return render_template(
+        'projects/kanban.html',
         projects_by_status=projects_by_status
     )
 
-@bp.route('/new', methods=['GET'])
+@bp.route('/calendar')
 @login_required
 @requires_roles('user')
-def new_project():
-    """Render the create project form"""
-    statuses = ProjectStatus.query.all()
-    priorities = ProjectPriority.query.all()
-    users = User.query.all()
+def project_calendar():
+    """Calendar view for projects"""
+    # Get projects user can view
+    all_projects = Project.query.all()
+    visible_projects = [p for p in all_projects if can_view_project(current_user, p)]
     
-    # Create a dummy project object for the template with all necessary attributes
-    project = Project(
-        name='',
-        summary='',
-        description='',
-        status='new',
-        priority='medium',
-        percent_complete=0,
-        lead_id=current_user.id,
-        is_private=False
-    )
-    
-    # Initialize relationships as empty lists
-    project.tasks = []
-    project.todos = []
-    project.comments = []
-    project.history = []
-    project.watchers = []
-    project.stakeholders = []
-    project.shareholders = []
-    project.roles = []
+    # Get all tasks with due dates
+    calendar_items = []
+    for project in visible_projects:
+        # Add project tasks
+        for task in project.tasks:
+            if task.due_date:
+                calendar_items.append({
+                    'title': task.name,
+                    'date': task.due_date.isoformat(),
+                    'type': 'task',
+                    'project': project.name,
+                    'url': f'/projects/task/{task.id}/view'
+                })
+        
+        # Add project todos
+        for todo in project.todos:
+            if todo.due_date:
+                calendar_items.append({
+                    'title': todo.description,
+                    'date': todo.due_date.isoformat(),
+                    'type': 'todo',
+                    'project': project.name,
+                    'url': f'/projects/{project.id}/view#todo-{todo.id}'
+                })
     
     return render_template(
-        'projects/create.html',
-        project=project,
-        statuses=statuses,
-        priorities=priorities,
-        users=users,
-        readonly=False
+        'projects/calendar.html',
+        calendar_items=calendar_items
     )
 
-@bp.route('/create', methods=['POST'])
+@bp.route('/timeline')
 @login_required
 @requires_roles('user')
-@track_activity
-def create_project():
-    """Create a new project"""
-    data = request.get_json()
+def project_timeline():
+    """Timeline view for projects"""
+    # Get projects user can view
+    all_projects = Project.query.all()
+    visible_projects = [p for p in all_projects if can_view_project(current_user, p)]
     
-    # Validate required fields
-    if not data.get('name'):
-        return jsonify({
-            'success': False,
-            'message': 'Project name is required'
-        }), 400
+    # Get all history entries
+    timeline_items = []
+    for project in visible_projects:
+        for history in project.history:
+            timeline_items.append({
+                'date': history.created_at,
+                'user': history.user.username if history.user else 'System',
+                'action': history.action,
+                'details': history.details,
+                'project': project.name,
+                'type': history.entity_type,
+                'icon': history.icon,
+                'color': history.color
+            })
     
-    project = Project(
-        name=data['name'],
-        summary=data.get('summary', ''),
-        icon=data.get('icon'),
-        description=data.get('description', ''),
-        status=data.get('status', 'new'),
-        priority=data.get('priority', 'medium'),
-        percent_complete=data.get('percent_complete', 0),
-        lead_id=data.get('lead_id', current_user.id)
-    )
-    
-    # Create history entry
-    history = History(
-        entity_type='project',
-        action='created',
-        user_id=current_user.id,
-        details={
-            'name': project.name,
-            'summary': project.summary,
-            'icon': project.icon,
-            'description': project.description,
-            'status': project.status,
-            'priority': project.priority,
-            'percent_complete': project.percent_complete,
-            'lead_id': project.lead_id
-        }
-    )
-    project.history.append(history)
-    
-    # Log activity
-    activity = UserActivity(
-        user_id=current_user.id,
-        username=current_user.username,
-        activity=f"Created project: {project.name}"
-    )
-    
-    db.session.add(project)
-    db.session.add(activity)
-    db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Project created successfully',
-        'project': {
-            'id': project.id,
-            **project.to_dict()
-        }
-    })
-
-@bp.route('/<int:project_id>', methods=['GET'])
-@login_required
-@requires_roles('user')
-def get_project(project_id):
-    """Get a specific project"""
-    project = Project.query.get_or_404(project_id)
-    return jsonify({
-        'success': True,
-        'project': project.to_dict()
-    })
-
-@bp.route('/<int:project_id>/view', methods=['GET'])
-@login_required
-@requires_roles('user')
-def view_project(project_id):
-    """View a project's details page"""
-    project = Project.query.get_or_404(project_id)
-    statuses = ProjectStatus.query.all()
-    priorities = ProjectPriority.query.all()
-    users = User.query.all()
-    
-    # Check if user can edit
-    can_edit = current_user.has_role('admin') or project.lead_id == current_user.id
+    # Sort by date descending
+    timeline_items.sort(key=lambda x: x['date'], reverse=True)
     
     return render_template(
-        'projects/view.html',
-        project=project,
-        statuses=statuses,
-        priorities=priorities,
-        users=users,
-        can_edit=can_edit
+        'projects/timeline.html',
+        timeline_items=timeline_items
     )
 
-@bp.route('/<int:project_id>/edit', methods=['GET'])
+@bp.route('/settings')
 @login_required
-@requires_roles('user')
-def edit_project(project_id):
-    """Edit a project's details page"""
-    project = Project.query.get_or_404(project_id)
-    
-    # Check if user can edit
-    if not (current_user.has_role('admin') or project.lead_id == current_user.id):
-        return redirect(url_for('projects.view_project', project_id=project_id))
-    
+@requires_roles('admin')
+def project_settings():
+    """Project settings view"""
     statuses = ProjectStatus.query.all()
     priorities = ProjectPriority.query.all()
     users = User.query.all()
     
     return render_template(
-        'projects/edit.html',
-        project=project,
+        'projects/settings.html',
         statuses=statuses,
         priorities=priorities,
         users=users
     )
 
-@bp.route('/<int:project_id>', methods=['PUT'])
+@bp.route('/reports')
 @login_required
 @requires_roles('user')
-@track_activity
-def update_project(project_id):
-    """Update a project"""
-    project = Project.query.get_or_404(project_id)
+def project_reports():
+    """Project reports view"""
+    # Get projects user can view
+    all_projects = Project.query.all()
+    visible_projects = [p for p in all_projects if can_view_project(current_user, p)]
     
-    # Check if user can edit
-    if not (current_user.has_role('admin') or project.lead_id == current_user.id):
-        return jsonify({
-            'success': False,
-            'message': 'Unauthorized to update this project'
-        }), 403
+    # Calculate statistics for each project
+    project_stats = {
+        project.id: get_project_stats(project)
+        for project in visible_projects
+    }
     
-    data = request.get_json()
-    
-    # Validate required fields if provided
-    if 'name' in data and not data['name']:
-        return jsonify({
-            'success': False,
-            'message': 'Project name cannot be empty'
-        }), 400
-    
-    # Track changes for history
-    changes = {}
-    
-    # Handle special fields first
-    special_fields = ['watchers', 'shareholders', 'stakeholders', 'roles']
-    regular_fields = {k: v for k, v in data.items() if k not in special_fields}
-    
-    # Update regular fields
-    for key, value in regular_fields.items():
-        if hasattr(project, key) and getattr(project, key) != value:
-            changes[key] = {'old': getattr(project, key), 'new': value}
-            setattr(project, key, value)
-    
-    # Handle watchers
-    if 'watchers' in data:
-        watchers = User.query.filter(User.id.in_(data['watchers'])).all()
-        if set(project.watchers) != set(watchers):
-            changes['watchers'] = {
-                'old': [w.username for w in project.watchers],
-                'new': [w.username for w in watchers]
-            }
-            project.watchers = watchers
-    
-    # Handle shareholders
-    if 'shareholders' in data:
-        shareholders = User.query.filter(User.id.in_(data['shareholders'])).all()
-        if set(project.shareholders) != set(shareholders):
-            changes['shareholders'] = {
-                'old': [s.username for s in project.shareholders],
-                'new': [s.username for s in shareholders]
-            }
-            project.shareholders = shareholders
-    
-    # Handle stakeholders
-    if 'stakeholders' in data:
-        stakeholders = User.query.filter(User.id.in_(data['stakeholders'])).all()
-        if set(project.stakeholders) != set(stakeholders):
-            changes['stakeholders'] = {
-                'old': [s.username for s in project.stakeholders],
-                'new': [s.username for s in stakeholders]
-            }
-            project.stakeholders = stakeholders
-    
-    # Handle roles
-    if 'roles' in data and not data.get('is_private', False):
-        roles = Role.query.filter(Role.name.in_(data['roles'])).all()
-        if set(project.roles) != set(roles):
-            changes['roles'] = {
-                'old': [r.name for r in project.roles],
-                'new': [r.name for r in roles]
-            }
-            project.roles = roles
-    
-    if changes:
-        # Create history entry
-        history = History(
-            entity_type='project',
-            action='updated',
-            user_id=current_user.id,
-            project_id=project.id,
-            details=changes
-        )
-        project.history.append(history)
-        
-        # Log activity
-        activity = UserActivity(
-            user_id=current_user.id,
-            username=current_user.username,
-            activity=f"Updated project: {project.name}"
-        )
-        db.session.add(activity)
-    
-    db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Project updated successfully',
-        'project': project.to_dict()
-    })
-
-@bp.route('/<int:project_id>/archive', methods=['POST'])
-@login_required
-@requires_roles('user')
-@track_activity
-def archive_project(project_id):
-    """Archive a project"""
-    project = Project.query.get_or_404(project_id)
-    
-    # Check if user can edit
-    if not (current_user.has_role('admin') or project.lead_id == current_user.id):
-        return jsonify({
-            'success': False,
-            'message': 'Unauthorized to archive this project'
-        }), 403
-    
-    project.status = 'archived'
-    
-    # Create history entry
-    history = History(
-        entity_type='project',
-        action='archived',
-        user_id=current_user.id,
-        project_id=project.id,
-        details={'status': 'archived'}
+    return render_template(
+        'projects/reports.html',
+        projects=visible_projects,
+        project_stats=project_stats
     )
-    project.history.append(history)
-
-    # Log activity
-    activity = UserActivity(
-        user_id=current_user.id,
-        username=current_user.username,
-        activity=f"Archived project: {project.name}"
-    )
-    
-    db.session.add(activity)
-    db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Project archived successfully'
-    })
-
-@bp.route('/<int:project_id>/delete', methods=['POST'])
-@login_required
-@requires_roles('user')
-@track_activity
-def delete_project(project_id):
-    """Delete a project"""
-    project = Project.query.get_or_404(project_id)
-    
-    # Check if user can edit
-    if not (current_user.has_role('admin') or project.lead_id == current_user.id):
-        return jsonify({
-            'success': False,
-            'message': 'Unauthorized to delete this project'
-        }), 403
-    
-    project_name = project.name
-
-    # Log activity before deletion
-    activity = UserActivity(
-        user_id=current_user.id,
-        username=current_user.username,
-        activity=f"Deleted project: {project_name}"
-    )
-    
-    db.session.add(activity)
-    db.session.delete(project)
-    db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Project deleted successfully'
-    })

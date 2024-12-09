@@ -52,6 +52,29 @@ window.projectModule = (function() {
         return Array.from(element.selectedOptions).map(option => option.value);
     }
 
+    // Get todos from table
+    function getTodos() {
+        const todos = [];
+        const todoRows = document.querySelectorAll('#todoList tr');
+        todoRows.forEach((row, index) => {
+            const description = row.querySelector('.todo-description')?.value;
+            const completed = row.querySelector('.todo-checkbox')?.checked || false;
+            const dueDate = row.querySelector('.todo-due-date')?.value;
+            const todoId = row.querySelector('.todo-id')?.value;
+
+            if (description) {
+                todos.push({
+                    id: todoId ? parseInt(todoId) : null,
+                    description,
+                    completed,
+                    due_date: dueDate || null,
+                    order: index
+                });
+            }
+        });
+        return todos;
+    }
+
     // Update header elements preview
     function updateHeaderPreview() {
         const headerName = document.getElementById('header-name');
@@ -136,7 +159,8 @@ window.projectModule = (function() {
             shareholders: getMultiSelectValues('project-shareholders'),
             stakeholders: getMultiSelectValues('project-stakeholders'),
             roles: getMultiSelectTextValues('project-role'),
-            is_private: isPrivate
+            is_private: isPrivate,
+            todos: getTodos()
         };
 
         return formData;
@@ -155,9 +179,17 @@ window.projectModule = (function() {
                 body: JSON.stringify(formData)
             });
 
+            let errorMessage = 'Failed to create project';
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to create project');
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                } else {
+                    const text = await response.text();
+                    console.error('Server error:', text);
+                }
+                throw new Error(errorMessage);
             }
 
             const result = await response.json();
@@ -196,9 +228,17 @@ window.projectModule = (function() {
                 body: JSON.stringify(formData)
             });
 
+            let errorMessage = 'Failed to save project changes';
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to save project changes');
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                } else {
+                    const text = await response.text();
+                    console.error('Server error:', text);
+                }
+                throw new Error(errorMessage);
             }
 
             const result = await response.json();
@@ -211,12 +251,41 @@ window.projectModule = (function() {
                 lastSavedElement.textContent = new Date(result.project.updated_at).toLocaleString();
             }
             
+            // Update Select2 fields with saved values
+            if (result.project) {
+                const project = result.project;
+                
+                // Update watchers
+                if (project.watchers && project.watchers.length > 0) {
+                    $('#project-watchers').val(project.watchers.map(w => w.id)).trigger('change');
+                }
+                
+                // Update shareholders
+                if (project.shareholders && project.shareholders.length > 0) {
+                    $('#project-shareholders').val(project.shareholders.map(s => s.id)).trigger('change');
+                }
+                
+                // Update stakeholders
+                if (project.stakeholders && project.stakeholders.length > 0) {
+                    $('#project-stakeholders').val(project.stakeholders.map(s => s.id)).trigger('change');
+                }
+                
+                // Update roles
+                if (project.roles && project.roles.length > 0) {
+                    $('#project-role').val(project.roles.map(r => r.name)).trigger('change');
+                }
+            }
+            
             updateIconPreview();
 
             // Reset all form change handlers
             resetFormChangeHandlers();
+            
+            // Set intentional navigation flag
+            intentionalNavigation = true;
         } catch (error) {
             showError('Error saving project: ' + error.message);
+            console.error('Save error:', error);
         }
     }
 
@@ -227,8 +296,6 @@ window.projectModule = (function() {
             'project-name',
             'project-icon',
             'project-summary',
-            'project-status',
-            'project-priority',
             'project-lead',
             'project-watchers',
             'project-shareholders',
@@ -244,13 +311,6 @@ window.projectModule = (function() {
                 element.parentNode.replaceChild(newElement, element);
 
                 if (newElement.type === 'checkbox') {
-                    newElement.addEventListener('change', handleInputChange);
-                } else if (newElement.tagName === 'SELECT') {
-                    // Reinitialize select2
-                    if ($(newElement).hasClass('select2-hidden-accessible')) {
-                        $(newElement).select2('destroy');
-                        initializeSelect2(newElement);
-                    }
                     newElement.addEventListener('change', handleInputChange);
                 } else {
                     newElement.addEventListener('change', handleInputChange);
@@ -299,32 +359,6 @@ window.projectModule = (function() {
                 img { max-width: 100%; height: auto; }
             `
         });
-    }
-
-    // Initialize Select2
-    function initializeSelect2(element) {
-        const isMultiSelect = $(element).is('#project-watchers, #project-shareholders, #project-stakeholders, #project-role');
-        
-        if (isMultiSelect) {
-            $(element).select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                closeOnSelect: false,
-                allowClear: false
-            }).on('select2:unselecting', function(e) {
-                $(this).data('unselecting', true);
-            }).on('select2:opening', function(e) {
-                if ($(this).data('unselecting')) {
-                    $(this).removeData('unselecting');
-                    e.preventDefault();
-                }
-            });
-        } else {
-            $(element).select2({
-                theme: 'bootstrap-5',
-                width: '100%'
-            });
-        }
     }
 
     // Icon functionality
@@ -499,8 +533,6 @@ window.projectModule = (function() {
             'project-name',
             'project-icon',
             'project-summary',
-            'project-status',
-            'project-priority',
             'project-lead',
             'project-watchers',
             'project-shareholders',
@@ -514,12 +546,6 @@ window.projectModule = (function() {
             if (element) {
                 if (element.type === 'checkbox') {
                     element.addEventListener('change', handleInputChange);
-                } else if (element.tagName === 'SELECT') {
-                    element.addEventListener('change', handleInputChange);
-                    // Initialize select2
-                    if ($(element).hasClass('select2-hidden-accessible')) {
-                        initializeSelect2(element);
-                    }
                 } else {
                     element.addEventListener('change', handleInputChange);
                     element.addEventListener('input', handleInputChange);

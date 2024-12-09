@@ -1,9 +1,10 @@
 """Main routes for the projects plugin."""
 
-from flask import render_template, jsonify, redirect, url_for
+from flask import render_template, jsonify
 from flask_login import login_required, current_user
 from app.utils.rbac import requires_roles
 from sqlalchemy import func
+from datetime import date
 from app import db
 from app.models import User
 from ..models import Project, ProjectStatus, ProjectPriority, Task
@@ -13,54 +14,33 @@ from app.plugins.projects import bp
 @login_required
 @requires_roles('user')
 def index():
-    """Projects dashboard view"""
-    # Get all statuses and priorities
-    statuses = ProjectStatus.query.all()
-    priorities = ProjectPriority.query.all()
+    """Projects index view"""
+    # Get active projects count
+    active_projects = Project.query.filter_by(status='active').count()
     
-    # Calculate status distribution
-    status_counts = {}
-    for status in statuses:
-        count = Project.query.filter_by(status=status.name).count()
-        status_counts[status.name] = count
+    # Get tasks due today
+    tasks_due_today = Task.query.filter(
+        Task.due_date == date.today(),
+        Task.list_position != 'completed'
+    ).count()
     
-    status_labels = list(status_counts.keys())
-    status_data = list(status_counts.values())
+    # Get open tasks count
+    open_tasks = Task.query.filter(
+        Task.list_position != 'completed'
+    ).count()
     
-    # Calculate priority distribution
-    priority_counts = {}
-    for priority in priorities:
-        count = Project.query.filter_by(priority=priority.name).count()
-        priority_counts[priority.name] = count
-    
-    priority_labels = list(priority_counts.keys())
-    priority_data = list(priority_counts.values())
-    
-    # Calculate team assignments
-    team_assignments = db.session.query(
-        Task.assigned_to_id,
-        func.count(Task.id).label('task_count')
-    ).group_by(Task.assigned_to_id).all()
-    
-    team_data = []
-    team_labels = []
-    for user_id, task_count in team_assignments:
-        if user_id:  # Only include if there's an assigned user
-            user = User.query.get(user_id)
-            if user:
-                team_labels.append(user.username)
-                team_data.append(task_count)
+    # Get tasks assigned to current user
+    my_tasks = Task.query.filter(
+        Task.assigned_to_id == current_user.id,
+        Task.list_position != 'completed'
+    ).count()
     
     return render_template(
-        'projects/dashboard.html',
-        statuses=statuses,
-        priorities=priorities,
-        status_labels=status_labels,
-        status_data=status_data,
-        priority_labels=priority_labels,
-        priority_data=priority_data,
-        team_labels=team_labels,
-        team_data=team_data
+        'projects/index.html',
+        active_projects=active_projects,
+        tasks_due_today=tasks_due_today,
+        open_tasks=open_tasks,
+        my_tasks=my_tasks
     )
 
 @bp.route('/data')

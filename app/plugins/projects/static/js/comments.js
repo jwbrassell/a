@@ -48,23 +48,33 @@ async function submitComment(event) {
         return;
     }
 
-    // Get taskId from taskModule
-    const taskId = window.taskModule?.taskId;
-    if (!taskId) {
-        showError('Task ID not found');
-        return;
-    }
-
     try {
-        const response = await fetch(`/task/${taskId}/comment`, {
+        // Check if we're in a task or project context
+        const projectId = window.projectId;
+        const taskId = window.taskModule?.taskId;
+        
+        if (!projectId) {
+            showError('Project ID not found');
+            return;
+        }
+
+        // Prepare the request data
+        const requestData = {
+            content: content
+        };
+
+        // If we're in a task context, include the task_id
+        if (taskId) {
+            requestData.task_id = taskId;
+        }
+
+        const response = await fetch(`/projects/${projectId}/comment`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': getCsrfToken()
             },
-            body: JSON.stringify({
-                content: content
-            })
+            body: JSON.stringify(requestData)
         });
 
         if (!response.ok) {
@@ -91,7 +101,7 @@ async function submitComment(event) {
 }
 
 function createCommentElement(comment) {
-    const currentUserId = window.taskModule?.currentUserId;
+    const currentUserId = window.currentUserId;
     const isCurrentUser = comment.user_id === parseInt(currentUserId);
     const timestamp = new Date(comment.created_at).toLocaleString();
     const avatarPath = comment.user_avatar.startsWith('/') ? comment.user_avatar : `/static/${comment.user_avatar}`;

@@ -22,6 +22,7 @@
                    {% if todo.completed %}checked{% endif %}
                    {% if readonly %}disabled{% endif %}>
             <label class="form-check-label" for="todoCheck{{ todo.id }}"></label>
+            <input type="hidden" class="todo-id" name="todos[{{ loop.index0 }}][id]" value="{{ todo.id }}">
           </div>
         </td>
         <td>

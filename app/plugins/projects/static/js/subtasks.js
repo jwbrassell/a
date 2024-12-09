@@ -22,101 +22,7 @@ function loadSubTask(subtaskId, readonly = false) {
                     due_date: subtask.due_date || ''
                 });
                 
-                // Populate form fields
-                $('#subtask-name').val(subtask.name || '');
-                $('#subtask-summary').val(subtask.summary || '');
-                
-                // Set TinyMCE content after a short delay to ensure editor is initialized
-                setTimeout(() => {
-                    const editor = tinymce.get('subtask-description');
-                    if (editor) {
-                        editor.setContent(subtask.description || '');
-                        editor.setMode(readonly ? 'readonly' : 'design');
-                    }
-                }, 100);
-                
-                // Populate status dropdown
-                const $statusSelect = $('#subtask-status');
-                $statusSelect.empty().append('<option value="">Select Status</option>');
-                data.statuses.forEach(status => {
-                    const selected = subtask.status === status.name ? 'selected' : '';
-                    $statusSelect.append(`<option value="${status.name}" data-color="${status.color}" ${selected}>${status.name}</option>`);
-                });
-                
-                // Set status with badge styling
-                const selectedStatus = $statusSelect.find('option:selected');
-                if (selectedStatus.val()) {
-                    const color = selectedStatus.data('color');
-                    $statusSelect.css('background-color', `var(--bs-${color})`);
-                    $statusSelect.css('color', 'white');
-                    $statusSelect.attr('data-selected', 'true');
-                } else {
-                    $statusSelect.css('background-color', '');
-                    $statusSelect.css('color', '');
-                    $statusSelect.removeAttr('data-selected');
-                }
-                
-                // Populate priority dropdown
-                const $prioritySelect = $('#subtask-priority');
-                $prioritySelect.empty().append('<option value="">Select Priority</option>');
-                data.priorities.forEach(priority => {
-                    const selected = subtask.priority === priority.name ? 'selected' : '';
-                    $prioritySelect.append(`<option value="${priority.name}" data-color="${priority.color}" ${selected}>${priority.name}</option>`);
-                });
-                
-                // Set priority with badge styling
-                const selectedPriority = $prioritySelect.find('option:selected');
-                if (selectedPriority.val()) {
-                    const color = selectedPriority.data('color');
-                    $prioritySelect.css('background-color', `var(--bs-${color})`);
-                    $prioritySelect.css('color', 'white');
-                    $prioritySelect.attr('data-selected', 'true');
-                } else {
-                    $prioritySelect.css('background-color', '');
-                    $prioritySelect.css('color', '');
-                    $prioritySelect.removeAttr('data-selected');
-                }
-                
-                // Populate users dropdown
-                const $assignedSelect = $('#subtask-assigned');
-                $assignedSelect.empty().append('<option value="">Select User</option>');
-                data.users.forEach(user => {
-                    const selected = subtask.assigned_to_id === user.id ? 'selected' : '';
-                    $assignedSelect.append(`<option value="${user.id}" ${selected}>${user.username}</option>`);
-                });
-                
-                // Set due date - ensure proper date format
-                if (subtask.due_date) {
-                    // Convert date string to YYYY-MM-DD format
-                    const date = new Date(subtask.due_date);
-                    const formattedDate = date.toISOString().split('T')[0];
-                    $('#subtask-due-date').val(formattedDate);
-                } else {
-                    $('#subtask-due-date').val('');
-                }
-                
-                // Show timestamps if they exist
-                if (subtask.created_at) {
-                    $('#subtask-created-at').text(subtask.created_at);
-                    $('.created-at-field').show();
-                } else {
-                    $('.created-at-field').hide();
-                }
-                if (subtask.updated_at) {
-                    $('#subtask-updated-at').text(subtask.updated_at);
-                    $('.updated-at-field').show();
-                } else {
-                    $('.updated-at-field').hide();
-                }
-                
-                // Set form state
-                if (readonly) {
-                    $('#subtaskForm input, #subtaskForm select').prop('readonly', true);
-                    $('#subtaskForm button[type="submit"]').hide();
-                } else {
-                    $('#subtaskForm input, #subtaskForm select').prop('readonly', false);
-                    $('#subtaskForm button[type="submit"]').show();
-                }
+                populateSubtaskForm(subtask, data.statuses, data.priorities, data.users, readonly);
                 
                 // Store subtask ID for form submission
                 $('#subtaskForm').data('subtask-id', subtaskId);
@@ -137,53 +43,135 @@ function loadSubTask(subtaskId, readonly = false) {
         });
 }
 
-function loadSubtaskHistory(subtaskId) {
-    fetch(`/projects/subtask/${subtaskId}/history`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const historyHtml = data.history.map(item => `
-                    <tr>
-                        <td>${item.created_at}</td>
-                        <td>${item.user}</td>
-                        <td>${item.action}</td>
-                        <td>${formatHistoryDetails(item.details)}</td>
-                    </tr>
-                `).join('');
-                
-                $('#subtaskHistoryList').html(historyHtml || '<tr><td colspan="4" class="text-center">No history available</td></tr>');
-            } else {
-                toastr.error(data.message || 'Error loading history');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            toastr.error('Error loading history');
-        });
+function populateSubtaskForm(subtask, statuses, priorities, users, readonly = false) {
+    // Populate form fields
+    $('#subtask-name').val(subtask.name || '');
+    $('#subtask-summary').val(subtask.summary || '');
+    
+    // Set TinyMCE content after a short delay to ensure editor is initialized
+    setTimeout(() => {
+        const editor = tinymce.get('subtask-description');
+        if (editor) {
+            editor.setContent(subtask.description || '');
+            editor.setMode(readonly ? 'readonly' : 'design');
+        }
+    }, 100);
+    
+    // Populate status dropdown
+    const $statusSelect = $('#subtask-status');
+    $statusSelect.empty().append('<option value="">Select Status</option>');
+    statuses.forEach(status => {
+        const selected = subtask.status === status.name ? 'selected' : '';
+        $statusSelect.append(`<option value="${status.name}" data-color="${status.color}" ${selected}>${status.name}</option>`);
+    });
+    updateSelectStyling($statusSelect);
+    
+    // Populate priority dropdown
+    const $prioritySelect = $('#subtask-priority');
+    $prioritySelect.empty().append('<option value="">Select Priority</option>');
+    priorities.forEach(priority => {
+        const selected = subtask.priority === priority.name ? 'selected' : '';
+        $prioritySelect.append(`<option value="${priority.name}" data-color="${priority.color}" ${selected}>${priority.name}</option>`);
+    });
+    updateSelectStyling($prioritySelect);
+    
+    // Populate users dropdown
+    const $assignedSelect = $('#subtask-assigned');
+    $assignedSelect.empty().append('<option value="">Select User</option>');
+    users.forEach(user => {
+        const selected = subtask.assigned_to_id === user.id ? 'selected' : '';
+        $assignedSelect.append(`<option value="${user.id}" ${selected}>${user.username}</option>`);
+    });
+    
+    // Set due date
+    if (subtask.due_date) {
+        const date = new Date(subtask.due_date);
+        const formattedDate = date.toISOString().split('T')[0];
+        $('#subtask-due-date').val(formattedDate);
+    } else {
+        $('#subtask-due-date').val('');
+    }
+    
+    // Show/hide timestamps
+    if (subtask.created_at) {
+        $('#subtask-created-at').text(subtask.created_at);
+        $('.created-at-field').show();
+    } else {
+        $('.created-at-field').hide();
+    }
+    if (subtask.updated_at) {
+        $('#subtask-updated-at').text(subtask.updated_at);
+        $('.updated-at-field').show();
+    } else {
+        $('.updated-at-field').hide();
+    }
+    
+    // Set form state
+    if (readonly) {
+        $('#subtaskForm input, #subtaskForm select').prop('readonly', true);
+        $('#subtaskForm button[type="submit"]').hide();
+    } else {
+        $('#subtaskForm input, #subtaskForm select').prop('readonly', false);
+        $('#subtaskForm button[type="submit"]').show();
+    }
 }
 
-function formatHistoryDetails(details) {
-    if (typeof details === 'string') return details;
-    
-    let formattedDetails = [];
-    for (let key in details) {
-        if (typeof details[key] === 'object' && details[key] !== null) {
-            const oldValue = details[key].old || 'None';
-            const newValue = details[key].new || 'None';
-            formattedDetails.push(`${key}: ${oldValue} → ${newValue}`);
-        } else {
-            formattedDetails.push(`${key}: ${details[key]}`);
-        }
+function updateSelectStyling($select) {
+    const selectedOption = $select.find('option:selected');
+    if (selectedOption.val()) {
+        const color = selectedOption.data('color');
+        $select.css('background-color', `var(--bs-${color})`);
+        $select.css('color', 'white');
+        $select.attr('data-selected', 'true');
+    } else {
+        $select.css('background-color', '');
+        $select.css('color', '');
+        $select.removeAttr('data-selected');
     }
-    return formattedDetails.join('<br>');
+}
+
+function addSubtaskToList(subtask, isTemp = false) {
+    const subtaskId = isTemp ? `temp_${Math.random().toString(36).substr(2, 9)}` : subtask.id;
+    const subtaskHtml = `
+        <div class="subtask-item card bg-dark mb-3" data-subtask-id="${subtaskId}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">${subtask.name}</h5>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-info view-subtask" title="View Sub Task">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary edit-subtask" title="Edit Sub Task">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger remove-subtask" title="Remove Sub Task">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="card-text">${subtask.summary || ''}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        ${subtask.status ? `<span class="badge bg-${subtask.status_color || 'secondary'} me-2">${subtask.status}</span>` : ''}
+                        ${subtask.priority ? `<span class="badge bg-${subtask.priority_color || 'secondary'} me-2">${subtask.priority}</span>` : ''}
+                    </div>
+                    <small class="text-muted">${subtask.due_date || 'No due date'}</small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const $subTasksList = $('#subTasksList');
+    $subTasksList.append(subtaskHtml);
 }
 
 function saveSubTask(event) {
     event.preventDefault();
-    console.log('saveSubTask called');
     
     const subtaskId = $('#subtaskForm').data('subtask-id');
     const isNew = !subtaskId;
+    const parentTaskId = taskModule.taskId;
+    const isParentTemp = parentTaskId && parentTaskId.startsWith('temp_');
     
     // Get current form values
     const formData = {
@@ -196,56 +184,26 @@ function saveSubTask(event) {
         due_date: $('#subtask-due-date').val() || null
     };
 
-    console.log('Form data:', formData);
-
-    // For new subtasks, just validate required fields
-    if (isNew) {
-        if (!formData.name) {
-            toastr.error('Sub task name is required');
-            return;
-        }
-    } else {
-        // For existing subtasks, check if there are any changes
-        const originalValues = $('#subtaskForm').data('original-values') || {};
-        let hasChanges = false;
-        
-        // Debug log current values
-        console.log('Current form values:', formData);
-        console.log('Original values:', originalValues);
-        
-        // Compare each field
-        for (const key in formData) {
-            const originalValue = originalValues[key] || '';
-            const currentValue = formData[key] || '';
-            
-            // Debug log comparison
-            console.log(`Comparing ${key}:`, {
-                original: originalValue,
-                current: currentValue,
-                changed: originalValue !== currentValue
-            });
-            
-            if (originalValue !== currentValue) {
-                hasChanges = true;
-                break;
-            }
-        }
-        
-        if (!hasChanges) {
-            toastr.info('No changes to save');
-            return;
-        }
+    // Validate required fields
+    if (!formData.name) {
+        toastr.error('Sub task name is required');
+        return;
     }
-    
-    const url = isNew ? `/projects/task/${taskModule.taskId}/subtask` : `/projects/subtask/${subtaskId}`;
+
+    // If parent task is temporary, just add to UI
+    if (isParentTemp) {
+        addSubtaskToList({
+            ...formData,
+            status_color: $('#subtask-status option:selected').data('color'),
+            priority_color: $('#subtask-priority option:selected').data('color')
+        }, true);
+        $('#subtaskModal').modal('hide');
+        return;
+    }
+
+    // Otherwise, save to server
+    const url = isNew ? `/projects/task/${parentTaskId}/subtask` : `/projects/subtask/${subtaskId}`;
     const method = isNew ? 'POST' : 'PUT';
-    
-    // Debug log the request
-    console.log('Sending request:', {
-        url,
-        method,
-        formData
-    });
     
     fetch(url, {
         method: method,
@@ -278,6 +236,12 @@ function saveSubTask(event) {
 }
 
 function deleteSubTask(subtaskId) {
+    // If it's a temporary subtask, just remove from UI
+    if (subtaskId.startsWith('temp_')) {
+        $(`[data-subtask-id="${subtaskId}"]`).remove();
+        return;
+    }
+
     fetch(`/projects/subtask/${subtaskId}`, {
         method: 'DELETE',
         headers: {
@@ -308,6 +272,30 @@ function addSubtaskComment() {
         toastr.error('Comment cannot be empty');
         return;
     }
+
+    // If parent task is temporary, just add to UI
+    if (taskModule.taskId && taskModule.taskId.startsWith('temp_')) {
+        const timestamp = new Date().toLocaleString();
+        const commentHtml = `
+            <div class="direct-chat-msg">
+                <div class="direct-chat-infos clearfix">
+                    <span class="direct-chat-name float-left">${window.currentUser || 'You'}</span>
+                    <span class="direct-chat-timestamp float-right">${timestamp}</span>
+                </div>
+                <div class="direct-chat-text">${content}</div>
+            </div>
+        `;
+        
+        const $commentsList = $('#subtaskCommentsList');
+        const noComments = $commentsList.find('.text-muted');
+        if (noComments.length) {
+            noComments.remove();
+        }
+        
+        $commentsList.append(commentHtml);
+        $('#subtaskCommentInput').val('');
+        return;
+    }
     
     fetch(`/projects/subtask/${subtaskId}/comment`, {
         method: 'POST',
@@ -321,9 +309,7 @@ function addSubtaskComment() {
     .then(data => {
         if (data.success) {
             toastr.success(data.message || 'Comment added successfully');
-            // Clear input
             $('#subtaskCommentInput').val('');
-            // Reload comments
             loadSubtaskComments(subtaskId);
         } else {
             toastr.error(data.message || 'Error adding comment');
@@ -336,6 +322,11 @@ function addSubtaskComment() {
 }
 
 function loadSubtaskComments(subtaskId) {
+    // Don't load comments for temporary subtasks
+    if (subtaskId.startsWith('temp_')) {
+        return;
+    }
+
     fetch(`/projects/subtask/${subtaskId}/comments`)
         .then(response => response.json())
         .then(data => {
@@ -396,32 +387,21 @@ $(document).ready(function() {
     });
     
     // Handle form submission
-    $('#subtaskForm').on('submit', function(e) {
-        console.log('Form submitted');
-        saveSubTask(e);
-    });
+    $('#subtaskForm').on('submit', saveSubTask);
     
     // Handle status and priority changes
     $('#subtask-status, #subtask-priority').on('change', function() {
-        const $select = $(this);
-        const selectedOption = $select.find('option:selected');
-        const color = selectedOption.data('color');
-        
-        if (color && selectedOption.val()) {
-            $select.css({
-                'background-color': `var(--bs-${color})`,
-                'color': 'white'
-            });
-            $select.attr('data-selected', 'true');
-        } else {
-            $select.css({
-                'background-color': '',
-                'color': ''
-            });
-            $select.removeAttr('data-selected');
-        }
+        updateSelectStyling($(this));
     });
     
+    // Handle subtask actions using event delegation
+    $('#subTasksList').on('click', '.remove-subtask', function() {
+        const subtaskId = $(this).closest('.subtask-item').data('subtask-id');
+        if (confirm('Are you sure you want to remove this sub task?')) {
+            deleteSubTask(subtaskId);
+        }
+    });
+
     // Reset form when modal is hidden
     $('#subtaskModal').on('hidden.bs.modal', function() {
         $('#subtaskForm')[0].reset();
@@ -443,5 +423,8 @@ $(document).ready(function() {
             'background-color': '',
             'color': ''
         }).removeAttr('data-selected');
+
+        // Clear comments
+        $('#subtaskCommentsList').html('<div class="text-center text-muted">No comments yet</div>');
     });
 });

@@ -1,6 +1,10 @@
 from datetime import datetime
 from app import db
-from app.models import User, Role
+from app.models import User, Role, UserActivity
+
+class ValidationError(Exception):
+    """Custom validation error for project models"""
+    pass
 
 # Association tables for many-to-many relationships
 project_watchers = db.Table('project_watchers',
@@ -21,6 +25,12 @@ project_shareholders = db.Table('project_shareholders',
 project_roles = db.Table('project_roles',
     db.Column('project_id', db.Integer, db.ForeignKey('project.id'), primary_key=True),
     db.Column('role_id', db.Integer, db.ForeignKey('role.id'), primary_key=True)
+)
+
+# Task dependencies association table
+task_dependencies = db.Table('task_dependencies',
+    db.Column('task_id', db.Integer, db.ForeignKey('task.id'), primary_key=True),
+    db.Column('dependency_id', db.Integer, db.ForeignKey('task.id'), primary_key=True)
 )
 
 class ProjectStatus(db.Model):
@@ -153,6 +163,11 @@ class Task(db.Model):
     due_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    position = db.Column(db.Integer, default=0)
+    list_position = db.Column(db.String(50), default='todo')
+    
+    # Task depth limit
+    MAX_DEPTH = 3
     
     # Relationships
     assigned_to_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -165,6 +180,15 @@ class Task(db.Model):
                           order_by='Todo.order')
     comments = db.relationship('Comment', backref='task', lazy=True, cascade='all, delete-orphan')
     history = db.relationship('History', backref='task', lazy=True, cascade='all, delete-orphan')
+    
+    # Task dependencies
+    dependencies = db.relationship(
+        'Task', secondary=task_dependencies,
+        primaryjoin=(task_dependencies.c.task_id == id),
+        secondaryjoin=(task_dependencies.c.dependency_id == id),
+        backref=db.backref('dependent_tasks', lazy='dynamic'),
+        lazy='dynamic'
+    )
 
     def __repr__(self):
         return f'<Task {self.name}>'
@@ -183,6 +207,43 @@ class Task(db.Model):
             return self.priority.color
         return 'secondary'
     
+    def get_depth(self):
+        """Calculate the depth of this task in the hierarchy"""
+        depth = 0
+        current = self
+        while current.parent:
+            depth += 1
+            current = current.parent
+        return depth
+    
+    def validate_depth(self):
+        """Validate task depth doesn't exceed maximum"""
+        depth = self.get_depth()
+        if depth >= self.MAX_DEPTH:
+            raise ValidationError(f"Maximum task depth of {self.MAX_DEPTH} exceeded")
+    
+    def validate_dependencies(self):
+        """Validate task dependencies for circular references"""
+        visited = set()
+        
+        def check_circular(task):
+            if task.id in visited:
+                raise ValidationError("Circular dependency detected")
+            visited.add(task.id)
+            for dep in task.dependencies:
+                check_circular(dep)
+            visited.remove(task.id)
+        
+        check_circular(self)
+    
+    @classmethod
+    def reorder_tasks(cls, project_id, task_positions):
+        """Update task positions in bulk"""
+        for position, task_id in enumerate(task_positions):
+            cls.query.filter_by(id=task_id, project_id=project_id).update(
+                {'position': position}
+            )
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -198,7 +259,12 @@ class Task(db.Model):
             'assigned_to_id': self.assigned_to_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'position': self.position,
+            'list_position': self.list_position,
+            'depth': self.get_depth(),
             'subtasks': [subtask.to_dict() for subtask in self.subtasks],
+            'dependencies': [{'id': t.id, 'name': t.name} for t in self.dependencies],
+            'dependent_tasks': [{'id': t.id, 'name': t.name} for t in self.dependent_tasks],
             'history': [h.to_dict() for h in self.history],
             'comments': [c.to_dict() for c in self.comments]
         }
