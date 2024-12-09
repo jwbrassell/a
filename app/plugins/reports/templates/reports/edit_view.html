@@ -1,0 +1,436 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <!-- Breadcrumbs -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports Dashboard</a></li>
+                    <li class="breadcrumb-item active">Edit Report View</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Edit Report View</h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <form id="editViewForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" 
+                               value="{{ view.title }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea class="form-control" id="description" name="description" 
+                                  rows="3">{{ view.description }}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="database">Database Connection</label>
+                        <select class="form-control" id="database" name="database_id" required>
+                            <option value="">Select a database...</option>
+                            {% for db in databases %}
+                            <option value="{{ db.id }}" {% if db.id == view.database_id %}selected{% endif %}>
+                                {{ db.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="query">SQL Query</label>
+                        <textarea class="form-control" id="query" name="query" 
+                                  rows="5" required>{{ view.query }}</textarea>
+                        <small class="form-text text-muted">
+                            Write your SQL query here. Use the Test Query button to verify the results.
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="button" id="testQuery" class="btn btn-info">
+                            <i class="fas fa-vial"></i> Test Query
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="isPrivate" 
+                                   {% if view.is_private %}checked{% endif %}>
+                            <label class="custom-control-label" for="isPrivate">Private View</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="rolesGroup" {% if not view.is_private %}style="display: none;"{% endif %}>
+                        <label for="roles">Allowed Roles</label>
+                        <select class="form-control" id="roles" name="roles[]" multiple>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}" {% if role in view.roles %}selected{% endif %}>
+                                {{ role.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">
+                            Select roles that can access this private view. Hold Ctrl/Cmd to select multiple.
+                        </small>
+                    </div>
+
+                    <!-- Column Configuration -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h3 class="card-title">Column Configuration</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>Display Name</th>
+                                            <th>Visible</th>
+                                            <th>Sortable</th>
+                                            <th>Searchable</th>
+                                            <th>Transform</th>
+                                            <th>Preview</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="columnList">
+                                        <!-- Will be populated after testing query -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h3 class="card-title">Data Preview</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead id="previewHeaders">
+                                        <!-- Will be populated after testing query -->
+                                    </thead>
+                                    <tbody id="previewData">
+                                        <!-- Will be populated after testing query -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- Transform Configuration Modal -->
+{% include 'reports/_transform_modal.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='plugins/reports/js/report_utils.js') }}"></script>
+<script>
+// Transform Configuration Functions
+function getTransformConfig() {
+    var type = $('#transformType').val();
+    var config = { 
+        type: type,
+        server_side: $('#serverSide').is(':checked')
+    };
+
+    if (type) {
+        switch (type) {
+            case 'url':
+                config.urlTemplate = $('#urlTemplate').val();
+                config.urlText = $('#urlText').val();
+                break;
+            case 'date':
+                config.format = $('#dateFormat').val();
+                break;
+            case 'number':
+                config.decimalPlaces = $('#decimalPlaces').val();
+                config.useThousandsSeparator = $('#useThousandsSeparator').is(':checked');
+                config.prefix = $('#numberPrefix').val();
+                config.suffix = $('#numberSuffix').val();
+                break;
+            case 'boolean':
+                config.trueDisplay = $('#trueDisplay').val();
+                config.falseDisplay = $('#falseDisplay').val();
+                break;
+            case 'python':
+                config.code = $('#pythonExpression').val();
+                break;
+            case 'regex':
+                config.pattern = $('#regexPattern').val();
+                var operation = $('#regexOperation').val();
+                if (operation === 'match') {
+                    config.match_only = true;
+                } else if (operation === 'extract') {
+                    config.extract_group = parseInt($('#regexGroup').val());
+                } else {
+                    config.replacement = $('#regexReplacement').val();
+                }
+                config.case_insensitive = $('#regexCaseInsensitive').is(':checked');
+                config.multiline = $('#regexMultiline').is(':checked');
+                break;
+            case 'custom':
+                config.code = $('#customTransform').val();
+                break;
+        }
+    }
+    return config;
+}
+
+function loadTransformConfig(config) {
+    $('#transformType').val(config.type).trigger('change');
+    $('#serverSide').prop('checked', config.server_side || false);
+    
+    switch (config.type) {
+        case 'url':
+            $('#urlTemplate').val(config.urlTemplate);
+            $('#urlText').val(config.urlText);
+            break;
+        case 'date':
+            $('#dateFormat').val(config.format);
+            break;
+        case 'number':
+            $('#decimalPlaces').val(config.decimalPlaces);
+            $('#useThousandsSeparator').prop('checked', config.useThousandsSeparator);
+            $('#numberPrefix').val(config.prefix);
+            $('#numberSuffix').val(config.suffix);
+            break;
+        case 'boolean':
+            $('#trueDisplay').val(config.trueDisplay);
+            $('#falseDisplay').val(config.falseDisplay);
+            break;
+        case 'python':
+            $('#pythonExpression').val(config.code);
+            break;
+        case 'regex':
+            $('#regexPattern').val(config.pattern);
+            $('#regexOperation').val(config.match_only ? 'match' : 
+                                   config.extract_group !== undefined ? 'extract' : 'replace')
+                              .trigger('change');
+            $('#regexReplacement').val(config.replacement);
+            $('#regexGroup').val(config.extract_group || 0);
+            $('#regexCaseInsensitive').prop('checked', config.case_insensitive);
+            $('#regexMultiline').prop('checked', config.multiline);
+            break;
+        case 'custom':
+            $('#customTransform').val(config.code);
+            break;
+    }
+}
+
+function resetTransformConfig() {
+    $('#transformType').val('').trigger('change');
+    $('#serverSide').prop('checked', false);
+    $('.transform-input').val('');
+    $('input[type="checkbox"].transform-input').prop('checked', false);
+}
+
+function updateTransformPreview() {
+    var value = $('#transformPreviewInput').val();
+    var type = $('#transformType').val();
+    var preview = value;
+
+    try {
+        if (type) {
+            var config = getTransformConfig();
+            if (config.server_side) {
+                preview = '<em>Server-side transform - preview not available</em>';
+            } else {
+                preview = transformValue(value, config);
+            }
+        }
+        $('#transformPreviewOutput').html(preview);
+    } catch (e) {
+        $('#transformPreviewOutput').html('<span class="text-danger">Error: ' + e.message + '</span>');
+    }
+}
+
+// Main initialization
+$(document).ready(function() {
+    // Set up CSRF token for AJAX requests
+    var csrf_token = $('input[name=csrf_token]').val();
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrf_token);
+            }
+        }
+    });
+
+    // Initialize select2 for roles
+    $('#roles').select2({
+        placeholder: 'Select roles',
+        allowClear: true
+    });
+
+    // Toggle roles selection based on private switch
+    $('#isPrivate').change(function() {
+        $('#rolesGroup').toggle(this.checked);
+    });
+
+    // Toggle transform configuration sections
+    $('#transformType').change(function() {
+        $('.transform-config').hide();
+        var type = $(this).val();
+        if (type) {
+            $('#' + type + 'Config').show();
+            // Show/hide server-side option based on transform type
+            $('#serverSide').closest('.form-check').toggle(
+                ['python', 'regex'].includes(type)
+            );
+            if (['python', 'regex'].includes(type)) {
+                $('#serverSide').prop('checked', true);
+            }
+        }
+        updateTransformPreview();
+    });
+
+    // Toggle regex operation configs
+    $('#regexOperation').change(function() {
+        var op = $(this).val();
+        $('#regexReplaceConfig').toggle(op === 'replace');
+        $('#regexExtractConfig').toggle(op === 'extract');
+        updateTransformPreview();
+    });
+
+    // Live preview for transforms
+    $('.transform-input').on('input change', function() {
+        updateTransformPreview();
+    });
+
+    // Save transform configuration
+    $('#saveTransform').click(function() {
+        var columnIndex = $('#transformColumnIndex').val();
+        var config = getTransformConfig();
+        $('input[name="transform[' + columnIndex + ']"]').val(JSON.stringify(config));
+        
+        // Update preview cell
+        var value = $('#transformPreviewInput').val();
+        var preview = config.type && !config.server_side ? transformValue(value, config) : value;
+        $('#columnList tr:eq(' + columnIndex + ') .preview-cell').html(preview);
+        
+        $('#transformModal').modal('hide');
+    });
+
+    // Test query functionality
+    $('#testQuery').click(function() {
+        var data = {
+            database_id: $('#database').val(),
+            query: $('#query').val()
+        };
+
+        if (!data.database_id || !data.query) {
+            alert('Please select a database and enter a query');
+            return;
+        }
+
+        $.ajax({
+            url: '/reports/api/test-query',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(result) {
+                updateColumnList(result.columns, result.sample_data);
+                updatePreviewTable([result.sample_data]);
+            },
+            error: function(xhr) {
+                alert('Error testing query: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));
+            }
+        });
+    });
+
+    // Form submission
+    $('#editViewForm').submit(function(e) {
+        e.preventDefault();
+
+        // Gather column configuration
+        var columnConfig = [];
+        $('#columnList tr').each(function(index) {
+            var transform = $('input[name="transform[' + index + ']"]').val();
+            columnConfig.push({
+                original: $(this).find('td:first').text(),
+                display: $('input[name="headers[' + index + ']"]').val(),
+                visible: $('input[name="visible[' + index + ']"]').is(':checked'),
+                sortable: $('input[name="sortable[' + index + ']"]').is(':checked'),
+                searchable: $('input[name="searchable[' + index + ']"]').is(':checked'),
+                transform: transform ? JSON.parse(transform) : null
+            });
+        });
+
+        var data = {
+            title: $('#title').val(),
+            description: $('#description').val(),
+            database_id: $('#database').val(),
+            query: $('#query').val(),
+            column_config: columnConfig,
+            is_private: $('#isPrivate').is(':checked'),
+            roles: $('#isPrivate').is(':checked') ? $('#roles').val() : []
+        };
+
+        $.ajax({
+            url: '{{ url_for("reports.edit_view", view_id=view.id) }}',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                window.location.href = '{{ url_for("reports.index") }}';
+            },
+            error: function(xhr) {
+                alert('Error updating view: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));
+            }
+        });
+    });
+
+    // Initialize column configuration if it exists
+    var initialConfig = {{ view.column_config|tojson|safe }};
+    if (initialConfig && initialConfig.length > 0) {
+        var sampleData = {};
+        initialConfig.forEach(function(col) {
+            sampleData[col.original] = '';
+        });
+        updateColumnList(
+            initialConfig.map(function(col) { return col.original; }),
+            sampleData
+        );
+        initialConfig.forEach(function(col, index) {
+            $('input[name="headers[' + index + ']"]').val(col.display);
+            $('input[name="visible[' + index + ']"]').prop('checked', col.visible !== false);
+            $('input[name="sortable[' + index + ']"]').prop('checked', col.sortable !== false);
+            $('input[name="searchable[' + index + ']"]').prop('checked', col.searchable !== false);
+            if (col.transform) {
+                $('input[name="transform[' + index + ']"]').val(JSON.stringify(col.transform));
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

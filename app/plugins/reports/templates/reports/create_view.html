@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Create Report View</h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <form id="createViewForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <!-- Top Row: Title and Description -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="title">View Title</label>
+                        <input type="text" class="form-control" id="title" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" class="form-control" id="description">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="row">
+                <!-- Left Side: Query Builder -->
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Query Builder</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="database">Database Connection</label>
+                                <select class="form-control" id="database" required>
+                                    <option value="">Select Database</option>
+                                    {% for db in databases %}
+                                    <option value="{{ db.id }}">{{ db.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Database Structure</label>
+                                <div id="dbStructure" class="border p-3" style="max-height: 200px; overflow-y: auto;">
+                                    <p class="text-muted">Select a database to view its structure</p>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="query">SQL Query</label>
+                                <textarea class="form-control" id="query" rows="5" required></textarea>
+                            </div>
+                            
+                            <button type="button" class="btn btn-info" id="testQuery">
+                                <i class="fas fa-vial"></i> Test Query
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Side: Column Configuration -->
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Column Configuration</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="columnTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>Display Name</th>
+                                            <th style="width: 100px">Visible</th>
+                                            <th style="width: 100px">Sort</th>
+                                            <th style="width: 100px">Search</th>
+                                            <th style="width: 120px">Transform</th>
+                                            <th style="width: 100px">Preview</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="columnList">
+                                        <!-- Columns will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Row: Preview -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Live Preview</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="previewTable" class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr id="previewHeaders">
+                                            <!-- Headers will be populated dynamically -->
+                                        </tr>
+                                    </thead>
+                                    <tbody id="previewData">
+                                        <!-- Data will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Controls -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Access Control</label>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="isPrivate">
+                            <label class="custom-control-label" for="isPrivate">Make Private</label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="rolesGroup" style="display: none;">
+                        <label>Assign Roles</label>
+                        <select class="form-control" id="roles" multiple>
+                            {% for role in current_user.roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6 text-right">
+                    <button type="submit" class="btn btn-primary btn-lg">Create View</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- Include Transform Modal -->
+{% include 'reports/_transform_modal.html' %}
+{% endblock %}
+
+{% block scripts %}
+<!-- Include create_view.js -->
+<script src="{{ url_for('reports.static', filename='js/create_view.js') }}"></script>
+{% endblock %}

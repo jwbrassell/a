@@ -1,9 +1,74 @@
-Fixed task and project todo management + documentation:
-- Fixed task edit functionality and save button
-- Separated task todos from project todos
-- Removed sub tasks section
-- Fixed todo operations in both task and project contexts
-- Added comprehensive documentation:
-  - README.md with features and setup
-  - ARCHITECTURE.md with technical design
-  - CONTRIBUTING.md with development guidelines
+feat(reports): Enhanced reports plugin with advanced filtering and improved editing
+
+Added advanced filtering capabilities and improved the report editing experience:
+
+Key Features:
+- Added column-specific filtering like handoffs plugin
+- Added collapsible table view for all reports
+- Made report cards fully clickable
+- Added search box for filtering reports by title/description
+- Added breadcrumbs throughout reports plugin
+- Enhanced report editing functionality
+
+Filtering Improvements:
+- Individual column filters that work together (AND logic)
+- Real-time filtering with DataTables
+- Filter persistence in URL parameters
+- Fixed header for better scrolling
+- Works with all data types (text, dates, numbers)
+
+Report Editing Enhancements:
+- Improved column configuration interface
+- Real-time preview of data transformations
+- Better validation and error handling
+- Proper CSRF token handling
+- Shared JavaScript utilities
+
+Technical Details:
+1. Added column filters to report views:
+```html
+<tr class="filters">
+    <th>
+        <input type="text" class="form-control form-control-sm column-filter" 
+               placeholder="Search {{ col.display }}"
+               data-column="{{ loop.index0 }}">
+    </th>
+</tr>
+```
+
+2. Enhanced DataTables configuration:
+```javascript
+orderCellsTop: true,
+fixedHeader: true,
+initComplete: function() {
+    api.columns().every(function() {
+        var column = this;
+        $('.column-filter').on('keyup change', function() {
+            column.search(this.value).draw();
+        });
+    });
+}
+```
+
+3. Added URL parameter persistence:
+- Filters are saved in URL parameters
+- Filters are restored on page load
+- URL updates when filters change
+
+4. Improved JavaScript organization:
+- Moved shared functions to report_utils.js
+- Used ES5 syntax for compatibility
+- Better error handling
+- Proper event handling
+
+Testing:
+1. View any report and verify column filters work
+2. Test filters work together (AND logic)
+3. Refresh page to verify filter persistence
+4. Edit a report and test all functionality
+5. Verify breadcrumbs navigation works
+6. Test on different screen sizes
+
+Note: This update significantly improves the usability of the reports plugin,
+making it easier to find and filter data while providing a more robust
+editing experience.
