@@ -53,36 +53,43 @@
                 </div>
               </div>
 
-              <!-- Todo List Card -->
+              <!-- Task Todo List Card -->
               <div class="card bg-dark mb-4">
                 <div class="card-header">
                   <h5 class="card-title mb-0">
                     <i class="fas fa-check-square me-1"></i>
-                    Todo List
+                    Task Todo List
                   </h5>
                 </div>
                 <div class="card-body p-0">
-                  {% include 'projects/todos/_list.html' %}
-                </div>
-              </div>
-
-              <!-- Sub Tasks Card -->
-              <div class="card bg-dark mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                  <h5 class="card-title mb-0">
-                    <i class="fas fa-tasks me-1"></i>
-                    Sub Tasks
-                  </h5>
-                  {% if not readonly %}
-                  <button type="button" class="btn btn-primary btn-sm" id="addSubTaskBtn">
-                    <i class="fas fa-plus"></i> Add Sub Task
-                  </button>
-                  {% endif %}
-                </div>
-                <div class="card-body">
-                  <div id="subTasksList">
-                    <!-- Sub tasks will be dynamically added here -->
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th style="width: 10px">#</th>
+                          <th>Description</th>
+                          <th style="width: 100px">Due</th>
+                          {% if not readonly %}
+                          <th style="width: 50px">Actions</th>
+                          {% endif %}
+                        </tr>
+                      </thead>
+                      <tbody id="taskTodoList">
+                        <tr>
+                          <td colspan="{% if readonly %}3{% else %}4{% endif %}" class="text-center text-muted">
+                            No todo items found.
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
+                  {% if not readonly %}
+                  <div class="card-footer text-end bg-transparent">
+                    <button type="button" class="btn btn-primary btn-sm" id="addTaskTodoBtn">
+                      <i class="fas fa-plus me-1"></i>Add Todo
+                    </button>
+                  </div>
+                  {% endif %}
                 </div>
               </div>
 
@@ -95,14 +102,14 @@
                   </h5>
                 </div>
                 <div class="card-body">
-                  <div class="direct-chat-messages" id="commentsList">
+                  <div class="direct-chat-messages" id="taskCommentsList">
                     <!-- Comments will be dynamically loaded here -->
                   </div>
                   {% if not readonly %}
                   <div class="input-group mt-3">
                     <input type="text" class="form-control bg-dark text-light border-secondary" 
-                           id="commentInput" placeholder="Type your comment...">
-                    <button class="btn btn-primary" type="button" onclick="addComment()">
+                           id="taskCommentInput" placeholder="Type your comment...">
+                    <button class="btn btn-primary" type="button" id="addTaskCommentBtn">
                       <i class="fas fa-paper-plane"></i>
                     </button>
                   </div>
@@ -129,7 +136,7 @@
                           <th>Details</th>
                         </tr>
                       </thead>
-                      <tbody id="historyList">
+                      <tbody id="taskHistoryList">
                         <!-- History items will be dynamically loaded here -->
                       </tbody>
                     </table>
@@ -270,5 +277,6 @@
 
 <!-- Initialize project ID for JavaScript -->
 <script>
-window.projectId = {{ project.id|tojson|safe if project else 'null' }};
+window.APP = window.APP || {};
+window.APP.projectId = {{ project.id|tojson|safe if project else 'null' }};
 </script>

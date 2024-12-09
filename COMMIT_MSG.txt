@@ -1,14 +1,6 @@
-refactor(projects): reorganize route imports to prevent conflicts
-
-- Remove duplicate view_project route definitions
-- Organize route imports in a hierarchical structure:
-  1. Core project routes (crud, team, todos)
-  2. Task-specific routes (crud, dependencies, ordering)
-  3. Supporting feature routes (comments, subtasks)
-- Add detailed documentation explaining route organization
-- Fix task creation by ensuring proper route registration
-- Maintain separation of concerns between route modules
-
-This change resolves route conflicts and provides a clearer structure
-for the project plugin's routing system, making it easier to maintain
-and extend in the future.
+Fixed task and project todo management:
+- Fixed task edit functionality and save button
+- Separated task todos from project todos
+- Removed sub tasks section
+- Fixed todo operations in both task and project contexts
+- Improved form handling and error feedback

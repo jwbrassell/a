@@ -51,13 +51,16 @@ def track_project_changes(project, data):
     
     return changes
 
-def validate_project_data(data):
+def validate_project_data(data, is_update=False):
     """Validate project data before creation/update"""
     errors = []
     
-    # Required fields
-    if not data.get('name'):
-        errors.append('Project name is required')
+    # Only check required fields for creation or if explicitly updating them
+    if not is_update:
+        if not data.get('name'):
+            errors.append('Project name is required')
+    elif 'name' in data and not data['name']:
+        errors.append('Project name cannot be empty')
     
     # Percent complete validation
     if 'percent_complete' in data:

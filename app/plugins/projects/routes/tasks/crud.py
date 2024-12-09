@@ -5,9 +5,10 @@ from flask_login import login_required, current_user
 from app.utils.rbac import requires_roles
 from app.utils.activity_tracking import track_activity
 from app.extensions import db
-from ...models import Project, Task, ProjectStatus, ProjectPriority, ValidationError, History, Todo
+from ...models import Project, Task, ProjectStatus, ProjectPriority, ValidationError, History, Todo, Comment
 from app.plugins.projects import bp
 from datetime import datetime
+import json
 from .utils import (
     serialize_date,
     log_task_activity,
@@ -36,6 +37,8 @@ def create_task(project_id):
     project = Project.query.get_or_404(project_id)
     data = request.get_json()
     
+    print("CREATE TASK - Received data:", json.dumps(data, indent=2))
+    
     # Validate task data
     errors = validate_task_data(data)
     if errors:
@@ -59,7 +62,6 @@ def create_task(project_id):
             due_date=datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data.get('due_date') else None,
             assigned_to_id=data.get('assigned_to_id'),
             project_id=project_id,
-            parent_id=data.get('parent_id'),
             position=data.get('position', 0),
             list_position=data.get('list_position', 'todo')
         )
@@ -88,17 +90,19 @@ def create_task(project_id):
         db.session.add(history)
         
         # Add todos if provided
+        print("CREATE TASK - Processing todos:", json.dumps(data.get('todos', []), indent=2))
         if data.get('todos'):
             for todo_data in data['todos']:
-                todo = Todo(
-                    description=todo_data['description'],
-                    completed=todo_data.get('completed', False),
-                    due_date=datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date() if todo_data.get('due_date') else None,
-                    task_id=task.id,
-                    project_id=project_id,
-                    assigned_to_id=todo_data.get('assigned_to_id')
-                )
-                db.session.add(todo)
+                if todo_data.get('description'):  # Only add todos with descriptions
+                    todo = Todo(
+                        description=todo_data['description'],
+                        completed=todo_data.get('completed', False),
+                        due_date=datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date() if todo_data.get('due_date') else None,
+                        task_id=task.id,  # Only set task_id for task todos
+                        assigned_to_id=todo_data.get('assigned_to_id')
+                    )
+                    print(f"CREATE TASK - Adding todo: {todo.description}")
+                    db.session.add(todo)
         
         # Log activity
         log_task_activity(current_user.id, current_user.username, "Created", task.name)
@@ -106,10 +110,13 @@ def create_task(project_id):
         # Commit changes
         db.session.commit()
         
+        task_dict = task.to_dict()
+        print("CREATE TASK - Task created:", json.dumps(task_dict, indent=2))
+        
         return jsonify({
             'success': True,
             'message': 'Task created successfully',
-            'task': task.to_dict()
+            'task': task_dict
         })
         
     except ValidationError as e:
@@ -119,6 +126,7 @@ def create_task(project_id):
             'message': str(e)
         }), 400
     except Exception as e:
+        print("CREATE TASK - Error:", str(e))
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -131,10 +139,61 @@ def create_task(project_id):
 def get_task(task_id):
     """Get a specific task"""
     task = Task.query.get_or_404(task_id)
+    task_dict = task.to_dict()
+    print("GET TASK - Task data:", json.dumps(task_dict, indent=2))
     return jsonify({
         'success': True,
-        'task': task.to_dict()
+        'task': task_dict
     })
+
+@bp.route('/task/<int:task_id>/comment', methods=['POST'])
+@login_required
+@requires_roles('user')
+def add_task_comment(task_id):
+    """Add a comment to a task"""
+    task = Task.query.get_or_404(task_id)
+    data = request.get_json()
+    
+    if not data.get('content'):
+        return jsonify({
+            'success': False,
+            'message': 'Comment content is required'
+        }), 400
+    
+    try:
+        comment = Comment(
+            content=data['content'],
+            user_id=current_user.id,
+            task_id=task_id
+        )
+        db.session.add(comment)
+        
+        # Create history entry
+        history = History(
+            entity_type='task',
+            action='commented',
+            user_id=current_user.id,
+            project_id=task.project_id,
+            task_id=task.id,
+            details={'comment': data['content']}
+        )
+        db.session.add(history)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Comment added successfully',
+            'comment': comment.to_dict()
+        })
+        
+    except Exception as e:
+        print("ADD COMMENT - Error:", str(e))
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error adding comment: {str(e)}'
+        }), 500
 
 @bp.route('/task/<int:task_id>', methods=['PUT'])
 @login_required
@@ -145,6 +204,8 @@ def update_task(task_id):
     task = Task.query.get_or_404(task_id)
     data = request.get_json()
     
+    print("UPDATE TASK - Received data:", json.dumps(data, indent=2))
+    
     # Validate task data
     errors = validate_task_data(data)
     if errors:
@@ -154,34 +215,97 @@ def update_task(task_id):
         }), 400
     
     try:
-        # Track changes
-        changes = track_task_changes(task, data)
+        # Get status and priority objects
+        if data.get('status'):
+            status = ProjectStatus.query.filter_by(name=data['status']).first()
+            task.status_id = status.id if status else None
+            
+        if data.get('priority'):
+            priority = ProjectPriority.query.filter_by(name=data['priority']).first()
+            task.priority_id = priority.id if priority else None
         
-        if changes:
-            # Update task fields
-            for field, change in changes.items():
-                setattr(task, field, change['new'])
+        # Update basic fields
+        task.name = data.get('name', task.name)
+        task.summary = data.get('summary', task.summary)
+        task.description = data.get('description', task.description)
+        task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data.get('due_date') else None
+        task.assigned_to_id = data.get('assigned_to_id')
+        task.position = data.get('position', task.position)
+        task.list_position = data.get('list_position', task.list_position)
+        
+        # Create history entry
+        history = History(
+            entity_type='task',
+            action='updated',
+            user_id=current_user.id,
+            project_id=task.project_id,
+            task_id=task.id,
+            details=track_task_changes(task, data)
+        )
+        db.session.add(history)
+        
+        # Handle deleted todos first
+        if data.get('deleted_todos'):
+            print("Processing deleted todos:", data['deleted_todos'])
+            Todo.query.filter(Todo.id.in_(data['deleted_todos']), Todo.task_id == task.id).delete(synchronize_session=False)
+        
+        # Update todos
+        print("UPDATE TASK - Processing todos:", json.dumps(data.get('todos', []), indent=2))
+        if data.get('todos') is not None:
+            # Get existing todos for comparison
+            existing_todos = Todo.query.filter_by(task_id=task.id).all()
+            print(f"UPDATE TASK - Existing todos: {[t.description for t in existing_todos]}")
             
-            # Create history entry
-            history = History(
-                entity_type='task',
-                action='updated',
-                user_id=current_user.id,
-                project_id=task.project_id,
-                task_id=task.id,
-                details=changes
-            )
-            db.session.add(history)
+            # Delete existing todos that weren't in the update
+            existing_todo_ids = {str(todo.id) for todo in existing_todos}
+            updated_todo_ids = {str(todo.get('id')) for todo in data['todos'] if todo.get('id')}
+            todos_to_delete = existing_todo_ids - updated_todo_ids - set(data.get('deleted_todos', []))
+            if todos_to_delete:
+                Todo.query.filter(Todo.id.in_(todos_to_delete), Todo.task_id == task.id).delete(synchronize_session=False)
             
-            # Log activity
-            log_task_activity(current_user.id, current_user.username, "Updated", task.name)
-            
-            db.session.commit()
+            # Update or create todos
+            for todo_data in data['todos']:
+                if not todo_data.get('description'):  # Skip todos without descriptions
+                    continue
+                
+                todo_id = todo_data.get('id')
+                if todo_id and str(todo_id) in existing_todo_ids:
+                    # Update existing todo
+                    todo = Todo.query.get(todo_id)
+                    if todo and todo.task_id == task.id:  # Only update if it belongs to this task
+                        todo.description = todo_data['description']
+                        todo.completed = todo_data.get('completed', False)
+                        if todo_data.get('due_date'):
+                            try:
+                                todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
+                            except ValueError:
+                                print(f"Invalid date format for todo: {todo_data['due_date']}")
+                        else:
+                            todo.due_date = None
+                else:
+                    # Create new todo
+                    todo = Todo(
+                        description=todo_data['description'],
+                        completed=todo_data.get('completed', False),
+                        due_date=datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date() if todo_data.get('due_date') else None,
+                        task_id=task.id,  # Only set task_id for task todos
+                        assigned_to_id=todo_data.get('assigned_to_id')
+                    )
+                    print(f"UPDATE TASK - Adding todo: {todo.description}")
+                    db.session.add(todo)
+        
+        # Log activity
+        log_task_activity(current_user.id, current_user.username, "Updated", task.name)
+        
+        db.session.commit()
+        
+        task_dict = task.to_dict()
+        print("UPDATE TASK - Task updated:", json.dumps(task_dict, indent=2))
         
         return jsonify({
             'success': True,
             'message': 'Task updated successfully',
-            'task': task.to_dict()
+            'task': task_dict
         })
         
     except ValidationError as e:
@@ -191,6 +315,7 @@ def update_task(task_id):
             'message': str(e)
         }), 400
     except Exception as e:
+        print("UPDATE TASK - Error:", str(e))
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -229,6 +354,7 @@ def delete_task(task_id):
         })
         
     except Exception as e:
+        print("DELETE TASK - Error:", str(e))
         db.session.rollback()
         return jsonify({
             'success': False,

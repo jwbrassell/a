@@ -6,6 +6,7 @@ from app.utils.rbac import requires_roles
 from app.utils.activity_tracking import track_activity
 from app.extensions import db
 from sqlalchemy import or_
+from datetime import datetime
 from app.plugins.projects import bp
 from ...models import Project, ProjectStatus, ProjectPriority, Todo, User, Role
 from .utils import (
@@ -89,9 +90,10 @@ def create_project():
 def create_project_post():
     """Create a new project"""
     data = request.get_json()
+    print("Create project data:", data)  # Debug log
     
-    # Validate project data
-    errors = validate_project_data(data)
+    # Validate project data for creation
+    errors = validate_project_data(data, is_update=False)
     if errors:
         return jsonify({
             'success': False,
@@ -122,36 +124,45 @@ def create_project_post():
             is_private=data.get('is_private', False)
         )
         
-        # Add watchers
+        # Add watchers if provided
         if data.get('watchers'):
             watchers = User.query.filter(User.id.in_(data['watchers'])).all()
             project.watchers.extend(watchers)
             
-        # Add stakeholders
+        # Add stakeholders if provided
         if data.get('stakeholders'):
             stakeholders = User.query.filter(User.id.in_(data['stakeholders'])).all()
             project.stakeholders.extend(stakeholders)
             
-        # Add shareholders
+        # Add shareholders if provided
         if data.get('shareholders'):
             shareholders = User.query.filter(User.id.in_(data['shareholders'])).all()
             project.shareholders.extend(shareholders)
             
-        # Add roles
+        # Add roles if provided
         if data.get('roles'):
             roles = Role.query.filter(Role.name.in_(data['roles'])).all()
             project.roles.extend(roles)
         
-        # Add todos
+        # Add todos if provided
         if data.get('todos'):
             for todo_data in data['todos']:
-                todo = Todo(
-                    description=todo_data['description'],
-                    completed=todo_data.get('completed', False),
-                    due_date=todo_data.get('due_date'),
-                    order=todo_data.get('order', 0)
-                )
-                project.todos.append(todo)
+                if todo_data.get('description'):  # Only add todos with descriptions
+                    # Convert date string to Python date object if provided
+                    due_date = None
+                    if todo_data.get('due_date'):
+                        try:
+                            due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
+                        except ValueError:
+                            print(f"Invalid date format for todo: {todo_data['due_date']}")
+                    
+                    todo = Todo(
+                        description=todo_data['description'],
+                        completed=todo_data.get('completed', False),
+                        due_date=due_date,
+                        sort_order=todo_data.get('sort_order', 0)
+                    )
+                    project.todos.append(todo)
         
         # Create history entry
         create_project_history(project, 'created', current_user.id)
@@ -169,6 +180,7 @@ def create_project_post():
         })
         
     except Exception as e:
+        print(f"Error creating project: {str(e)}")  # Debug log
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -263,9 +275,10 @@ def update_project(project_id):
         }), 403
     
     data = request.get_json()
+    print("Update project data:", data)  # Debug log
     
-    # Validate project data
-    errors = validate_project_data(data)
+    # Validate project data with is_update=True
+    errors = validate_project_data(data, is_update=True)
     if errors:
         return jsonify({
             'success': False,
@@ -273,21 +286,106 @@ def update_project(project_id):
         }), 400
     
     try:
-        # Track changes
-        changes = track_project_changes(project, data)
+        # Update basic fields if provided
+        if 'name' in data:
+            project.name = data['name']
+        if 'summary' in data:
+            project.summary = data.get('summary', '')
+        if 'description' in data:
+            project.description = data.get('description', '')
+        if 'status' in data:
+            project.status = data['status']
+        if 'priority' in data:
+            project.priority = data['priority']
+        if 'icon' in data:
+            project.icon = data.get('icon')
+        if 'is_private' in data:
+            project.is_private = data.get('is_private', False)
+        if 'percent_complete' in data:
+            project.percent_complete = data.get('percent_complete', 0)
         
+        # Update relationships if provided
+        if 'watchers' in data:
+            project.watchers = User.query.filter(User.id.in_(data['watchers'])).all()
+        if 'stakeholders' in data:
+            project.stakeholders = User.query.filter(User.id.in_(data['stakeholders'])).all()
+        if 'shareholders' in data:
+            project.shareholders = User.query.filter(User.id.in_(data['shareholders'])).all()
+        if 'roles' in data:
+            project.roles = Role.query.filter(Role.name.in_(data['roles'])).all()
+        
+        # Handle deleted todos first
+        if 'deleted_todos' in data:
+            print("Processing deleted todos:", data['deleted_todos'])
+            for todo_id in data['deleted_todos']:
+                Todo.query.filter_by(id=todo_id, project_id=project.id).delete()
+        
+        # Update remaining todos if provided
+        if 'todos' in data:
+            print("Processing todos:", data['todos'])
+            
+            # Get existing todo IDs
+            existing_todo_ids = {str(todo.id) for todo in Todo.query.filter_by(project_id=project.id, task_id=None).all()}
+            print("Existing todo IDs:", existing_todo_ids)
+            
+            # Track which todos we've processed
+            processed_todo_ids = set()
+            
+            # Update or create todos
+            for todo_data in data['todos']:
+                if not todo_data.get('description'):  # Skip todos without descriptions
+                    continue
+                    
+                todo_id = str(todo_data.get('id'))
+                if todo_id and todo_id in existing_todo_ids:
+                    # Update existing todo
+                    todo = Todo.query.get(todo_id)
+                    if todo:
+                        todo.description = todo_data['description']
+                        todo.completed = todo_data.get('completed', False)
+                        if todo_data.get('due_date'):
+                            try:
+                                todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
+                            except ValueError:
+                                print(f"Invalid date format for todo: {todo_data['due_date']}")
+                        else:
+                            todo.due_date = None
+                        todo.sort_order = todo_data.get('sort_order', 0)
+                        processed_todo_ids.add(todo_id)
+                else:
+                    # Create new todo
+                    due_date = None
+                    if todo_data.get('due_date'):
+                        try:
+                            due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
+                        except ValueError:
+                            print(f"Invalid date format for todo: {todo_data['due_date']}")
+                    
+                    todo = Todo(
+                        description=todo_data['description'],
+                        completed=todo_data.get('completed', False),
+                        due_date=due_date,
+                        project_id=project.id,
+                        task_id=None,  # Explicitly set task_id to None
+                        sort_order=todo_data.get('sort_order', 0)
+                    )
+                    print(f"Adding project todo: {todo.description}, due: {todo.due_date}")
+                    db.session.add(todo)
+            
+            # Delete any remaining todos that weren't processed
+            unprocessed_ids = existing_todo_ids - processed_todo_ids
+            if unprocessed_ids:
+                print("Deleting unprocessed todos:", unprocessed_ids)
+                Todo.query.filter(Todo.id.in_(unprocessed_ids)).delete(synchronize_session=False)
+        
+        # Create history entry
+        changes = track_project_changes(project, data)
         if changes:
-            # Update project fields
-            for field, change in changes.items():
-                setattr(project, field, change['new'])
-            
-            # Create history entry
             create_project_history(project, 'updated', current_user.id, changes)
-            
-            # Log activity
             log_project_activity(current_user.id, current_user.username, "Updated", project.name)
-            
-            db.session.commit()
+        
+        db.session.commit()
+        print("Changes committed successfully")  # Debug log
         
         return jsonify({
             'success': True,
@@ -296,6 +394,7 @@ def update_project(project_id):
         })
         
     except Exception as e:
+        print(f"Error updating project: {str(e)}")  # Debug log
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -333,6 +432,7 @@ def delete_project(project_id):
         })
         
     except Exception as e:
+        print(f"Error deleting project: {str(e)}")  # Debug log
         db.session.rollback()
         return jsonify({
             'success': False,

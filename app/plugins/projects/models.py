@@ -270,7 +270,8 @@ class Task(db.Model):
             'dependencies': [{'id': t.id, 'name': t.name} for t in self.dependencies],
             'dependent_tasks': [{'id': t.id, 'name': t.name} for t in self.dependent_tasks],
             'history': [h.to_dict() for h in self.history],
-            'comments': [c.to_dict() for c in self.comments]
+            'comments': [c.to_dict() for c in self.comments],
+            'todos': [todo.to_dict() for todo in self.todos]  # Added this line
         }
 
 class Todo(db.Model):
