@@ -1,40 +1,19 @@
-fix: standardize project plugin routes and breadcrumbs
+feat: Improve deployment and setup process
 
-This commit fixes issues with the projects plugin routes and breadcrumbs by:
+- Add setup.py script for one-command initialization
+- Update .gitignore to exclude database files but keep static files
+- Update README with simplified setup instructions
+- Fix RBAC logic to ensure admin role has full access
+- Update default admin credentials (admin/test123)
+- Add proper route mappings for all plugins
+- Consolidate database initialization into single script
 
-1. Added created_by columns to project-related tables:
-   - project_status
-   - project_priority
-   - project
-   - task
-   - todo
-   - comment
-   - history
+This commit makes the application ready for first-time deployment by:
+1. Simplifying the setup process to a single command
+2. Ensuring proper file tracking in git
+3. Fixing role-based access control for admin users
+4. Providing clear documentation for new users
 
-2. Standardized breadcrumb implementation:
-   - Removed custom breadcrumb implementations from templates
-   - Ensured all plugins use NavigationManager for consistent breadcrumbs
-
-3. Fixed project route registration:
-   - Created register_project_routes.py to properly register routes
-   - Cleaned up duplicate route mappings
-   - Converted URL paths to endpoint format:
-     * projects.index -> Projects
-     * projects.create_project -> Create Project
-     * projects.list_projects -> Project List
-
-4. Added utility scripts:
-   - add_created_by_columns.py: Adds required columns to tables
-   - cleanup_project_routes.py: Removes duplicate route mappings
-   - register_project_routes.py: Registers routes in proper format
-
-These changes ensure:
-- Consistent breadcrumb navigation across all plugins
-- Proper route registration in PageRouteMapping table
-- Correct database schema with required columns
-- Clean route mappings without duplicates
-
-Testing:
-- Verified all project routes appear in navigation
-- Confirmed breadcrumbs work consistently
-- Validated database schema changes
+Breaking Changes:
+- Changed default admin password from 'admin' to 'test123'
+- Removed multiple initialization scripts in favor of setup.py
