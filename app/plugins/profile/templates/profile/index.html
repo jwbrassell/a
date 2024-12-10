@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Profile Settings</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Current Avatar Display -->
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename=avatar) }}" 
+                             class="img-circle elevation-2" 
+                             alt="User Avatar"
+                             style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover;">
+                    </div>
+
+                    <!-- Upload New Avatar -->
+                    <form action="{{ url_for('profile.index') }}" method="POST" enctype="multipart/form-data" class="mb-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            <label>Upload Custom Avatar (PNG/JPG, max 1MB)</label>
+                            <div class="input-group">
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" name="avatar" accept=".png,.jpg,.jpeg">
+                                    <label class="custom-file-label">Choose file</label>
+                                </div>
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-primary">Upload</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Default Avatars -->
+                    <div class="mb-4">
+                        <h5>Select Default Avatar</h5>
+                        <div class="row">
+                            {% for default_avatar in default_avatars %}
+                            <div class="col-3 mb-3">
+                                <form action="{{ url_for('profile.index') }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="default_avatar" value="{{ default_avatar }}">
+                                    <button type="submit" class="btn p-0" style="border: none; background: none;">
+                                        <img src="{{ url_for('static', filename='images/' + default_avatar) }}" 
+                                             class="img-circle elevation-2" 
+                                             alt="Default Avatar"
+                                             style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                                    </button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Theme Selection -->
+                    <form action="{{ url_for('profile.index') }}" method="POST" class="mb-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            <label>Theme Preference</label>
+                            <select name="theme" class="form-control" onchange="this.form.submit()">
+                                <option value="light" {% if theme == 'light' %}selected{% endif %}>Light</option>
+                                <option value="dark" {% if theme == 'dark' %}selected{% endif %}>Dark</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update file input label with selected filename
+document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+    var fileName = e.target.files[0].name;
+    var nextSibling = e.target.nextElementSibling;
+    nextSibling.innerText = fileName;
+});
+</script>
+{% endblock %}

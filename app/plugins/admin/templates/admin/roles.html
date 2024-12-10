@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Role Management{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Roles</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-users-cog mr-2"></i>Roles
+        </h3>
+        <div class="card-tools">
+            <a href="{{ url_for('admin.users') }}" class="btn btn-info btn-sm mr-2">
+                <i class="fas fa-users mr-1"></i>Manage Users
+            </a>
+            <a href="{{ url_for('admin.new_role') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus mr-1"></i>New Role
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="roles-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Icon</th>
+                        <th>Notes</th>
+                        <th>Members</th>
+                        <th>Created By</th>
+                        <th>Created At</th>
+                        <th>Updated By</th>
+                        <th>Updated At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for role in roles %}
+                    <tr>
+                        <td>{{ role.name }}</td>
+                        <td><i class="fas {{ role.icon }}"></i></td>
+                        <td>{{ role.notes or '' }}</td>
+                        <td>{{ role.users|length }}</td>
+                        <td>{{ role.created_by }}</td>
+                        <td>{{ role.created_at|datetime }}</td>
+                        <td>{{ role.updated_by or '' }}</td>
+                        <td>{{ role.updated_at|datetime if role.updated_at }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('admin.role_members', role_id=role.id) }}" 
+                                   class="btn btn-success btn-sm" title="View Members">
+                                    <i class="fas fa-users"></i>
+                                </a>
+                                <a href="{{ url_for('admin.edit_role', id=role.id) }}" 
+                                   class="btn btn-info btn-sm" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-danger btn-sm" 
+                                        onclick="confirmDelete('{{ role.id }}', '{{ role.name }}')"
+                                        title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <form id="delete-form-{{ role.id }}" 
+                                  action="{{ url_for('admin.delete_role', id=role.id) }}" 
+                                  method="POST" style="display: none;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#roles-table').DataTable({
+        "order": [[5, "desc"]],  // Sort by created_at by default
+        "pageLength": 10,
+        "language": {
+            "search": "Search roles:"
+        }
+    });
+});
+
+function confirmDelete(id, name) {
+    Swal.fire({
+        title: 'Delete Role?',
+        text: `Are you sure you want to delete the role "${name}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById(`delete-form-${id}`).submit();
+        }
+    });
+}
+</script>
+{% endblock %}

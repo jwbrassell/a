@@ -1,0 +1,103 @@
+<div class="direct-chat-messages mb-4">
+  {% set comments = task.comments if task is defined else project.comments %}
+  {% for comment in comments %}
+  <div class="direct-chat-msg {% if comment.user_id == current_user.id %}right{% endif %}" id="comment-{{ comment.id }}">
+    <div class="direct-chat-infos clearfix">
+      <span class="direct-chat-name float-{% if comment.user_id == current_user.id %}end{% else %}start{% endif %}">
+        {{ comment.user.username }}
+      </span>
+      <span class="direct-chat-timestamp float-{% if comment.user_id == current_user.id %}start{% else %}end{% endif %}">
+        {{ comment.created_at.strftime('%d %b %I:%M %p') }}
+      </span>
+    </div>
+    <img class="direct-chat-img" src="{{ url_for('static', filename=comment.user.get_preference('avatar', 'images/user_1.jpg')) }}" alt="message user image">
+    <div class="direct-chat-text">
+      {{ comment.content|safe }}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<form id="comment-form" class="mt-3">
+  <div class="input-group">
+    <textarea id="comment-message" name="content" class="form-control" rows="2" 
+              placeholder="Type your comment..." maxlength="300"></textarea>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </div>
+  <small class="text-muted float-end mt-1">
+    <span id="char-count">0</span>/300 characters
+  </small>
+</form>
+
+<style>
+.direct-chat-messages {
+    height: 400px;
+    padding: 10px;
+    overflow-y: auto;
+    background-color: var(--bs-light);
+    border-radius: 4px;
+    border: 1px solid var(--bs-border-color);
+}
+
+.direct-chat-msg {
+    margin-bottom: 1rem;
+}
+
+.direct-chat-msg.right .direct-chat-text {
+    margin-right: 50px;
+    margin-left: 0;
+    background-color: var(--bs-primary);
+    color: #fff;
+}
+
+.direct-chat-text {
+    border-radius: 0.5rem;
+    background-color: #fff;
+    border: 1px solid var(--bs-border-color);
+    padding: 0.75rem 1rem;
+    margin-left: 50px;
+    margin-right: 0;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    white-space: pre-wrap;
+}
+
+.direct-chat-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    float: left;
+    object-fit: cover;
+}
+
+.right .direct-chat-img {
+    float: right;
+}
+
+.direct-chat-infos {
+    margin-bottom: 0.25rem;
+}
+
+.direct-chat-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.direct-chat-timestamp {
+    color: var(--bs-secondary);
+    font-size: 0.75rem;
+}
+
+/* Dark mode adjustments */
+[data-bs-theme="dark"] .direct-chat-text {
+    background-color: var(--bs-dark);
+    border-color: var(--bs-border-color-translucent);
+}
+
+[data-bs-theme="dark"] .direct-chat-messages {
+    background-color: var(--bs-dark);
+    border-color: var(--bs-border-color-translucent);
+}
+</style>

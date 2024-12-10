@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html data-bs-theme="{% if current_user.is_authenticated %}{{ current_user.get_preference('theme', 'light') }}{% else %}light{% endif %}">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="-1">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Error{% endblock %} - Portal</title>
+    
+    {% include 'imports.html' %}
+</head>
+
+<body class="hold-transition {% if current_user.is_authenticated and current_user.get_preference('theme') == 'dark' %}dark-mode{% endif %}">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <div class="wrapper">
+        {% block page_content %}{% endblock %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+    <script src="{{ url_for('static', filename='src/js/theme.js') }}"></script>
+</body>
+</html>

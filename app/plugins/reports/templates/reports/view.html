@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <!-- Breadcrumbs -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports Dashboard</a></li>
+                    <li class="breadcrumb-item active">{{ view.title }}</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">{{ view.title }}</h1>
+            </div>
+            <div class="col-sm-6">
+                <div class="float-right">
+                    <button type="button" class="btn btn-info" id="refreshData">
+                        <i class="fas fa-sync"></i> Refresh Data
+                    </button>
+                    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        {% if error %}
+        <div class="alert alert-danger">
+            {{ error }}
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    {% if view.description %}
+                    {{ view.description }}
+                    {% endif %}
+                </h3>
+                <div class="card-tools">
+                    <span class="badge badge-info">
+                        Last Updated: <span id="lastUpdated">{{ view.last_run|format_datetime if view.last_run else 'Never' }}</span>
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="reportTable" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                {% for col in view.column_config %}
+                                {% if col.visible is not defined or col.visible %}
+                                <th>{{ col.display }}</th>
+                                {% endif %}
+                                {% endfor %}
+                            </tr>
+                            <tr class="filters">
+                                {% for col in view.column_config %}
+                                {% if col.visible is not defined or col.visible %}
+                                <th>
+                                    <input type="text" class="form-control form-control-sm column-filter" 
+                                           placeholder="Search {{ col.display }}"
+                                           data-column="{{ loop.index0 }}">
+                                </th>
+                                {% endif %}
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Hidden CSRF token -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endblock %}
+
+{% block scripts %}
+{% if not error %}
+<script>
+$(document).ready(function() {
+    // Set up CSRF token for AJAX requests
+    var csrf_token = $('input[name=csrf_token]').val();
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrf_token);
+            }
+        }
+    });
+
+    var dataTable;
+    var viewId = "{{ view.id }}";
+    
+    // Transform functions
+    function transformValue(value, config) {
+        if (!config || !config.type) return value;
+        
+        switch (config.type) {
+            case 'url':
+                var url = config.urlTemplate.replace('{value}', value);
+                var text = config.urlText ? config.urlText.replace('{value}', value) : value;
+                return '<a href="' + url + '" target="_blank">' + text + '</a>';
+                
+            case 'date':
+                if (!value) return '';
+                var date = new Date(value);
+                var options = {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                };
+                return date.toLocaleString(undefined, options);
+                
+            case 'number':
+                if (value === null || value === undefined) return '';
+                var num = parseFloat(value);
+                if (isNaN(num)) return value;
+                
+                if (config.decimalPlaces !== undefined) {
+                    num = num.toFixed(config.decimalPlaces);
+                }
+                
+                if (config.useThousandsSeparator) {
+                    num = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                }
+                
+                return (config.prefix || '') + num + (config.suffix || '');
+                
+            case 'boolean':
+                return value ? (config.trueDisplay || 'Yes') : (config.falseDisplay || 'No');
+                
+            case 'custom':
+                try {
+                    var transform = new Function('value', config.code);
+                    return transform(value);
+                } catch (e) {
+                    console.error('Error in custom transform:', e);
+                    return value;
+                }
+                
+            default:
+                return value;
+        }
+    }
+    
+    function loadData() {
+        $.get("/reports/api/view/" + viewId + "/data")
+            .done(function(response) {
+                // Update last updated time
+                var now = new Date().toLocaleString();
+                $("#lastUpdated").text(now);
+                
+                // If DataTable exists, destroy it
+                if (dataTable) {
+                    dataTable.destroy();
+                    $('#reportTable').empty();
+                }
+                
+                // Filter visible columns and prepare DataTables configuration
+                var visibleColumns = response.columns.filter(function(col) {
+                    return col.visible !== false;
+                });
+                
+                // Initialize DataTable
+                dataTable = $("#reportTable").DataTable({
+                    data: response.data,
+                    columns: visibleColumns.map(function(col) {
+                        var originalName = col.original.replace(/SortableSearchable$/, '');
+                        return {
+                            data: originalName,
+                            title: col.display,
+                            orderable: col.sortable !== false,
+                            searchable: col.searchable !== false,
+                            render: function(data, type, row) {
+                                if (type === 'display' && col.transform && !col.transform.server_side) {
+                                    return transformValue(data, col.transform);
+                                }
+                                return data === null ? '' : data;
+                            }
+                        };
+                    }),
+                    orderCellsTop: true,
+                    fixedHeader: true,
+                    responsive: true,
+                    lengthChange: true,
+                    autoWidth: false,
+                    dom: 'Bfrtip',
+                    buttons: [
+                        'copy', 
+                        'csv', 
+                        'excel',
+                        'pdf', 
+                        'print',
+                        'colvis'
+                    ],
+                    pageLength: 25,
+                    language: {
+                        search: "Search:",
+                        lengthMenu: "Show _MENU_ entries per page",
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                        infoEmpty: "Showing 0 to 0 of 0 entries",
+                        infoFiltered: "(filtered from _MAX_ total entries)"
+                    },
+                    initComplete: function() {
+                        var api = this.api();
+                        
+                        // Apply the search
+                        api.columns().every(function() {
+                            var column = this;
+                            $('.column-filter[data-column="' + column.index() + '"]').on('keyup change', function() {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        });
+                    }
+                });
+
+                // Apply filters from URL if they exist
+                var urlParams = new URLSearchParams(window.location.search);
+                urlParams.forEach(function(value, key) {
+                    if (key.startsWith('filter_')) {
+                        var columnIndex = key.replace('filter_', '');
+                        $('.column-filter[data-column="' + columnIndex + '"]').val(value).trigger('change');
+                    }
+                });
+
+                // Update URL with filters when they change
+                $('.column-filter').on('change', function() {
+                    var filters = {};
+                    $('.column-filter').each(function() {
+                        var value = $(this).val();
+                        if (value) {
+                            filters['filter_' + $(this).data('column')] = value;
+                        }
+                    });
+                    var newUrl = window.location.pathname + '?' + $.param(filters);
+                    history.pushState(null, '', newUrl);
+                });
+            })
+            .fail(function(xhr) {
+                var error = xhr.responseJSON ? xhr.responseJSON.error : "Unknown error occurred";
+                $("#reportTable").html(
+                    "<div class='alert alert-danger'>" +
+                    "Error loading data: " + error +
+                    "</div>"
+                );
+            });
+    }
+    
+    // Initial load
+    loadData();
+    
+    // Refresh button handler
+    $("#refreshData").click(loadData);
+});
+</script>
+{% endif %}
+{% endblock %}

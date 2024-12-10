@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+<ol class="breadcrumb float-sm-right">
+    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('projects.index') }}">Projects</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('projects.view', project_id=project.id) }}">{{ project.name }}</a></li>
+    <li class="breadcrumb-item active">Settings</li>
+</ol>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Project Settings</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Project Details -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Project Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="project-details-form">
+                                <div class="form-group">
+                                    <label for="name">Project Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ project.name }}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <textarea id="description" name="description">{{ project.description }}</textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="status">Status</label>
+                                    <select class="form-control" id="status" name="status">
+                                        <option value="active" {% if project.status == 'active' %}selected{% endif %}>Active</option>
+                                        <option value="on_hold" {% if project.status == 'on_hold' %}selected{% endif %}>On Hold</option>
+                                        <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Completed</option>
+                                        <option value="archived" {% if project.status == 'archived' %}selected{% endif %}>Archived</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Details</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Project Roles -->
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Project Roles</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="project-roles-form">
+                                <div class="form-group">
+                                    <label for="lead">Project Lead</label>
+                                    <select class="form-control select2" id="lead" name="lead_id">
+                                        <option value="">Select Lead</option>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}" {% if project.lead_id == user.id %}selected{% endif %}>{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="watchers">Watchers</label>
+                                    <select class="form-control select2" id="watchers" name="watchers[]" multiple>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}" {% if user in project.watchers %}selected{% endif %}>{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="stakeholders">Stakeholders</label>
+                                    <select class="form-control select2" id="stakeholders" name="stakeholders[]" multiple>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}" {% if user in project.stakeholders %}selected{% endif %}>{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="shareholders">Shareholders</label>
+                                    <select class="form-control select2" id="shareholders" name="shareholders[]" multiple>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}" {% if user in project.shareholders %}selected{% endif %}>{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-info">Save Roles</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Notification Settings -->
+                    <div class="card card-success">
+                        <div class="card-header">
+                            <h3 class="card-title">Notification Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="notification-settings-form">
+                                <div class="form-group">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="notify_task_created" 
+                                               {% if project.notify_task_created %}checked{% endif %}>
+                                        <label class="custom-control-label" for="notify_task_created">
+                                            Notify when tasks are created
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="notify_task_completed"
+                                               {% if project.notify_task_completed %}checked{% endif %}>
+                                        <label class="custom-control-label" for="notify_task_completed">
+                                            Notify when tasks are completed
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="notify_comments"
+                                               {% if project.notify_comments %}checked{% endif %}>
+                                        <label class="custom-control-label" for="notify_comments">
+                                            Notify on new comments
+                                        </label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-success">Save Notification Settings</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="card card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title">Danger Zone</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <button onclick="archiveProject()" class="btn btn-warning btn-block">
+                                        <i class="fas fa-archive"></i> Archive Project
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button onclick="deleteProject()" class="btn btn-danger btn-block">
+                                        <i class="fas fa-trash"></i> Delete Project
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden div for flash messages -->
+<div id="flash-messages" data-messages="{{ get_flashed_messages(with_categories=true)|tojson|safe }}"></div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+
+    // Initialize description editor
+    $('#description').summernote({
+        height: 150,
+        toolbar: [
+            ['style', ['bold', 'italic', 'underline', 'clear']],
+            ['font', ['strikethrough']],
+            ['para', ['ul', 'ol']],
+            ['insert', ['link']],
+            ['view', ['fullscreen', 'codeview']]
+        ]
+    });
+
+    // Project Details Form
+    $('#project-details-form').submit(function(e) {
+        e.preventDefault();
+        const formData = {
+            name: $('#name').val(),
+            description: $('#description').summernote('code'),
+            status: $('#status').val()
+        };
+
+        $.ajax({
+            url: "{{ url_for('projects.settings', project_id=project.id) }}",
+            method: 'POST',
+            data: {
+                ...formData,
+                form_type: 'details'
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Project details updated successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating project details',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update project details. Please try again.'
+                });
+            }
+        });
+    });
+
+    // Project Roles Form
+    $('#project-roles-form').submit(function(e) {
+        e.preventDefault();
+        const formData = {
+            lead_id: $('#lead').val(),
+            watchers: $('#watchers').val(),
+            stakeholders: $('#stakeholders').val(),
+            shareholders: $('#shareholders').val()
+        };
+
+        $.ajax({
+            url: "{{ url_for('projects.settings', project_id=project.id) }}",
+            method: 'POST',
+            data: {
+                ...formData,
+                form_type: 'roles'
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Project roles updated successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating project roles',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update project roles. Please try again.'
+                });
+            }
+        });
+    });
+
+    // Notification Settings Form
+    $('#notification-settings-form').submit(function(e) {
+        e.preventDefault();
+        const formData = {
+            notify_task_created: $('#notify_task_created').is(':checked'),
+            notify_task_completed: $('#notify_task_completed').is(':checked'),
+            notify_comments: $('#notify_comments').is(':checked')
+        };
+
+        $.ajax({
+            url: "{{ url_for('projects.settings', project_id=project.id) }}",
+            method: 'POST',
+            data: {
+                ...formData,
+                form_type: 'notifications'
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Notification settings updated successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating notification settings',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update notification settings. Please try again.'
+                });
+            }
+        });
+    });
+
+    // Handle flash messages
+    const flashMessages = JSON.parse($('#flash-messages').attr('data-messages') || '[]');
+    flashMessages.forEach(function(message) {
+        const [category, text] = message;
+        Swal.fire({
+            icon: category === 'success' ? 'success' : 'error',
+            title: text,
+            showConfirmButton: false,
+            timer: 3000
+        });
+    });
+});
+
+// Danger zone functions
+function archiveProject() {
+    Swal.fire({
+        title: 'Archive Project?',
+        text: 'Are you sure you want to archive this project?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, archive it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{{ url_for('projects.archive_project', project_id=project.id) }}",
+                method: 'POST',
+                success: function(response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Project archived successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(function() {
+                        window.location.href = "{{ url_for('projects.index') }}";
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to archive project. Please try again.'
+                    });
+                }
+            });
+        }
+    });
+}
+
+function deleteProject() {
+    Swal.fire({
+        title: 'Delete Project?',
+        text: 'This action cannot be undone!',
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{{ url_for('projects.delete_project', project_id=project.id) }}",
+                method: 'POST',
+                success: function(response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Project deleted successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(function() {
+                        window.location.href = "{{ url_for('projects.index') }}";
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to delete project. Please try again.'
+                    });
+                }
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

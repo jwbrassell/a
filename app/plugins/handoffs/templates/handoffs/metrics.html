@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}Handoff Metrics{% endblock %}
+
+{% block head %}
+<!-- Add Highcharts -->
+<script src="{{ url_for('static', filename='src/highcharts/highcharts.js') }}"></script>
+<script src="{{ url_for('static', filename='src/highcharts/accessibility.js') }}"></script>
+<script src="{{ url_for('static', filename='src/highcharts/exporting.js') }}"></script>
+<script src="{{ url_for('static', filename='src/highcharts/export-data.js') }}"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('handoffs.index') }}">Handoffs</a></li>
+    <li class="breadcrumb-item active">Metrics</li>
+</ol>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary bg-opacity-10 h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Handoffs</h5>
+                    <p class="card-text display-4">{{ total_handoffs }}</p>
+                    <p class="text-muted">All Time</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success bg-opacity-10 h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Open Handoffs</h5>
+                    <p class="card-text display-4">{{ open_handoffs }}</p>
+                    <p class="text-muted">Currently Active</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info bg-opacity-10 h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Avg. Time to Close</h5>
+                    <p class="card-text display-4">{{ avg_time_to_close }}</p>
+                    <p class="text-muted">Hours</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning bg-opacity-10 h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Completion Rate</h5>
+                    <p class="card-text display-4">{{ completion_rate }}%</p>
+                    <p class="text-muted">Last 30 Days</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Handoffs by Priority</h5>
+                </div>
+                <div class="card-body">
+                    <div id="priorityChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Handoffs by Shift</h5>
+                </div>
+                <div class="card-body">
+                    <div id="shiftChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trend Analysis -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Handoff Trends</h5>
+                </div>
+                <div class="card-body">
+                    <div id="trendChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Statistics -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Detailed Statistics</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Last 24 Hours</th>
+                            <th>Last 7 Days</th>
+                            <th>Last 30 Days</th>
+                            <th>All Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Total Handoffs</td>
+                            <td>{{ stats.day.total }}</td>
+                            <td>{{ stats.week.total }}</td>
+                            <td>{{ stats.month.total }}</td>
+                            <td>{{ stats.all_time.total }}</td>
+                        </tr>
+                        <tr>
+                            <td>High Priority</td>
+                            <td>{{ stats.day.high }}</td>
+                            <td>{{ stats.week.high }}</td>
+                            <td>{{ stats.month.high }}</td>
+                            <td>{{ stats.all_time.high }}</td>
+                        </tr>
+                        <tr>
+                            <td>Medium Priority</td>
+                            <td>{{ stats.day.medium }}</td>
+                            <td>{{ stats.week.medium }}</td>
+                            <td>{{ stats.month.medium }}</td>
+                            <td>{{ stats.all_time.medium }}</td>
+                        </tr>
+                        <tr>
+                            <td>Low Priority</td>
+                            <td>{{ stats.day.low }}</td>
+                            <td>{{ stats.week.low }}</td>
+                            <td>{{ stats.month.low }}</td>
+                            <td>{{ stats.all_time.low }}</td>
+                        </tr>
+                        <tr>
+                            <td>Avg. Time to Close (hours)</td>
+                            <td>{{ stats.day.avg_time }}</td>
+                            <td>{{ stats.week.avg_time }}</td>
+                            <td>{{ stats.month.avg_time }}</td>
+                            <td>{{ stats.all_time.avg_time }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template Data -->
+<script id="template-data" type="application/json">
+{
+    "priorityData": {{ priority_data|tojson|safe }},
+    "shiftLabels": {{ shift_labels|tojson|safe }},
+    "shiftData": {{ shift_data|tojson|safe }},
+    "trendLabels": {{ trend_labels|tojson|safe }},
+    "trendData": {
+        "open": {{ trend_data.open|tojson|safe }},
+        "closed": {{ trend_data.closed|tojson|safe }}
+    }
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get template data
+    const templateData = JSON.parse(document.getElementById('template-data').textContent);
+    const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+
+    // Set Highcharts theme based on mode
+    const themeOptions = isDarkMode ? {
+        chart: {
+            backgroundColor: '#454d55',
+            style: {
+                color: '#fff'
+            }
+        },
+        title: {
+            style: {
+                color: '#fff'
+            }
+        },
+        legend: {
+            itemStyle: {
+                color: '#fff'
+            },
+            itemHoverStyle: {
+                color: '#fff'
+            }
+        },
+        xAxis: {
+            labels: {
+                style: {
+                    color: '#fff'
+                }
+            },
+            title: {
+                style: {
+                    color: '#fff'
+                }
+            },
+            gridLineColor: '#505053'
+        },
+        yAxis: {
+            labels: {
+                style: {
+                    color: '#fff'
+                }
+            },
+            title: {
+                style: {
+                    color: '#fff'
+                }
+            },
+            gridLineColor: '#505053'
+        },
+        tooltip: {
+            backgroundColor: '#343a40',
+            style: {
+                color: '#fff'
+            }
+        },
+        plotOptions: {
+            series: {
+                dataLabels: {
+                    color: '#fff'
+                }
+            }
+        }
+    } : {
+        chart: {
+            backgroundColor: '#ffffff',
+            style: {
+                color: '#333333'
+            }
+        },
+        title: {
+            style: {
+                color: '#333333'
+            }
+        },
+        legend: {
+            itemStyle: {
+                color: '#333333'
+            },
+            itemHoverStyle: {
+                color: '#000000'
+            }
+        },
+        xAxis: {
+            labels: {
+                style: {
+                    color: '#333333'
+                }
+            },
+            title: {
+                style: {
+                    color: '#333333'
+                }
+            },
+            gridLineColor: '#e6e6e6'
+        },
+        yAxis: {
+            labels: {
+                style: {
+                    color: '#333333'
+                }
+            },
+            title: {
+                style: {
+                    color: '#333333'
+                }
+            },
+            gridLineColor: '#e6e6e6'
+        },
+        tooltip: {
+            backgroundColor: '#ffffff',
+            style: {
+                color: '#333333'
+            }
+        },
+        plotOptions: {
+            series: {
+                dataLabels: {
+                    color: '#333333'
+                }
+            }
+        }
+    };
+
+    Highcharts.setOptions(themeOptions);
+
+    // Priority Distribution Chart
+    Highcharts.chart('priorityChart', {
+        chart: {
+            type: 'pie'
+        },
+        title: {
+            text: ''
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>: {point.percentage:.1f}%'
+                }
+            }
+        },
+        series: [{
+            name: 'Handoffs',
+            data: [
+                { name: 'High', y: templateData.priorityData[0], color: '#dc3545' },
+                { name: 'Medium', y: templateData.priorityData[1], color: '#ffc107' },
+                { name: 'Low', y: templateData.priorityData[2], color: '#0dcaf0' }
+            ]
+        }]
+    });
+
+    // Shift Distribution Chart
+    Highcharts.chart('shiftChart', {
+        chart: {
+            type: 'column'
+        },
+        title: {
+            text: ''
+        },
+        xAxis: {
+            categories: templateData.shiftLabels
+        },
+        yAxis: {
+            title: {
+                text: 'Number of Handoffs'
+            }
+        },
+        series: [{
+            name: 'Handoffs',
+            data: templateData.shiftData,
+            color: isDarkMode ? '#6ea8fe' : '#0d6efd'
+        }]
+    });
+
+    // Trend Chart
+    Highcharts.chart('trendChart', {
+        chart: {
+            type: 'line'
+        },
+        title: {
+            text: ''
+        },
+        xAxis: {
+            categories: templateData.trendLabels
+        },
+        yAxis: {
+            title: {
+                text: 'Number of Handoffs'
+            }
+        },
+        series: [{
+            name: 'Open Handoffs',
+            data: templateData.trendData.open,
+            color: '#198754'
+        }, {
+            name: 'Closed Handoffs',
+            data: templateData.trendData.closed,
+            color: isDarkMode ? '#6ea8fe' : '#0d6efd'
+        }]
+    });
+
+    // Listen for theme changes
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-bs-theme') {
+                location.reload(); // Reload to apply new theme
+            }
+        });
+    });
+
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-bs-theme']
+    });
+});
+</script>
+{% endblock %}

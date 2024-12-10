@@ -1,0 +1,254 @@
+{% extends 'projects/layouts/_two_column.html' %}
+
+{% block title %}Create New Project{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block additional_styles %}
+<style>
+.todo-list {
+    min-height: 100px;
+}
+.todo-item {
+    padding: 8px;
+    margin: 4px 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.todo-item:hover {
+    background: #f8f9fa;
+}
+.todo-content {
+    flex-grow: 1;
+    margin: 0 8px;
+}
+.history-table th {
+    background: #f8f9fa;
+}
+.direct-chat-messages {
+    height: 400px;
+    overflow-y: auto;
+}
+.direct-chat-text {
+    margin: 5px 0 0 10px;
+}
+/* Rich text content styling */
+.rich-text-content {
+    line-height: 1.6;
+}
+.rich-text-content p {
+    margin-bottom: 1rem;
+}
+.rich-text-content ul, 
+.rich-text-content ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+.rich-text-content img {
+    max-width: 100%;
+    height: auto;
+}
+.rich-text-content table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+.rich-text-content table td,
+.rich-text-content table th {
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+/* Task modal styles */
+.task-modal-content {
+    min-height: 600px;
+}
+.task-description-editor {
+    min-height: 200px;
+}
+/* Floating action buttons group */
+.floating-action-group {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1000;
+    display: flex;
+    gap: 1rem;
+}
+.floating-action-group .btn {
+    transition: all 0.3s ease;
+}
+.floating-action-group .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block header %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>
+            <i class="fas fa-plus me-2"></i>
+            Create New Project
+        </h1>
+        <p class="text-muted">Create a new project to track tasks and manage progress</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block left_column %}
+    <!-- Project Details -->
+    {% include 'projects/components/_project_details.html' %}
+
+    <!-- Tasks Table -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#tasksCollapse" aria-expanded="true" aria-controls="tasksCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-tasks me-1"></i>
+                    Tasks
+                </h3>
+                <i class="fas fa-minus collapse-icon"></i>
+            </div>
+        </div>
+        <div class="collapse show" id="tasksCollapse">
+            <div class="card-body">
+                {% include 'projects/tasks/_table.html' %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Todo List -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#todosCollapse" aria-expanded="true" aria-controls="todosCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-check-square me-1"></i>
+                    Todo List
+                </h3>
+                <i class="fas fa-minus todos-collapse-icon"></i>
+            </div>
+        </div>
+        <div class="collapse show" id="todosCollapse">
+            <div class="card-body p-0">
+                {% include 'projects/todos/_list.html' %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#commentsCollapse" aria-expanded="false" aria-controls="commentsCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-comments me-1"></i>
+                    Comments
+                </h3>
+                <i class="fas fa-plus"></i>
+            </div>
+        </div>
+        <div class="collapse" id="commentsCollapse">
+            <div class="card-body">
+                {% include 'projects/comments/_list.html' %}
+            </div>
+        </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="card">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#historyCollapse" aria-expanded="false" aria-controls="historyCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-history me-1"></i>
+                    Project History
+                </h3>
+                <i class="fas fa-plus"></i>
+            </div>
+        </div>
+        <div class="collapse" id="historyCollapse">
+            <div class="card-body">
+                {% include 'projects/history/_list.html' %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block right_column %}
+    <!-- Project Info -->
+    {% include 'projects/components/_project_info.html' %}
+{% endblock %}
+
+{% block floating_action %}
+<!-- Floating Action Buttons -->
+<div class="floating-action-group">
+    <button type="button" class="btn btn-primary btn-lg" onclick="projectModule.createProject('edit')">
+        <i class="fas fa-save me-1"></i> Create & Edit
+    </button>
+    <button type="button" class="btn btn-secondary btn-lg" onclick="projectModule.createProject('close')">
+        <i class="fas fa-check me-1"></i> Create & Close
+    </button>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Task Modal -->
+{% include 'projects/tasks/_task_modal.html' %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- jQuery (required for select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Toastr -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<!-- Project variables -->
+<script>
+window.currentUserId = {{ current_user.id }};
+
+// Handle collapse icon changes
+document.addEventListener('DOMContentLoaded', function() {
+    // Tasks collapse functionality
+    const tasksCollapse = document.getElementById('tasksCollapse');
+    const tasksCollapseIcon = tasksCollapse.previousElementSibling.querySelector('.collapse-icon');
+    
+    tasksCollapse.addEventListener('show.bs.collapse', function() {
+        tasksCollapseIcon.classList.remove('fa-plus');
+        tasksCollapseIcon.classList.add('fa-minus');
+    });
+    
+    tasksCollapse.addEventListener('hide.bs.collapse', function() {
+        tasksCollapseIcon.classList.remove('fa-minus');
+        tasksCollapseIcon.classList.add('fa-plus');
+    });
+
+    // Todos collapse functionality
+    const todosCollapse = document.getElementById('todosCollapse');
+    const todosCollapseIcon = todosCollapse.previousElementSibling.querySelector('.todos-collapse-icon');
+    
+    todosCollapse.addEventListener('show.bs.collapse', function() {
+        todosCollapseIcon.classList.remove('fa-plus');
+        todosCollapseIcon.classList.add('fa-minus');
+    });
+    
+    todosCollapse.addEventListener('hide.bs.collapse', function() {
+        todosCollapseIcon.classList.remove('fa-minus');
+        todosCollapseIcon.classList.add('fa-plus');
+    });
+});
+</script>
+
+<!-- Project functionality -->
+<script src="{{ url_for('projects.static', filename='js/project.js') }}"></script>
+<script src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>
+<script src="{{ url_for('projects.static', filename='js/todos.js') }}"></script>
+<script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
+{% endblock %}

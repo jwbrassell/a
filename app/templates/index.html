@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block breadcrumb %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item active">Home</li>
+</ol>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-home"></i>
+                        Welcome to the Portal
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Welcome, {{ current_user.name }}!</p>
+                    
+                    {% if plugins %}
+                        <h4 class="mt-4">Available Plugins</h4>
+                        <div class="row">
+                            {% set categories = {} %}
+                            {% for plugin_name, metadata in plugins.items() %}
+                                {% set endpoint = plugin_name + '.index' %}
+                                {% if endpoint|route_exists %}  {# Only include plugins with valid routes #}
+                                    {% if metadata.category not in categories %}
+                                        {% set _ = categories.update({metadata.category: []}) %}
+                                    {% endif %}
+                                    {% set _ = categories[metadata.category].append((plugin_name, metadata)) %}
+                                {% endif %}
+                            {% endfor %}
+
+                            {% for category, plugins_list in categories.items() %}
+                                {% if plugins_list %}  {# Only show categories with valid plugins #}
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h5 class="card-title mb-0">
+                                                    <i class="fas fa-puzzle-piece"></i>
+                                                    {{ category }}
+                                                </h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="list-group">
+                                                    {% for plugin_name, metadata in plugins_list|sort(attribute='1.weight') %}
+                                                        {% set endpoint = plugin_name + '.index' %}
+                                                        {% if endpoint|route_exists %}
+                                                            <a href="{{ url_for(endpoint) }}" class="list-group-item list-group-item-action">
+                                                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <i class="fas {{ metadata.icon }}"></i>
+                                                                        {{ metadata.name }}
+                                                                    </div>
+                                                                    <small class="text-muted">v{{ metadata.version }}</small>
+                                                                </div>
+                                                                <small class="text-muted d-block">{{ metadata.description }}</small>
+                                                            </a>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

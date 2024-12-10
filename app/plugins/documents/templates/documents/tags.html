@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Document Tags</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Documents
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Create Tag</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.csrf_token }}
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            {{ form.name(class="form-control") }}
+                            <div class="form-text">Tags should be concise and descriptive.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Tag
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Tag Guidelines</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Use lowercase letters</li>
+                        <li>Keep tags short and meaningful</li>
+                        <li>Use hyphens for multi-word tags</li>
+                        <li>Avoid duplicate or similar tags</li>
+                        <li>Be consistent with naming conventions</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Existing Tags</h5>
+                </div>
+                <div class="card-body">
+                    {% if tags %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Documents</th>
+                                    <th>Created</th>
+                                    <th>Usage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tag in tags %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ tag.name }}</span>
+                                    </td>
+                                    <td>{{ tag.documents|length }}</td>
+                                    <td>{{ tag.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            {% set usage = tag.documents|length %}
+                                            {% set max_docs = tags|map(attribute='documents')|map('length')|max or 1 %}
+                                            {% set percentage = (usage / max_docs * 100)|round|int %}
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ percentage }}%;" 
+                                                 aria-valuenow="{{ percentage }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ percentage }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No tags found. Create your first tag using the form.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if tags %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Tag Cloud</h5>
+                </div>
+                <div class="card-body">
+                    <div class="tag-cloud">
+                        {% for tag in tags %}
+                            {% set size = (tag.documents|length / (tags|map(attribute='documents')|map('length')|max or 1) * 2 + 1)|round(1) %}
+                            <span class="badge bg-secondary" style="font-size: {{ size }}em; margin: 5px;">
+                                {{ tag.name }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Initialize DataTables
+    $('.table').DataTable({
+        order: [[1, 'desc']], // Sort by document count by default
+        pageLength: 25
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,81 @@
+<!-- CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='src/bootstrap/css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/fontawesome/css/all.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dist/css/adminlte.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/css/theme.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/dataTables.bootstrap5.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/buttons.bootstrap5.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/bootstrap-colorpicker/css/bootstrap-colorpicker.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/bootstrap-slider/css/bootstrap-slider.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/bootstrap-switch/css/bootstrap3/bootstrap-switch.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/bootstrap4-duallistbox/bootstrap-duallistbox.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/select2/select2.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/sweetalert2/sweetalert2.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/toastr/toastr.min.css') }}">
+
+<!-- JavaScript -->
+<script src="{{ url_for('static', filename='src/jquery/js/jquery-3.6.0.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/js/adminlte.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+<!-- DataTables Buttons -->
+<script src="{{ url_for('static', filename='src/datatables/js/dataTables.buttons.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/buttons.bootstrap5.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/jszip/jszip.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/pdfmake/pdfmake.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/pdfmake/vfs_fonts.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/buttons.html5.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/buttons.print.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/buttons.colVis.min.js') }}"></script>
+<!-- Other Libraries -->
+<script src="{{ url_for('static', filename='src/bootstrap-colorpicker/js/bootstrap-colorpicker.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/bootstrap-slider/js/bootstrap-slider.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/bootstrap-switch/js/bootstrap-switch.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/select2/select2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/sweetalert2/sweetalert2.all.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/toastr/toastr.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/sortablejs/Sortable.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/tinymce/tinymce/js/tinymce/tinymce.min.js') }}"></script>
+
+<!-- Project Scripts -->
+{% if request.endpoint and request.endpoint.startswith('projects.') %}
+<script src="{{ url_for('projects.static', filename='js/project.js') }}"></script>
+{% endif %}
+
+<!-- Initialize Toastr -->
+<script>
+toastr.options = {
+    closeButton: true,
+    progressBar: true,
+    positionClass: "toast-top-right",
+    timeOut: 3000
+};
+</script>
+
+<!-- Initialize Bootstrap 5 Tooltips and Popovers -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize all popovers
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl);
+    });
+
+    // Initialize TinyMCE for rich text editors
+    tinymce.init({
+        selector: '.rich-text-editor',
+        plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',
+        toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+        height: 300
+    });
+});
+</script>
