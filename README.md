@@ -12,10 +12,23 @@ source venv/bin/activate  # On Windows use: venv\Scripts\activate
 ```bash
 pip install -r requirements.txt
 ```
-4. Initialize the SQLite database with default admin user:
+4. Initialize the database and set up default values:
 ```bash
+# Create database tables and admin user
 python init_db.py
+
+# Initialize route accessibility and database values
+python init_database_values.py
+
+# Initialize project plugin settings
+python init_project_settings.py
 ```
+
+Each initialization script serves a specific purpose:
+- `init_db.py`: Creates database tables and sets up admin user with roles
+- `init_database_values.py`: Configures route accessibility and initializes database values
+- `init_project_settings.py`: Sets up the projects plugin configuration
+
 5. Run the application:
 ```bash
 python app.py
@@ -28,7 +41,7 @@ Default admin credentials:
 
 ## Database Configuration
 
-The application uses SQLite by default for easy setup and portability. The SQLite database will be automatically created in the `instance` directory when you run `init_db.py`.
+The application uses SQLite by default for easy setup and portability. The SQLite database will be automatically created in the `instance` directory when you run the initialization scripts.
 
 If you need to use MariaDB instead, you can configure it by setting the following environment variables in a `.env` file:
 
