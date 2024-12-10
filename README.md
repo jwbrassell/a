@@ -12,36 +12,32 @@ source venv/bin/activate  # On Windows use: venv\Scripts\activate
 ```bash
 pip install -r requirements.txt
 ```
-4. Initialize the database and set up default values:
+4. Run the setup script to initialize everything:
 ```bash
-# Create database tables and admin user
-python init_db.py
-
-# Initialize route accessibility and database values
-python init_database_values.py
-
-# Initialize project plugin settings
-python init_project_settings.py
+python setup.py
 ```
 
-Each initialization script serves a specific purpose:
-- `init_db.py`: Creates database tables and sets up admin user with roles
-- `init_database_values.py`: Configures route accessibility and initializes database values
-- `init_project_settings.py`: Sets up the projects plugin configuration
+The setup script will:
+- Create necessary directories
+- Initialize the database
+- Run all migrations
+- Set up default roles and users
+- Configure route permissions
+- Initialize plugin settings
 
 5. Run the application:
 ```bash
-python app.py
+flask run
 ```
 6. Access the application at http://localhost:5000
 
 Default admin credentials:
 - Username: admin
-- Password: admin
+- Password: test123
 
 ## Database Configuration
 
-The application uses SQLite by default for easy setup and portability. The SQLite database will be automatically created in the `instance` directory when you run the initialization scripts.
+The application uses SQLite by default for easy setup and portability. The SQLite database will be automatically created in the `instance` directory when you run the setup script.
 
 ### Migrating to MariaDB
 
