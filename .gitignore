@@ -41,8 +41,12 @@ env/
 *.swo
 
 # Flask
-instance/
 .webassets-cache
+
+# Instance directory - but keep static files
+instance/*
+!instance/static/
+!instance/templates/
 
 # Environment variables
 .env

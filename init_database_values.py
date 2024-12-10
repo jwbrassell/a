@@ -1,5 +1,5 @@
 from app import create_app, db
-from app.models import Role, PageRouteMapping, NavigationCategory
+from app.models import Role, PageRouteMapping, NavigationCategory, User
 from app.plugins.projects.models import ProjectStatus, ProjectPriority
 from app.plugins.dispatch.models import DispatchTeam, DispatchPriority
 from app.plugins.documents.models import DocumentCategory
@@ -7,6 +7,12 @@ from app.plugins.oncall.models import Team as OncallTeam
 from app.plugins.handoffs.models import HandoffShift
 from datetime import datetime
 from sqlalchemy import text
+
+def init_database():
+    """Initialize the database by creating all tables"""
+    print("\nInitializing database...")
+    db.create_all()
+    print("Database tables created successfully")
 
 def show_database_info():
     """Display current database information"""
@@ -18,11 +24,12 @@ def show_database_info():
     for row in result:
         print(f"- {row[0]}")
     
-    # Show roles
-    print("\nCurrent Roles:")
+    # Show roles and their users
+    print("\nCurrent Roles and Users:")
     roles = Role.query.all()
     for role in roles:
-        print(f"- {role.name}")
+        users = [user.username for user in role.users]
+        print(f"- {role.name}: {', '.join(users) if users else 'No users'}")
     
     # Show routes and their access
     print("\nCurrent Routes and Access:")
@@ -55,12 +62,63 @@ def ensure_default_roles():
     ]
     
     print("\nEnsuring default roles exist...")
+    roles = {}
     for role_data in default_roles:
         role = Role.query.filter_by(name=role_data['name']).first()
         if not role:
             role = Role(**role_data)
             db.session.add(role)
             print(f"Created '{role_data['name']}' role")
+        roles[role_data['name']] = role
+    db.session.commit()
+    return roles
+
+def assign_default_roles():
+    """Assign appropriate roles to mock LDAP users"""
+    print("\nAssigning default roles to users...")
+    
+    # Get roles
+    admin_role = Role.query.filter_by(name='admin').first()
+    user_role = Role.query.filter_by(name='user').first()
+    manager_role = Role.query.filter_by(name='manager').first()
+    
+    # Role assignments
+    role_assignments = {
+        'admin': [admin_role, user_role],
+        'manager': [manager_role, user_role],
+        'developer': [user_role],
+        'support': [user_role],
+        'operator': [user_role],
+        'security': [user_role],
+        'netadmin': [user_role],
+        'devops': [user_role],
+        'helpdesk': [user_role],
+        'demo': [user_role]
+    }
+    
+    # Create and assign roles to users
+    for username, roles in role_assignments.items():
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            # Create user if doesn't exist
+            user = User(
+                username=username,
+                employee_number=f"EMP{username.upper()}",
+                name=username.title(),
+                email=f"{username}@example.com",
+                vzid=username,
+                password="test123"
+            )
+            db.session.add(user)
+        
+        # Clear existing roles
+        user.roles = []
+        # Assign new roles
+        for role in roles:
+            if role not in user.roles:
+                user.roles.append(role)
+        print(f"Assigned roles to {username}: {', '.join(role.name for role in roles)}")
+    
     db.session.commit()
 
 def ensure_navigation_categories():
@@ -92,6 +150,13 @@ def ensure_navigation_categories():
             'description': 'Documentation and resources',
             'icon': 'fa-book',
             'weight': 30,
+            'created_by': 'system'
+        },
+        {
+            'name': 'Tools',
+            'description': 'System tools and utilities',
+            'icon': 'fa-tools',
+            'weight': 200,
             'created_by': 'system'
         }
     ]
@@ -229,24 +294,41 @@ def ensure_handoff_shifts():
             print(f"Created '{shift_data['name']}' shift")
     db.session.commit()
 
-def make_routes_accessible():
-    """Make all routes accessible by default by removing role restrictions"""
-    print("\nMaking all routes accessible by default...")
-    routes = PageRouteMapping.query.all()
-    modified = 0
+def setup_route_permissions():
+    """Set up route permissions - admin routes restricted, others accessible"""
+    print("\nSetting up route permissions...")
+    admin_role = Role.query.filter_by(name='admin').first()
     
-    for route in routes:
-        if route.allowed_roles:
-            # Clear all role restrictions
-            route.allowed_roles = []
-            modified += 1
-            print(f"Removing role restrictions from route: {route.route}")
+    # Admin-only routes
+    admin_routes = [
+        'admin.index',
+        'reports.index',
+        'documents.index',
+        'oncall.index',
+        'profile.index',
+        'handoffs.index',
+        'projects.index',
+        'dispatch.index'
+    ]
     
-    if modified:
-        db.session.commit()
-        print(f"Removed role restrictions from {modified} routes")
-    else:
-        print("All routes are already accessible")
+    # Create route mappings
+    for route in admin_routes:
+        mapping = PageRouteMapping.query.filter_by(route=route).first()
+        if not mapping:
+            mapping = PageRouteMapping(
+                route=route,
+                page_name=route.replace('.', ' ').title(),
+                icon='fa-lock',
+                weight=0
+            )
+            db.session.add(mapping)
+        
+        # Ensure admin role is assigned
+        if admin_role not in mapping.allowed_roles:
+            mapping.allowed_roles.append(admin_role)
+            print(f"Restricted {route} to admin role")
+    
+    db.session.commit()
 
 def main():
     """Main function to initialize database values"""
@@ -254,12 +336,15 @@ def main():
     with app.app_context():
         print("Starting database initialization...")
         
+        # Initialize database
+        init_database()
+        
         # Show initial state
         show_database_info()
         
         # Initialize all default values
-        ensure_default_roles()
-        ensure_navigation_categories()
+        roles = ensure_default_roles()
+        ensure_navigation_categories()  # Create navigation categories including Tools
         ensure_project_statuses()
         ensure_project_priorities()
         ensure_dispatch_defaults()
@@ -267,8 +352,11 @@ def main():
         ensure_oncall_teams()
         ensure_handoff_shifts()
         
-        # Make routes accessible by removing role restrictions
-        make_routes_accessible()
+        # Assign roles to users
+        assign_default_roles()
+        
+        # Set up route permissions
+        setup_route_permissions()
         
         # Show final state
         print("\n=== Final Database State ===")

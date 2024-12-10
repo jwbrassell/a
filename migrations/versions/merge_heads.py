@@ -10,9 +10,9 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'merge_heads'
-down_revision = None
+down_revision = ('add_created_by_to_projects', 'add_team_to_oncall')
 branch_labels = None
-depends_on = ('add_created_by_to_projects', 'add_team_to_oncall')
+depends_on = None
 
 def upgrade():
     pass

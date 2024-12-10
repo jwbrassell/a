@@ -170,9 +170,9 @@ def map_route_to_roles(route_path, page_name, roles=None, category_id=None, icon
         # Clear existing role associations
         mapping.allowed_roles = []
         
-        # If no roles specified, grant access to all roles by default
+        # If no roles specified, restrict to admin by default
         if roles is None:
-            roles = ['admin', 'demo']
+            roles = ['admin']
         
         # Add role associations
         for role_name in roles:
@@ -197,19 +197,19 @@ def get_route_roles(route_path):
         # Convert route_path to actual endpoint
         endpoint = route_to_endpoint(route_path)
         if not endpoint:
-            return ['admin', 'demo']  # Default roles for invalid routes
+            return ['admin']  # Default roles for invalid routes
             
         mapping = PageRouteMapping.query.filter_by(route=endpoint).first()
         
-        # If no mapping exists, return default roles (all roles have access)
+        # If no mapping exists, return default roles (admin only)
         if not mapping:
-            return ['admin', 'demo']
+            return ['admin']
             
         return [role.name for role in mapping.allowed_roles]
         
     except Exception as e:
         logger.error(f"Error getting roles for route '{route_path}': {str(e)}")
-        return ['admin', 'demo']  # Default to all roles having access
+        return ['admin']  # Default to admin only
 
 def remove_route_mapping(route_path):
     """Remove a route mapping and its role associations."""
@@ -241,7 +241,7 @@ def bulk_update_route_mappings(mappings):
         if map_route_to_roles(
             route_path=mapping['route'],
             page_name=mapping['page_name'],
-            roles=mapping.get('roles'),  # If not specified, will default to all roles
+            roles=mapping.get('roles'),  # If not specified, will default to admin only
             category_id=mapping.get('category_id'),
             icon=mapping.get('icon', 'fa-link'),
             weight=mapping.get('weight', 0)
