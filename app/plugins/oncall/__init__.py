@@ -3,11 +3,10 @@
 from flask import Blueprint
 from app.utils.plugin_manager import PluginMetadata
 
-# Create blueprint with static folder
+# Create blueprint
 bp = Blueprint('oncall', __name__, 
               template_folder='templates',
               static_folder='static',
-              static_url_path='/oncall/static',
               url_prefix='/oncall')
 
 # Define plugin metadata
@@ -16,14 +15,11 @@ plugin_metadata = PluginMetadata(
     version="1.0.0",
     description="Manage and display on-call rotation schedules",
     author="System",
-    required_roles=["admin"],  # For uploading schedules
+    required_roles=["admin", "demo"],
     icon="fa-calendar-alt",
     category="Operations",
     weight=100
 )
 
-# Import models to ensure they're registered with SQLAlchemy
-from . import models
-
-# Import routes after models and blueprint creation
-from . import routes
+# Import routes after blueprint creation
+from app.plugins.oncall import routes, models

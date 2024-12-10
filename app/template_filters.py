@@ -27,7 +27,7 @@ def init_app(app):
         # Handle special cases for blueprint routes
         if len(parts) >= 2:
             # If first part is a known blueprint, keep it as prefix
-            if parts[0] in ['admin', 'dispatch', 'profile', 'hello', 'documents']:
+            if parts[0] in ['admin', 'dispatch', 'profile', 'hello', 'documents', 'oncall']:
                 return f"{parts[0]}.{'.'.join(parts[1:])}"
         
         # Default case: just join with dots

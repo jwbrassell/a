@@ -1,74 +1,31 @@
-feat(reports): Enhanced reports plugin with advanced filtering and improved editing
+fix(oncall): resolve route handling and navigation issues
 
-Added advanced filtering capabilities and improved the report editing experience:
+- Remove export_schedule from navigation due to required parameters
+- Add Operations category for oncall plugin routes
+- Update navigation macro to handle parameterized routes
+- Fix route_manager.py to properly handle oncall routes
+- Add comprehensive README for oncall plugin
 
-Key Features:
-- Added column-specific filtering like handoffs plugin
-- Added collapsible table view for all reports
-- Made report cards fully clickable
-- Added search box for filtering reports by title/description
-- Added breadcrumbs throughout reports plugin
-- Enhanced report editing functionality
+The oncall plugin was experiencing navigation issues due to the export_schedule 
+route requiring parameters (team_id and year) that couldn't be automatically 
+generated in the navigation menu. This caused the entire application to fail 
+when trying to build URLs.
 
-Filtering Improvements:
-- Individual column filters that work together (AND logic)
-- Real-time filtering with DataTables
-- Filter persistence in URL parameters
-- Fixed header for better scrolling
-- Works with all data types (text, dates, numbers)
+Changes made:
+- Modified fix_oncall_routes.py to exclude export_schedule from navigation
+- Created Operations category for better organization
+- Updated navigation macro to handle routes with required parameters
+- Removed special case handling in route_manager.py
+- Added detailed documentation in README.md
 
-Report Editing Enhancements:
-- Improved column configuration interface
-- Real-time preview of data transformations
-- Better validation and error handling
-- Proper CSRF token handling
-- Shared JavaScript utilities
-
-Technical Details:
-1. Added column filters to report views:
-```html
-<tr class="filters">
-    <th>
-        <input type="text" class="form-control form-control-sm column-filter" 
-               placeholder="Search {{ col.display }}"
-               data-column="{{ loop.index0 }}">
-    </th>
-</tr>
-```
-
-2. Enhanced DataTables configuration:
-```javascript
-orderCellsTop: true,
-fixedHeader: true,
-initComplete: function() {
-    api.columns().every(function() {
-        var column = this;
-        $('.column-filter').on('keyup change', function() {
-            column.search(this.value).draw();
-        });
-    });
-}
-```
-
-3. Added URL parameter persistence:
-- Filters are saved in URL parameters
-- Filters are restored on page load
-- URL updates when filters change
-
-4. Improved JavaScript organization:
-- Moved shared functions to report_utils.js
-- Used ES5 syntax for compatibility
-- Better error handling
-- Proper event handling
+The plugin now properly integrates with the core application's navigation 
+system while maintaining all functionality. The export_schedule endpoint 
+remains accessible through the UI where parameters can be properly provided.
 
 Testing:
-1. View any report and verify column filters work
-2. Test filters work together (AND logic)
-3. Refresh page to verify filter persistence
-4. Edit a report and test all functionality
-5. Verify breadcrumbs navigation works
-6. Test on different screen sizes
+- Verified routes are properly registered
+- Confirmed navigation loads without errors
+- Checked all oncall routes are under Operations category
+- Validated export functionality still works through UI
 
-Note: This update significantly improves the usability of the reports plugin,
-making it easier to find and filter data while providing a more robust
-editing experience.
+Related: #oncall #navigation #routes

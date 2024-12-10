@@ -1,6 +1,44 @@
 # Flask Portal Application
 
-[Previous content remains exactly the same until the end]
+## Quick Start
+
+1. Clone the repository
+2. Create a virtual environment and activate it:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+```
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+4. Initialize the SQLite database with default admin user:
+```bash
+python init_db.py
+```
+5. Run the application:
+```bash
+python app.py
+```
+6. Access the application at http://localhost:5000
+
+Default admin credentials:
+- Username: admin
+- Password: admin
+
+## Database Configuration
+
+The application uses SQLite by default for easy setup and portability. The SQLite database will be automatically created in the `instance` directory when you run `init_db.py`.
+
+If you need to use MariaDB instead, you can configure it by setting the following environment variables in a `.env` file:
+
+```env
+DB_TYPE=mariadb
+DATABASE_USER=your_user
+DATABASE_PASSWORD=your_password
+DATABASE_HOST=localhost
+DATABASE_NAME=your_db_name
+```
 
 ### Projects Plugin
 

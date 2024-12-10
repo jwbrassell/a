@@ -169,8 +169,12 @@ def index():
     if not current_user.is_authenticated:
         return redirect(url_for('main.login'))
     
+    # Get plugin metadata from plugin manager
+    plugin_manager = current_app.config.get('PLUGIN_MANAGER')
+    plugins = plugin_manager.get_all_plugin_metadata() if plugin_manager else {}
+    
     log_activity(current_user, 'Visited index page')
-    return render_template('index.html')
+    return render_template('index.html', plugins=plugins)
 
 # Error Handlers
 @main.errorhandler(400)

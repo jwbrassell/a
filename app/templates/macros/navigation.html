@@ -1,9 +1,17 @@
 {% macro render_nav_item(route, is_child=false) %}
     <li class="nav-item">
-        <a href="{{ url_for(route.route|route_to_endpoint) }}" class="nav-link">
-            <i class="{% if is_child %}fas {{ route.icon }} nav-icon{% else %}nav-icon fas {{ route.icon }}{% endif %}"></i>
-            <p>{{ route.page_name }}</p>
-        </a>
+        {% if route.route == 'oncall.export_schedule' %}
+            {# Skip routes that require parameters #}
+            <a href="#" class="nav-link" onclick="return false;">
+                <i class="{% if is_child %}fas {{ route.icon }} nav-icon{% else %}nav-icon fas {{ route.icon }}{% endif %}"></i>
+                <p>{{ route.page_name }}</p>
+            </a>
+        {% else %}
+            <a href="{{ url_for(route.route|route_to_endpoint) }}" class="nav-link">
+                <i class="{% if is_child %}fas {{ route.icon }} nav-icon{% else %}nav-icon fas {{ route.icon }}{% endif %}"></i>
+                <p>{{ route.page_name }}</p>
+            </a>
+        {% endif %}
     </li>
 {% endmacro %}
 

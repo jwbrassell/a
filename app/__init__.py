@@ -92,4 +92,8 @@ def create_app(config_name=None):
         init_roles_and_users()
         click.echo('Initialized the database.')
 
+    # Register fix-oncall-routes command
+    from app.utils.fix_oncall_routes import fix_oncall_routes
+    app.cli.add_command(fix_oncall_routes)
+
     return app

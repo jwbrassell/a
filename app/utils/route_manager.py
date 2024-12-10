@@ -61,7 +61,17 @@ def route_to_endpoint(route):
             return actual_endpoint
         return route
 
-    # Remove leading slash and replace remaining slashes with dots
+    # Handle plugin routes
+    if route.startswith('/'):
+        parts = route.lstrip('/').split('/')
+        if len(parts) > 1:
+            # Convert URL path to endpoint format
+            endpoint = f"{parts[0]}.{parts[1]}" if len(parts) > 1 else f"{parts[0]}.index"
+            actual_endpoint = get_actual_endpoint(endpoint)
+            _route_cache[route] = actual_endpoint
+            return actual_endpoint
+    
+    # Default handling
     endpoint = route.lstrip('/').replace('/', '.')
     if endpoint == '':
         return 'main.index'  # Special case for root route
