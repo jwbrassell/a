@@ -39,6 +39,7 @@ class ProjectStatus(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     color = db.Column(db.String(50), nullable=False)
+    created_by = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -58,6 +59,7 @@ class ProjectPriority(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     color = db.Column(db.String(50), nullable=False)
+    created_by = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -82,6 +84,7 @@ class Project(db.Model):
     status = db.Column(db.String(50))
     priority = db.Column(db.String(50))
     percent_complete = db.Column(db.Integer, default=0)
+    created_by = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_private = db.Column(db.Boolean, default=False)
@@ -165,6 +168,7 @@ class Task(db.Model):
     status_id = db.Column(db.Integer, db.ForeignKey('project_status.id'))
     priority_id = db.Column(db.Integer, db.ForeignKey('project_priority.id'))
     due_date = db.Column(db.Date)
+    created_by = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     position = db.Column(db.Integer, default=0)
@@ -271,7 +275,7 @@ class Task(db.Model):
             'dependent_tasks': [{'id': t.id, 'name': t.name} for t in self.dependent_tasks],
             'history': [h.to_dict() for h in self.history],
             'comments': [c.to_dict() for c in self.comments],
-            'todos': [todo.to_dict() for todo in self.todos]  # Added this line
+            'todos': [todo.to_dict() for todo in self.todos]
         }
 
 class Todo(db.Model):
@@ -283,6 +287,7 @@ class Todo(db.Model):
     description = db.Column(db.String(500), nullable=False)
     completed = db.Column(db.Boolean, default=False)
     completed_at = db.Column(db.DateTime)
+    created_by = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     due_date = db.Column(db.Date)
     sort_order = db.Column(db.Integer, default=0)
@@ -346,6 +351,7 @@ class Comment(db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
     content = db.Column(db.Text, nullable=False)
+    created_by = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -378,6 +384,7 @@ class History(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
     action = db.Column(db.String(50), nullable=False)  # 'created', 'updated', 'deleted'
     details = db.Column(db.JSON)  # Store changes in JSON format
+    created_by = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships

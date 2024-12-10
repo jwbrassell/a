@@ -1,46 +1,40 @@
-fix(oncall): improve user experience and team management
+fix: standardize project plugin routes and breadcrumbs
 
-- Add CSV template file for schedule uploads
-- Add requirement to create team first
-- Add download template button for easy access to CSV format
-- Show warning message when no teams exist
-- Fix team editing functionality
-- Fix database schema and migrations for oncall tables
-- Standardize route formats across plugins
-- Add comprehensive README for oncall plugin
+This commit fixes issues with the projects plugin routes and breadcrumbs by:
 
-The oncall plugin had several issues:
-1. No clear guidance on CSV format for schedule uploads
-2. Missing requirement to create team first
-3. Team editing functionality not working
-4. Database schema issues with missing team_id column
-5. Inconsistent route formatting between plugins
+1. Added created_by columns to project-related tables:
+   - project_status
+   - project_priority
+   - project
+   - task
+   - todo
+   - comment
+   - history
 
-Changes made:
-- Added CSV template file with example data
-- Added download template button in upload section
-- Added warning message to create team first
-- Hide upload button until team exists
-- Added GET endpoint for individual teams to fix editing
-- Fixed database schema to properly include team_id
-- Ensured migrations run in correct order
-- Standardized route formats to use dot notation
-- Added detailed documentation in README.md
+2. Standardized breadcrumb implementation:
+   - Removed custom breadcrumb implementations from templates
+   - Ensured all plugins use NavigationManager for consistent breadcrumbs
 
-The plugin now provides better user experience with:
-- Clear requirement to create team first
-- Easy access to CSV template
-- Proper validation of team existence
-- Working team management functionality
-- Improved error handling and user feedback
-- Consistent route formatting
+3. Fixed project route registration:
+   - Created register_project_routes.py to properly register routes
+   - Cleaned up duplicate route mappings
+   - Converted URL paths to endpoint format:
+     * projects.index -> Projects
+     * projects.create_project -> Create Project
+     * projects.list_projects -> Project List
+
+4. Added utility scripts:
+   - add_created_by_columns.py: Adds required columns to tables
+   - cleanup_project_routes.py: Removes duplicate route mappings
+   - register_project_routes.py: Registers routes in proper format
+
+These changes ensure:
+- Consistent breadcrumb navigation across all plugins
+- Proper route registration in PageRouteMapping table
+- Correct database schema with required columns
+- Clean route mappings without duplicates
 
 Testing:
-- Verified CSV template download works
-- Confirmed team creation requirement
-- Tested team editing functionality
-- Tested schedule upload with template
-- Validated database schema and relationships
-- Confirmed consistent route formatting
-
-Related: #oncall #ux #templates #validation #database
+- Verified all project routes appear in navigation
+- Confirmed breadcrumbs work consistently
+- Validated database schema changes

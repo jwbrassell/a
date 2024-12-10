@@ -23,3 +23,9 @@ plugin_metadata = PluginMetadata(
 
 # Import routes after blueprint creation
 from app.plugins.dispatch import routes, models
+from .utils.register_routes import register_dispatch_routes
+
+def init_app(app):
+    """Initialize the dispatch plugin"""
+    with app.app_context():
+        register_dispatch_routes()

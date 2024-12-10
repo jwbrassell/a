@@ -40,6 +40,7 @@ plugin_metadata = PluginMetadata(
 # Import models and utils first as they're required by routes
 from app.plugins.projects import models
 from .utils import init_project_settings
+from .utils.register_routes import register_project_routes
 
 # Import route utilities that are used across different route modules
 from .routes.projects.utils import can_edit_project, can_view_project
@@ -54,6 +55,7 @@ def init_app(app):
     """Initialize the projects plugin"""
     with app.app_context():
         init_project_settings()
+        register_project_routes()
 
 # Add template context processor for commonly used functions
 @bp.app_context_processor

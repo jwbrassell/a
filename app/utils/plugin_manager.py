@@ -95,6 +95,10 @@ class PluginManager:
                 logger.error(f"Invalid blueprint in plugin {plugin_name}")
                 return None
             
+            # Initialize plugin if it has init_app function
+            if hasattr(module, 'init_app'):
+                module.init_app(self.app)
+            
             # Register plugin routes in database
             self._register_plugin_routes(plugin_name, metadata)
             

@@ -131,17 +131,29 @@ def cleanup_invalid_routes():
 def map_route_to_roles(route_path, page_name, roles=None, category_id=None, icon='fa-link', weight=0):
     """Map a route to specific roles and create/update the PageRouteMapping."""
     try:
-        # Convert route_path to actual endpoint
-        endpoint = route_to_endpoint(route_path)
-        if not endpoint:
+        # First check if the route exists in Flask's URL map
+        route_exists = False
+        actual_route = None
+        for rule in current_app.url_map.iter_rules():
+            if rule.rule == route_path:
+                route_exists = True
+                actual_route = route_path
+                break
+            # Also check if it matches when converted to endpoint
+            elif route_to_endpoint(route_path) == rule.endpoint:
+                route_exists = True
+                actual_route = rule.rule
+                break
+        
+        if not route_exists:
             logger.warning(f"Attempted to map non-existent route: {route_path}")
             return False
         
-        # Get or create the route mapping
-        mapping = PageRouteMapping.query.filter_by(route=endpoint).first()
+        # Get or create the route mapping using the actual route path
+        mapping = PageRouteMapping.query.filter_by(route=actual_route).first()
         if not mapping:
             mapping = PageRouteMapping(
-                route=endpoint,
+                route=actual_route,
                 page_name=page_name,
                 category_id=category_id,
                 icon=icon,
@@ -168,10 +180,10 @@ def map_route_to_roles(route_path, page_name, roles=None, category_id=None, icon
             if role:
                 mapping.allowed_roles.append(role)
             else:
-                logger.warning(f"Role '{role_name}' not found when mapping route '{endpoint}'")
+                logger.warning(f"Role '{role_name}' not found when mapping route '{actual_route}'")
         
         db.session.commit()
-        logger.info(f"Successfully mapped route '{endpoint}' to roles: {roles}")
+        logger.info(f"Successfully mapped route '{actual_route}' to roles: {roles}")
         return True
         
     except Exception as e:

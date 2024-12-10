@@ -43,13 +43,36 @@ Default admin credentials:
 
 The application uses SQLite by default for easy setup and portability. The SQLite database will be automatically created in the `instance` directory when you run the initialization scripts.
 
-If you need to use MariaDB instead, you can configure it by setting the following environment variables in a `.env` file:
+### Migrating to MariaDB
+
+If you want to switch from SQLite to MariaDB, we provide a simple migration script that will guide you through the process:
+
+1. Ensure MariaDB is installed and running on your system
+2. Run the migration script:
+```bash
+python migrate_to_mariadb.py
+```
+3. Follow the prompts to enter your MariaDB connection details:
+   - Host (default: localhost)
+   - Port (default: 3306)
+   - Database name (default: portal_db)
+   - Username
+   - Password
+
+The script will:
+- Test the database connection
+- Create the database if it doesn't exist
+- Update your .env file with the MariaDB configuration
+- Migrate your existing data to the new database
+
+If you prefer to configure MariaDB manually, you can set the following environment variables in a `.env` file:
 
 ```env
 DB_TYPE=mariadb
 DATABASE_USER=your_user
 DATABASE_PASSWORD=your_password
 DATABASE_HOST=localhost
+DATABASE_PORT=3306
 DATABASE_NAME=your_db_name
 ```
 
