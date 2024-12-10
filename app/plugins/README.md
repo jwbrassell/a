@@ -1,6 +1,6 @@
 # Flask Plugin System Guide
 
-This guide explains how to create and integrate new plugins into the Flask application.
+This guide explains how to create, integrate, and safely remove plugins from the Flask application.
 
 ## Plugin Structure
 
@@ -50,7 +50,7 @@ In `__init__.py`, create and configure your blueprint:
 ```python
 from flask import Blueprint, render_template
 from flask_login import login_required
-from app.utils.rbac import role_required
+from app.utils.rbac import requires_roles
 
 bp = Blueprint('your_plugin', __name__,
               template_folder='templates',
@@ -58,31 +58,10 @@ bp = Blueprint('your_plugin', __name__,
 
 @bp.route('/')
 @login_required
-@role_required(['user'])
+@requires_roles('user')
 def index():
     return render_template('your_plugin/index.html',
                          metadata=plugin_metadata)
-```
-
-#### 3. Templates
-
-Create templates extending the base template:
-
-```html
-{% extends 'base.html' %}
-
-{% block title %}Your Plugin{% endblock %}
-
-{% block breadcrumb %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
-    <li class="breadcrumb-item active">Your Plugin</li>
-</ol>
-{% endblock %}
-
-{% block content %}
-<!-- Your content here -->
-{% endblock %}
 ```
 
 ## Plugin Features
@@ -101,7 +80,7 @@ Create templates extending the base template:
 ### Access Control
 
 - Use `@login_required` for authentication
-- Use `@role_required([roles])` for authorization
+- Use `@requires_roles([roles])` for authorization
 - Define required roles in metadata
 
 ### Templates
@@ -110,6 +89,7 @@ Create templates extending the base template:
 - Use proper breadcrumb navigation
 - Follow Bootstrap component patterns
 - Include plugin metadata display
+- Use route validation filters for links
 
 ### Static Files
 
@@ -121,6 +101,48 @@ If your plugin needs static files:
 {{ url_for('your_plugin.static', filename='path/to/file') }}
 ```
 
+## Plugin Removal
+
+When removing a plugin, the system will automatically:
+
+1. Clean up invalid route mappings
+2. Remove role associations
+3. Update navigation structure
+4. Handle URL generation gracefully
+
+### Safe Removal Steps
+
+1. Back up any important data
+2. Remove the plugin directory
+3. Restart the application
+4. The system will automatically:
+   - Clean up route mappings
+   - Remove invalid role assignments
+   - Update navigation
+   - Handle missing endpoints gracefully
+
+### Validation Checks
+
+The system includes several safety mechanisms:
+
+1. Route Validation:
+   ```html
+   {% if 'your_plugin.index'|route_exists %}
+   <a href="{{ url_for('your_plugin.index') }}">Your Plugin</a>
+   {% endif %}
+   ```
+
+2. Navigation Filtering:
+   - Invalid routes are automatically filtered
+   - Empty categories are hidden
+   - Missing endpoints are handled gracefully
+
+3. Error Handling:
+   - Missing routes return 404
+   - Invalid access returns 403
+   - System errors show 500 page
+   - All error pages work without navigation
+
 ## Best Practices
 
 1. **Documentation**
@@ -128,64 +150,70 @@ If your plugin needs static files:
    - Document all routes and features
    - Include setup instructions
    - List dependencies
+   - Document removal procedures
 
 2. **Security**
    - Always use authentication decorators
    - Implement proper role checks
    - Validate user input
    - Handle errors gracefully
+   - Clean up data on removal
 
 3. **Code Organization**
    - Follow consistent naming
    - Keep routes organized
    - Use meaningful variable names
    - Comment complex logic
+   - Maintain clean uninstall
 
 4. **UI/UX**
    - Follow Bootstrap patterns
    - Maintain consistent styling
    - Use proper icons
    - Implement responsive design
+   - Handle missing routes gracefully
 
 5. **Testing**
    - Write unit tests
    - Test role-based access
    - Verify template rendering
    - Check error handling
+   - Test plugin removal
 
-## Example Plugin
+## Troubleshooting
 
-See the `hello` plugin for a complete example implementation:
+1. **Plugin Not Appearing**
+   - Check plugin directory name
+   - Verify __init__.py exists
+   - Confirm metadata is defined
+   - Check required roles exist
 
-```python
-# app/plugins/hello/__init__.py
-from flask import Blueprint, render_template
-from flask_login import login_required
-from app.utils.plugin_manager import PluginMetadata
-from app.utils.rbac import role_required
+2. **Template Errors**
+   - Verify template directory structure
+   - Check template inheritance
+   - Validate template variables
+   - Check URL generation
+   - Use route validation filters
 
-bp = Blueprint('hello', __name__, 
-              template_folder='templates',
-              url_prefix='/hello')
+3. **Access Issues**
+   - Verify user roles
+   - Check decorator order
+   - Confirm URL prefix
+   - Validate route registration
+   - Check role mappings
 
-plugin_metadata = PluginMetadata(
-    name="Hello Plugin",
-    version="1.0.0",
-    description="An example plugin demonstrating the plugin system",
-    author="System",
-    required_roles=["user"],
-    icon="fa-hand-wave",
-    category="Examples",
-    weight=100
-)
+4. **Static Files**
+   - Check file permissions
+   - Verify path construction
+   - Confirm static folder setup
+   - Check URL generation
 
-@bp.route('/')
-@login_required
-@role_required(['user'])
-def index():
-    return render_template('hello/index.html', 
-                         metadata=plugin_metadata)
-```
+5. **Removal Issues**
+   - Check for remaining route mappings
+   - Verify role cleanup
+   - Clear template cache
+   - Restart application
+   - Check error logs
 
 ## Integration Testing
 
@@ -202,30 +230,8 @@ def test_plugin():
     response = client.get('/your-plugin/')
     assert response.status_code == 200
     assert 'Your Plugin' in response.data.decode()
-```
 
-## Troubleshooting
-
-1. **Plugin Not Appearing**
-   - Check plugin directory name
-   - Verify __init__.py exists
-   - Confirm metadata is defined
-   - Check required roles exist
-
-2. **Template Errors**
-   - Verify template directory structure
-   - Check template inheritance
-   - Validate template variables
-   - Check URL generation
-
-3. **Access Issues**
-   - Verify user roles
-   - Check decorator order
-   - Confirm URL prefix
-   - Validate route registration
-
-4. **Static Files**
-   - Check file permissions
-   - Verify path construction
-   - Confirm static folder setup
-   - Check URL generation
+    # Test plugin removal
+    remove_plugin('your-plugin')
+    response = client.get('/your-plugin/')
+    assert response.status_code == 404  # Should handle missing route

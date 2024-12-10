@@ -36,10 +36,14 @@ def register_blueprints(app):
     
     # Register each plugin blueprint
     for blueprint in plugins:
-        app.register_blueprint(blueprint)
-        logger.info(f"Registered plugin blueprint: {blueprint.name}")
+        if blueprint:  # Only register valid blueprints
+            try:
+                app.register_blueprint(blueprint)
+                logger.info(f"Registered plugin blueprint: {blueprint.name}")
+            except Exception as e:
+                logger.error(f"Failed to register blueprint: {str(e)}")
     
-    logger.info(f"Loaded {len(plugins)} plugins successfully")
+    logger.info(f"Loaded {len([p for p in plugins if p])} plugins successfully")
 
     # Initialize default roles and users for local development
     with app.app_context():
@@ -171,7 +175,18 @@ def index():
     
     # Get plugin metadata from plugin manager
     plugin_manager = current_app.config.get('PLUGIN_MANAGER')
-    plugins = plugin_manager.get_all_plugin_metadata() if plugin_manager else {}
+    plugins = {}
+    if plugin_manager:
+        try:
+            plugins = plugin_manager.get_all_plugin_metadata()
+            # Filter out plugins that don't have valid routes
+            from app.utils.route_manager import route_to_endpoint
+            plugins = {
+                name: meta for name, meta in plugins.items()
+                if route_to_endpoint(f"{name}.index")  # Only keep plugins with valid index routes
+            }
+        except Exception as e:
+            logger.error(f"Error getting plugin metadata: {str(e)}")
     
     log_activity(current_user, 'Visited index page')
     return render_template('index.html', plugins=plugins)

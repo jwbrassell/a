@@ -3,6 +3,7 @@
 import json
 from markupsafe import escape
 from flask import current_app
+from app.utils.route_manager import route_to_endpoint as convert_route
 
 def init_app(app):
     """Initialize template filters.
@@ -13,25 +14,7 @@ def init_app(app):
     @app.template_filter('route_to_endpoint')
     def route_to_endpoint(route):
         """Convert route to endpoint format."""
-        # If route already contains dots and no slashes, assume it's already an endpoint
-        if '.' in route and '/' not in route:
-            return route
-            
-        # Remove leading slash if present
-        if route.startswith('/'):
-            route = route[1:]
-            
-        # Convert slashes to dots
-        parts = route.split('/')
-        
-        # Handle special cases for blueprint routes
-        if len(parts) >= 2:
-            # If first part is a known blueprint, keep it as prefix
-            if parts[0] in ['admin', 'dispatch', 'profile', 'hello', 'documents', 'oncall']:
-                return f"{parts[0]}.{'.'.join(parts[1:])}"
-        
-        # Default case: just join with dots
-        return '.'.join(parts)
+        return convert_route(route)
 
     @app.template_filter('escapejs')
     def escapejs(val):
@@ -55,9 +38,23 @@ def init_app(app):
         return value.strftime('%Y-%m-%d')
 
     @app.template_filter('route_exists')
-    def route_exists(endpoint):
-        """Check if a route exists in the application."""
+    def route_exists(route):
+        """Check if a route exists in the application.
+        
+        Args:
+            route: Route path or endpoint name
+            
+        Returns:
+            bool: True if route exists and is registered, False otherwise
+        """
         try:
+            # Convert route to endpoint format
+            endpoint = convert_route(route)
+            if not endpoint:
+                return False
+                
+            # Check if endpoint exists in view functions
             return endpoint in current_app.view_functions
-        except:
+        except Exception as e:
+            current_app.logger.warning(f"Error checking route existence for {route}: {str(e)}")
             return False

@@ -39,12 +39,12 @@ def get_actual_endpoint(endpoint):
     except Exception as e:
         logger.error(f"Error finding actual endpoint for {endpoint}: {str(e)}")
     
-    # If no match found, return original endpoint
-    return endpoint
+    # If no match found, return None to indicate invalid endpoint
+    return None
 
 @lru_cache(maxsize=128)
 def route_to_endpoint(route):
-    """Convert a route path to a Flask endpoint name."""
+    """Convert a route path to a Flask endpoint name. Returns None if endpoint doesn't exist."""
     # Initialize cache if empty
     if not _route_cache:
         _init_route_cache()
@@ -56,10 +56,10 @@ def route_to_endpoint(route):
     # If it's already in endpoint format (contains a dot), verify it's valid
     if '.' in route:
         actual_endpoint = get_actual_endpoint(route)
-        if actual_endpoint != route:
+        if actual_endpoint:
             _route_cache[route] = actual_endpoint
             return actual_endpoint
-        return route
+        return None
 
     # Handle plugin routes
     if route.startswith('/'):
@@ -68,8 +68,10 @@ def route_to_endpoint(route):
             # Convert URL path to endpoint format
             endpoint = f"{parts[0]}.{parts[1]}" if len(parts) > 1 else f"{parts[0]}.index"
             actual_endpoint = get_actual_endpoint(endpoint)
-            _route_cache[route] = actual_endpoint
-            return actual_endpoint
+            if actual_endpoint:
+                _route_cache[route] = actual_endpoint
+                return actual_endpoint
+            return None
     
     # Default handling
     endpoint = route.lstrip('/').replace('/', '.')
@@ -83,15 +85,57 @@ def route_to_endpoint(route):
     
     # Verify the endpoint exists
     actual_endpoint = get_actual_endpoint(endpoint)
-    _route_cache[route] = actual_endpoint
+    if actual_endpoint:
+        _route_cache[route] = actual_endpoint
+        return actual_endpoint
     
-    return actual_endpoint
+    return None
+
+def cleanup_invalid_routes():
+    """Remove route mappings for endpoints that no longer exist.
+    
+    Returns:
+        tuple: (number of routes removed, list of removed route names)
+    """
+    try:
+        removed_count = 0
+        removed_routes = []
+        
+        # Get all route mappings
+        route_mappings = PageRouteMapping.query.all()
+        
+        for mapping in route_mappings:
+            # Check if the endpoint exists
+            endpoint = route_to_endpoint(mapping.route)
+            if not endpoint or endpoint not in current_app.view_functions:
+                # Log the removal
+                logger.info(f"Removing invalid route mapping: {mapping.route} -> {mapping.page_name}")
+                removed_routes.append(mapping.route)
+                removed_count += 1
+                
+                # Remove the mapping
+                db.session.delete(mapping)
+        
+        # Commit changes if any routes were removed
+        if removed_count > 0:
+            db.session.commit()
+            logger.info(f"Removed {removed_count} invalid route mappings")
+        
+        return removed_count, removed_routes
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error cleaning up invalid routes: {str(e)}")
+        return 0, []
 
 def map_route_to_roles(route_path, page_name, roles=None, category_id=None, icon='fa-link', weight=0):
     """Map a route to specific roles and create/update the PageRouteMapping."""
     try:
         # Convert route_path to actual endpoint
         endpoint = route_to_endpoint(route_path)
+        if not endpoint:
+            logger.warning(f"Attempted to map non-existent route: {route_path}")
+            return False
         
         # Get or create the route mapping
         mapping = PageRouteMapping.query.filter_by(route=endpoint).first()
@@ -140,6 +184,9 @@ def get_route_roles(route_path):
     try:
         # Convert route_path to actual endpoint
         endpoint = route_to_endpoint(route_path)
+        if not endpoint:
+            return ['admin', 'demo']  # Default roles for invalid routes
+            
         mapping = PageRouteMapping.query.filter_by(route=endpoint).first()
         
         # If no mapping exists, return default roles (all roles have access)
@@ -157,6 +204,9 @@ def remove_route_mapping(route_path):
     try:
         # Convert route_path to actual endpoint
         endpoint = route_to_endpoint(route_path)
+        if not endpoint:
+            return False
+            
         mapping = PageRouteMapping.query.filter_by(route=endpoint).first()
         if mapping:
             db.session.delete(mapping)
@@ -201,7 +251,11 @@ def sync_blueprint_routes(blueprint_name, route_mappings):
         ).all()
         
         # Create a set of routes that should exist (in endpoint format)
-        new_routes = {route_to_endpoint(mapping['route']) for mapping in route_mappings}
+        new_routes = set()
+        for mapping in route_mappings:
+            endpoint = route_to_endpoint(mapping['route'])
+            if endpoint:  # Only include valid endpoints
+                new_routes.add(endpoint)
         
         # Remove mappings that shouldn't exist anymore
         for existing in existing_routes:

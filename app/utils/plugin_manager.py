@@ -3,11 +3,12 @@
 import os
 import importlib
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 from dataclasses import dataclass
 from flask import Flask, Blueprint
 from app.models import Role, PageRouteMapping
 from app import db
+from app.utils.route_manager import cleanup_invalid_routes
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ class PluginManager:
         self.app = app
         self.plugin_folder = os.path.join(app.root_path, plugin_folder)
         self.plugins: Dict[str, PluginMetadata] = {}
+        self._previous_plugins: Set[str] = set()
         
         # Create plugins directory if it doesn't exist
         os.makedirs(self.plugin_folder, exist_ok=True)
@@ -152,9 +154,23 @@ class PluginManager:
         Returns:
             List of loaded blueprints
         """
-        blueprints = []
+        # Store current plugins for comparison
+        current_plugins = set(self.discover_plugins())
+        removed_plugins = self._previous_plugins - current_plugins
         
-        for plugin_name in self.discover_plugins():
+        # If any plugins were removed, clean up their routes
+        if removed_plugins:
+            logger.info(f"Detected removed plugins: {removed_plugins}")
+            removed_count, removed_routes = cleanup_invalid_routes()
+            if removed_count > 0:
+                logger.info(f"Cleaned up {removed_count} invalid routes: {removed_routes}")
+        
+        # Update previous plugins list
+        self._previous_plugins = current_plugins
+        
+        # Load current plugins
+        blueprints = []
+        for plugin_name in current_plugins:
             blueprint = self.load_plugin(plugin_name)
             if blueprint:
                 blueprints.append(blueprint)
@@ -178,4 +194,10 @@ class PluginManager:
         Returns:
             Dictionary of plugin names to metadata
         """
+        # Clean up metadata for removed plugins
+        current_plugins = set(self.discover_plugins())
+        removed_plugins = set(self.plugins.keys()) - current_plugins
+        for plugin_name in removed_plugins:
+            self.plugins.pop(plugin_name, None)
+        
         return self.plugins.copy()

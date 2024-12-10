@@ -4,6 +4,7 @@ from flask_login import current_user
 from werkzeug.exceptions import Forbidden
 from app.models import PageRouteMapping
 from app import db
+from app.utils.route_manager import route_to_endpoint
 
 def check_route_access():
     """
@@ -20,8 +21,14 @@ def check_route_access():
         return True
         
     try:
+        # Validate the endpoint exists
+        endpoint = route_to_endpoint(request.path)
+        if not endpoint:
+            current_app.logger.warning(f"Attempted access to non-existent route: {request.path}")
+            return False
+            
         # Get the route mapping for the current endpoint
-        mapping = PageRouteMapping.query.filter_by(route=request.path).first()
+        mapping = PageRouteMapping.query.filter_by(route=endpoint).first()
         
         if not mapping:
             # If no mapping exists, default to requiring authentication only
@@ -91,9 +98,16 @@ def get_user_accessible_routes():
         # Get the set of user's role names
         user_roles = {role.name for role in current_user.roles}
         
-        # Filter mappings based on user roles
+        # Filter mappings based on user roles and route existence
         accessible_mappings = []
         for mapping in mappings:
+            # Verify the route still exists
+            endpoint = route_to_endpoint(mapping.route)
+            if not endpoint or endpoint not in current_app.view_functions:
+                current_app.logger.warning(f"Skipping invalid route in access check: {mapping.route}")
+                continue
+                
+            # Check role access
             mapping_roles = {role.name for role in mapping.allowed_roles}
             if not mapping_roles or mapping_roles & user_roles:
                 accessible_mappings.append(mapping)
@@ -104,3 +118,41 @@ def get_user_accessible_routes():
         current_app.logger.error(f"Error getting accessible routes: {str(e)}")
         db.session.rollback()
         return []
+
+def cleanup_invalid_role_mappings():
+    """
+    Remove role mappings for routes that no longer exist.
+    
+    Returns:
+        tuple: (number of mappings removed, list of removed routes)
+    """
+    try:
+        removed_count = 0
+        removed_routes = []
+        
+        # Get all route mappings
+        mappings = PageRouteMapping.query.all()
+        
+        for mapping in mappings:
+            # Check if the endpoint exists
+            endpoint = route_to_endpoint(mapping.route)
+            if not endpoint or endpoint not in current_app.view_functions:
+                # Log the removal
+                current_app.logger.info(f"Removing invalid role mapping: {mapping.route}")
+                removed_routes.append(mapping.route)
+                removed_count += 1
+                
+                # Remove the mapping
+                db.session.delete(mapping)
+        
+        # Commit changes if any mappings were removed
+        if removed_count > 0:
+            db.session.commit()
+            current_app.logger.info(f"Removed {removed_count} invalid role mappings")
+        
+        return removed_count, removed_routes
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error cleaning up invalid role mappings: {str(e)}")
+        return 0, []
