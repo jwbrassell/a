@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask_login import UserMixin
+from flask_login import UserMixin, current_user
 from app import db, login_manager
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
@@ -146,13 +146,20 @@ class NavigationCategory(db.Model):
     description = db.Column(db.String(200), nullable=True)
     icon = db.Column(db.String(64), nullable=False, default='fa-folder')
     weight = db.Column(db.Integer, nullable=False, default=0)
-    created_by = db.Column(db.String(64), nullable=False)
+    created_by = db.Column(db.String(64), nullable=False, default='system')  # Added default
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_by = db.Column(db.String(64), nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.utcnow)
 
     # Relationship to route mappings
     routes = db.relationship('PageRouteMapping', backref='nav_category', lazy=True)
+
+    def __init__(self, name, icon=None, weight=0, description=None, created_by=None):
+        self.name = name
+        self.icon = icon or self.icon.default.arg
+        self.weight = weight
+        self.description = description
+        self.created_by = created_by or 'system'
 
     def __repr__(self):
         return f'<NavigationCategory {self.name}>'

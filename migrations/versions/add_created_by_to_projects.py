@@ -1,7 +1,7 @@
 """add created_by to project tables
 
 Revision ID: add_created_by_to_projects
-Revises: task_updates_migration
+Revises: 960135e4e7ab
 Create Date: 2024-12-10 12:00:00.000000
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_created_by_to_projects'
-down_revision = 'task_updates_migration'
+down_revision = '960135e4e7ab'  # Changed to depend on migration that creates project_status
 branch_labels = None
 depends_on = None
 

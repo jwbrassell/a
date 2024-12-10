@@ -13,6 +13,27 @@ from app.extensions import db, login_manager, migrate
 # Initialize CSRF protection
 csrf = CSRFProtect()
 
+def register_plugins(app):
+    """Register plugin blueprints and routes"""
+    from app.utils.plugin_manager import PluginManager
+    plugin_manager = PluginManager(app)
+    
+    # Load and register plugin blueprints within app context
+    with app.app_context():
+        # First register all blueprints
+        blueprints = plugin_manager.load_all_plugins()
+        for blueprint in blueprints:
+            if blueprint:
+                app.register_blueprint(blueprint)
+        
+        # Initialize projects plugin
+        from app.plugins.projects import init_app as init_projects
+        init_projects(app)
+        
+        # Initialize dispatch routes
+        from app.plugins.dispatch.utils.register_routes import register_dispatch_routes
+        register_dispatch_routes()
+
 def create_app(config_name=None):
     app = Flask(__name__)
     
@@ -25,8 +46,11 @@ def create_app(config_name=None):
     # Initialize extensions with app
     db.init_app(app)
     login_manager.init_app(app)
-    migrate.init_app(app, db)
     csrf.init_app(app)  # Initialize CSRF protection
+
+    # Skip migrations if requested
+    if os.getenv('SKIP_MIGRATIONS') != '1':
+        migrate.init_app(app, db)
 
     # Initialize image registry
     from app.utils.image_registry import ImageRegistry
@@ -40,15 +64,9 @@ def create_app(config_name=None):
     from app.routes import main as main_bp
     app.register_blueprint(main_bp)
 
-    # Import and initialize plugin manager
-    from app.utils.plugin_manager import PluginManager
-    plugin_manager = PluginManager(app)
-    
-    # Load and register plugin blueprints within app context
-    with app.app_context():
-        for blueprint in plugin_manager.load_all_plugins():
-            if blueprint:
-                app.register_blueprint(blueprint)
+    # Only load plugins if not explicitly skipped
+    if os.getenv('SKIP_PLUGIN_LOAD') != '1':
+        register_plugins(app)
 
     # Import navigation manager and route utilities
     from app.utils.navigation_manager import NavigationManager
@@ -83,17 +101,5 @@ def create_app(config_name=None):
     @app.errorhandler(400)
     def bad_request_error(error):
         return render_template('400.html'), 400
-
-    # Register init-db command
-    @app.cli.command('init-db')
-    def init_db_command():
-        """Initialize the database with default data."""
-        from app.utils.init_db import init_roles_and_users
-        init_roles_and_users()
-        click.echo('Initialized the database.')
-
-    # Register fix-oncall-routes command
-    from app.utils.fix_oncall_routes import fix_oncall_routes
-    app.cli.add_command(fix_oncall_routes)
 
     return app

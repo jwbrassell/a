@@ -13,7 +13,9 @@ def register_dispatch_routes():
         tools_category = NavigationCategory(
             name='Tools',
             icon='fa-tools',
-            weight=200
+            weight=200,
+            description='System tools and utilities',
+            created_by='system'  # Explicitly set created_by
         )
         db.session.add(tools_category)
         db.session.commit()

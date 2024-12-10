@@ -1,19 +1,34 @@
-feat: Improve deployment and setup process
+feat: Harden application initialization process
 
-- Add setup.py script for one-command initialization
-- Update .gitignore to exclude database files but keep static files
-- Update README with simplified setup instructions
-- Fix RBAC logic to ensure admin role has full access
-- Update default admin credentials (admin/test123)
-- Add proper route mappings for all plugins
-- Consolidate database initialization into single script
+- Remove dependency on migrations in favor of direct database creation
+- Add proper initialization order for core and plugin data
+- Fix plugin route registration and role mapping
+- Add comprehensive data initialization for all plugins
+- Update app initialization to handle plugin dependencies correctly
 
-This commit makes the application ready for first-time deployment by:
-1. Simplifying the setup process to a single command
-2. Ensuring proper file tracking in git
-3. Fixing role-based access control for admin users
-4. Providing clear documentation for new users
+This commit improves the application's initialization reliability by:
+1. Removing complex migration dependencies
+2. Ensuring proper initialization order:
+   - Create database tables
+   - Initialize core data (users, roles, navigation)
+   - Initialize plugin data (projects, dispatch, documents)
+   - Register blueprints
+   - Register routes
+   - Map routes to roles
+3. Adding proper data seeding for all plugins
+4. Fixing route registration to handle plugin dependencies
 
 Breaking Changes:
-- Changed default admin password from 'admin' to 'test123'
-- Removed multiple initialization scripts in favor of setup.py
+- Removed reliance on database migrations
+- Changed initialization process to use setup.py
+- Modified plugin loading order to ensure proper route registration
+
+The application can now be reliably initialized from a fresh clone with:
+1. python setup.py
+2. flask run
+
+All plugins (projects, dispatch, documents, reports) are now properly initialized with:
+- Correct database tables
+- Required initial data
+- Proper route mappings and role assignments
+- Navigation structure

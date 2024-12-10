@@ -24,8 +24,8 @@ def upgrade():
     sa.Column('description', sa.String(length=200), nullable=True),
     sa.Column('icon', sa.String(length=64), nullable=False),
     sa.Column('weight', sa.Integer(), nullable=False),
-    sa.Column('created_by', sa.String(length=64), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('created_by', sa.String(length=64), nullable=True),  # Changed to nullable
+    sa.Column('created_at', sa.DateTime(), nullable=True),  # Changed to nullable for consistency
     sa.Column('updated_by', sa.String(length=64), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),

@@ -15,6 +15,11 @@ down_revision = 'add_todo_due_date'
 branch_labels = None
 depends_on = None
 
+def column_exists(table_name, column_name):
+    inspector = inspect(op.get_bind())
+    columns = [c['name'] for c in inspector.get_columns(table_name)]
+    return column_name in columns
+
 def table_exists(table_name):
     inspector = inspect(op.get_bind())
     return table_name in inspector.get_table_names()
@@ -89,15 +94,29 @@ def upgrade():
         sa.ForeignKeyConstraint(['priority_id'], ['project_priority.id'], )
     )
 
+    # Check if summary column exists in old table
+    has_summary = column_exists('task', 'summary')
+    
+    # Build the column list dynamically based on what exists
+    source_columns = ['id', 'project_id', 'parent_id', 'name', 'description',
+                     'status', 'priority', 'due_date', 'created_at', 'updated_at', 
+                     'assigned_to_id']
+    target_columns = source_columns.copy()
+    
+    if has_summary:
+        source_columns.append('summary')
+        target_columns.append('summary')
+    
+    # Create the INSERT statement dynamically
+    columns_str = ', '.join(target_columns)
+    select_str = ', '.join(source_columns)
+    if not has_summary:
+        select_str = select_str.replace('summary', 'NULL as summary')
+    
     # Copy data from old table to new table
-    conn.execute(text("""
-        INSERT INTO task_new (
-            id, project_id, parent_id, name, summary, description,
-            status, priority, due_date, created_at, updated_at, assigned_to_id
-        )
-        SELECT 
-            id, project_id, parent_id, name, summary, description,
-            status, priority, due_date, created_at, updated_at, assigned_to_id
+    conn.execute(text(f"""
+        INSERT INTO task_new ({columns_str})
+        SELECT {select_str}
         FROM task;
     """))
 
