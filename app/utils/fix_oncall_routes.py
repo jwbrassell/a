@@ -37,7 +37,8 @@ def fix_oncall_routes():
         existing_mappings = PageRouteMapping.query.filter(
             or_(
                 PageRouteMapping.route.like('oncall%'),
-                PageRouteMapping.route.like('main.oncall%')  # Also remove incorrect main blueprint mappings
+                PageRouteMapping.route.like('main.oncall%'),
+                PageRouteMapping.route.like('/oncall/%')  # Also catch URL-style routes
             )
         ).all()
         
@@ -87,6 +88,17 @@ def fix_oncall_routes():
                 show_in_navbar=route_data['show_in_navbar']
             )
             mapping.allowed_roles.extend(route_data['roles'])
+            db.session.add(mapping)
+            
+        # Fix any dispatch routes that use URL format
+        dispatch_mappings = PageRouteMapping.query.filter(
+            PageRouteMapping.route.like('/dispatch/%')
+        ).all()
+        
+        for mapping in dispatch_mappings:
+            # Convert URL format to endpoint format
+            new_route = mapping.route.lstrip('/').replace('/', '.')
+            mapping.route = new_route
             db.session.add(mapping)
             
         db.session.commit()

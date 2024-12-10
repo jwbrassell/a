@@ -40,17 +40,19 @@
                             <h3 class="card-title">Upload Schedule</h3>
                         </div>
                         <div class="card-body">
+                            {% if teams %}
                             <button type="button" class="btn btn-primary btn-block mb-3" data-bs-toggle="modal" data-bs-target="#uploadModal">
                                 <i class="fas fa-upload me-2"></i>Upload Schedule
                             </button>
-                            <div class="dropdown">
-                                <button class="btn btn-secondary btn-block dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown">
-                                    <i class="fas fa-download me-2"></i>Export Schedule
-                                </button>
-                                <div class="dropdown-menu w-100" id="exportMenu">
-                                    <!-- Export options will be populated by JavaScript -->
-                                </div>
+                            <a href="{{ url_for('static', filename='templates/oncall_template.csv') }}" class="btn btn-secondary btn-block">
+                                <i class="fas fa-download me-2"></i>Download Template
+                            </a>
+                            {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Please create a team first before uploading a schedule.
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="card">
@@ -78,6 +80,11 @@
                                     </div>
                                 </div>
                                 {% endfor %}
+                                {% if not teams %}
+                                <div class="list-group-item text-center text-muted">
+                                    No teams created yet
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -187,6 +194,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" id="team-id">
                     <div class="mb-3">
                         <label for="team-name" class="form-label">Team Name</label>
@@ -382,8 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
         events: "{{ url_for('oncall.get_events') }}",
         current: "{{ url_for('oncall.get_current_oncall') }}",
         upload: "{{ url_for('oncall.upload_oncall') }}",
-        teams: "{{ url_for('oncall.manage_teams') }}",
-        export: "{{ url_for('oncall.export_schedule', team_id=0, year=0) }}"
+        teams: "{{ url_for('oncall.manage_teams') }}"
     };
     
     // Team filter handler
@@ -524,43 +531,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     break;
                 }
             }
-
-            // Update export menu
-            updateExportMenu(events);
-        });
-    }
-    
-    function updateExportMenu(events) {
-        var exportMenu = document.getElementById('exportMenu');
-        if (!exportMenu) return;
-
-        // Get unique teams from events
-        var teams = [...new Set(events.map(event => ({
-            id: event.extendedProps.team_id,
-            name: event.extendedProps.team
-        })))];
-        
-        // Clear existing menu items
-        exportMenu.innerHTML = '';
-        
-        // Add menu items for each team
-        teams.forEach(team => {
-            var menuItem = document.createElement('div');
-            menuItem.className = 'dropdown-item';
-            menuItem.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>${team.name}</span>
-                    <div class="btn-group btn-group-sm ms-2">
-                        <button class="btn btn-outline-secondary btn-sm" onclick="exportSchedule('${team.id}', 'json')">
-                            JSON
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm" onclick="exportSchedule('${team.id}', 'csv')">
-                            CSV
-                        </button>
-                    </div>
-                </div>
-            `;
-            exportMenu.appendChild(menuItem);
         });
     }
     
@@ -637,11 +607,19 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(url, {
             method: method,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
             },
             body: JSON.stringify(data)
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Network response was not ok');
+                });
+            }
+            return response.json();
+        })
         .then(function(data) {
             if (data.error) {
                 toastr.error(data.error);
@@ -651,7 +629,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(function(error) {
-            toastr.error('Error saving team');
+            console.error('Error:', error);
+            toastr.error('Error saving team: ' + error.message);
         });
     };
     
@@ -670,7 +649,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.deleteTeam = function(teamId) {
         if (confirm('Are you sure you want to delete this team?')) {
             fetch(urls.teams + '/' + teamId, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                }
             })
             .then(function(response) {
                 if (response.ok) {
@@ -722,14 +704,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial calendar render
     updateCalendar();
 });
-
-// Export schedule function
-window.exportSchedule = function(teamId, format) {
-    var url = urls.export
-        .replace('0', teamId)
-        .replace('0', currentYear) + 
-        '?format=' + format;
-    window.location.href = url;
-};
 </script>
 {% endblock %}

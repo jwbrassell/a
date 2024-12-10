@@ -2,6 +2,7 @@ from flask import render_template, request, jsonify, current_app, send_file
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 import csv
+import json
 from datetime import datetime, timezone
 import zoneinfo
 import colorsys
@@ -40,6 +41,9 @@ def index():
 def manage_teams():
     if request.method == 'POST':
         try:
+            if not request.is_json:
+                return jsonify({'error': 'Content-Type must be application/json'}), 400
+                
             data = request.get_json()
             name = data.get('name')
             color = data.get('color', 'primary')
@@ -70,11 +74,14 @@ def manage_teams():
     except OperationalError:
         return jsonify([])
 
-@bp.route('/api/teams/<int:team_id>', methods=['PUT', 'DELETE'])
+@bp.route('/api/teams/<int:team_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
 @admin_required
 def manage_team(team_id):
     team = Team.query.get_or_404(team_id)
+    
+    if request.method == 'GET':
+        return jsonify(team.to_dict())
     
     if request.method == 'DELETE':
         try:
@@ -88,6 +95,9 @@ def manage_team(team_id):
             
     # PUT request
     try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+            
         data = request.get_json()
         if 'name' in data:
             team.name = data['name']
@@ -281,33 +291,4 @@ def get_current_oncall():
         return jsonify({'error': 'No on-call rotation found for current time'}), 404
     except Exception as e:
         current_app.logger.error(f"Error getting current on-call: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@bp.route('/api/export/<int:team_id>/<int:year>')
-@login_required
-def export_schedule(team_id, year):
-    try:
-        format = request.args.get('format', 'json')
-        if format not in ['json', 'csv']:
-            return jsonify({'error': 'Invalid export format'}), 400
-
-        # Verify team exists
-        team = Team.query.get_or_404(team_id)
-        
-        data = OnCallRotation.export_team_schedule(team_id, year, format)
-        
-        if format == 'json':
-            return jsonify(json.loads(data))
-        else:  # CSV
-            output = StringIO(data)
-            filename = f"oncall_schedule_{team.name}_{year}.csv"
-            return send_file(
-                output,
-                mimetype='text/csv',
-                as_attachment=True,
-                download_name=filename
-            )
-            
-    except Exception as e:
-        current_app.logger.error(f"Error exporting schedule: {str(e)}")
         return jsonify({'error': str(e)}), 500

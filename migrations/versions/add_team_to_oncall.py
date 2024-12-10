@@ -22,8 +22,8 @@ def upgrade():
         sa.Column('id', sa.Integer, primary_key=True),
         sa.Column('name', sa.String(50), nullable=False, unique=True),
         sa.Column('color', sa.String(20), nullable=False),
-        sa.Column('created_at', sa.DateTime, nullable=False),
-        sa.Column('updated_at', sa.DateTime, nullable=False)
+        sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, nullable=False, server_default=sa.func.now(), server_onupdate=sa.func.now())
     )
     
     # Create default team
@@ -44,8 +44,8 @@ def upgrade():
         sa.Column('team_id', sa.Integer, nullable=False),
         sa.Column('start_time', sa.DateTime, nullable=False),
         sa.Column('end_time', sa.DateTime, nullable=False),
-        sa.Column('created_at', sa.DateTime, nullable=False),
-        sa.Column('updated_at', sa.DateTime, nullable=False),
+        sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, nullable=False, server_default=sa.func.now(), server_onupdate=sa.func.now()),
         sa.ForeignKeyConstraint(['team_id'], ['oncall_team.id'], name='fk_rotation_team')
     )
     

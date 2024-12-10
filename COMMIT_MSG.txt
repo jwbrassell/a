@@ -1,31 +1,46 @@
-fix(oncall): resolve route handling and navigation issues
+fix(oncall): improve user experience and team management
 
-- Remove export_schedule from navigation due to required parameters
-- Add Operations category for oncall plugin routes
-- Update navigation macro to handle parameterized routes
-- Fix route_manager.py to properly handle oncall routes
+- Add CSV template file for schedule uploads
+- Add requirement to create team first
+- Add download template button for easy access to CSV format
+- Show warning message when no teams exist
+- Fix team editing functionality
+- Fix database schema and migrations for oncall tables
+- Standardize route formats across plugins
 - Add comprehensive README for oncall plugin
 
-The oncall plugin was experiencing navigation issues due to the export_schedule 
-route requiring parameters (team_id and year) that couldn't be automatically 
-generated in the navigation menu. This caused the entire application to fail 
-when trying to build URLs.
+The oncall plugin had several issues:
+1. No clear guidance on CSV format for schedule uploads
+2. Missing requirement to create team first
+3. Team editing functionality not working
+4. Database schema issues with missing team_id column
+5. Inconsistent route formatting between plugins
 
 Changes made:
-- Modified fix_oncall_routes.py to exclude export_schedule from navigation
-- Created Operations category for better organization
-- Updated navigation macro to handle routes with required parameters
-- Removed special case handling in route_manager.py
+- Added CSV template file with example data
+- Added download template button in upload section
+- Added warning message to create team first
+- Hide upload button until team exists
+- Added GET endpoint for individual teams to fix editing
+- Fixed database schema to properly include team_id
+- Ensured migrations run in correct order
+- Standardized route formats to use dot notation
 - Added detailed documentation in README.md
 
-The plugin now properly integrates with the core application's navigation 
-system while maintaining all functionality. The export_schedule endpoint 
-remains accessible through the UI where parameters can be properly provided.
+The plugin now provides better user experience with:
+- Clear requirement to create team first
+- Easy access to CSV template
+- Proper validation of team existence
+- Working team management functionality
+- Improved error handling and user feedback
+- Consistent route formatting
 
 Testing:
-- Verified routes are properly registered
-- Confirmed navigation loads without errors
-- Checked all oncall routes are under Operations category
-- Validated export functionality still works through UI
+- Verified CSV template download works
+- Confirmed team creation requirement
+- Tested team editing functionality
+- Tested schedule upload with template
+- Validated database schema and relationships
+- Confirmed consistent route formatting
 
-Related: #oncall #navigation #routes
+Related: #oncall #ux #templates #validation #database
