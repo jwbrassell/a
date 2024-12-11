@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 load_dotenv()
 
@@ -24,13 +25,32 @@ class Config:
     
     # Session configuration
     SESSION_TYPE = 'sqlalchemy'
-    SESSION_SQLALCHEMY_TABLE = 'sessions'
-    PERMANENT_SESSION_LIFETIME = 7200  # 2 hours
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=2)
+    SESSION_SQLALCHEMY = None  # Will be set in init_app
+    SESSION_SQLALCHEMY_TABLE = 'session'
     SESSION_USE_SIGNER = True
     SESSION_FILE_THRESHOLD = 500
     
+    # Session cookie settings
+    SESSION_COOKIE_NAME = 'portal_session'
+    SESSION_COOKIE_SECURE = True  # Only send cookie over HTTPS
+    SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Protect against CSRF
+    PERMANENT_SESSION = True  # Enable session lifetime
+    
+    # WSGI configuration
+    PREFERRED_URL_SCHEME = 'https'
+    PROXY_FIX = True  # Enable proxy support
+    PROXY_COUNT = 1  # Number of proxies in front of the app
+    
     # SQLAlchemy configuration
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,  # Maximum number of connections in the pool
+        'pool_recycle': 3600,  # Recycle connections after 1 hour
+        'pool_pre_ping': True,  # Enable connection health checks
+        'pool_timeout': 30,  # Connection timeout in seconds
+    }
     
     # Vault configuration
     VAULT_ADDR = os.getenv('VAULT_ADDR', 'http://localhost:8200')
@@ -71,10 +91,15 @@ class Config:
             os.makedirs(os.path.dirname(os.path.join(app.root_path, sqlite_path)), exist_ok=True)
             app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{sqlite_path}'
             app.logger.info("Using SQLite configuration")
+        
+        # Set SESSION_SQLALCHEMY after db is initialized
+        from app.extensions import db
+        app.config['SESSION_SQLALCHEMY'] = db
 
 class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
+    SESSION_COOKIE_SECURE = False  # Allow HTTP in development
     
     @classmethod
     def init_app(cls, app):
@@ -94,6 +119,7 @@ class TestingConfig(Config):
     TESTING = True
     WTF_CSRF_ENABLED = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'  # Always use in-memory SQLite for testing
+    SESSION_COOKIE_SECURE = False  # Allow HTTP in testing
     
     @classmethod
     def init_app(cls, app):
@@ -107,6 +133,15 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
+    
+    # Production-specific SQLAlchemy settings
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 20,  # Larger connection pool for production
+        'pool_recycle': 1800,  # Recycle connections more frequently
+        'pool_pre_ping': True,
+        'pool_timeout': 60,
+        'max_overflow': 5  # Allow up to 5 connections over pool_size
+    }
     
     @classmethod
     def init_app(cls, app):

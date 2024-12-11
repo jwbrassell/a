@@ -14,13 +14,17 @@ Usage:
 import os
 import sys
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 import secrets
+import multiprocessing
 import pymysql
-pymysql.install_as_MySQLdb()  # Add this line to use PyMySQL as MySQLdb
-from dotenv import load_dotenv
+pymysql.install_as_MySQLdb()
+from python_dotenv import load_dotenv
 from app import create_app, db
-from app.models import Role, User, NavigationCategory, PageRouteMapping
+from app.models import (
+    Role, User, NavigationCategory, PageRouteMapping, Session,
+    UserPreference, UserActivity, PageVisit
+)
 from app.plugins.projects.models import ProjectStatus, ProjectPriority
 from app.plugins.reports.models import DatabaseConnection, ReportView
 from app.plugins.dispatch.models import DispatchTeam, DispatchPriority, DispatchTransaction
@@ -39,6 +43,8 @@ def ensure_env_file():
     """Create .env file with defaults if it doesn't exist"""
     if not os.path.exists('.env'):
         print("Creating default .env file...")
+        # Calculate optimal number of workers
+        workers = multiprocessing.cpu_count() * 2 + 1
         env_content = f"""# Flask Configuration
 FLASK_APP=app.py
 FLASK_ENV=development
@@ -50,6 +56,33 @@ SQLITE_PATH=instance/app.db
 
 # Skip migrations for initial setup
 SKIP_MIGRATIONS=1
+
+# Session Configuration
+SESSION_TYPE=sqlalchemy
+PERMANENT_SESSION_LIFETIME=7200
+SESSION_COOKIE_SECURE=True
+SESSION_COOKIE_HTTPONLY=True
+SESSION_COOKIE_SAMESITE=Lax
+SESSION_USE_SIGNER=True
+
+# WSGI Configuration
+GUNICORN_WORKERS={workers}
+GUNICORN_WORKER_CLASS=sync
+GUNICORN_WORKER_CONNECTIONS=1000
+GUNICORN_TIMEOUT=120
+GUNICORN_KEEPALIVE=5
+GUNICORN_MAX_REQUESTS=1000
+GUNICORN_MAX_REQUESTS_JITTER=50
+GUNICORN_LOG_LEVEL=info
+GUNICORN_ACCESS_LOG=-
+GUNICORN_ERROR_LOG=-
+GUNICORN_PROC_NAME=portal
+
+# Database Pool Configuration
+SQLALCHEMY_POOL_SIZE=10
+SQLALCHEMY_POOL_TIMEOUT=30
+SQLALCHEMY_POOL_RECYCLE=3600
+SQLALCHEMY_MAX_OVERFLOW=5
 
 # Mail Configuration for Dispatch Plugin
 MAIL_SERVER=smtp.example.com
@@ -187,6 +220,25 @@ def init_navigation():
         db.session.add(category)
     
     db.session.commit()
+
+    # Get admin category for admin dashboard
+    admin_category = NavigationCategory.query.filter_by(name='Admin').first()
+    admin_role = Role.query.filter_by(name='admin').first()
+
+    # Create admin dashboard route mapping
+    admin_route = PageRouteMapping(
+        page_name='Admin Dashboard',
+        route='/admin',
+        icon='fa-cogs',
+        weight=0,
+        category_id=admin_category.id,
+        show_in_navbar=True,
+        created_by='system'
+    )
+    admin_route.allowed_roles.append(admin_role)
+    db.session.add(admin_route)
+    db.session.commit()
+    
     print("Navigation categories initialized")
 
 def init_project_data():
@@ -396,6 +448,18 @@ def init_reports_data():
     db.session.commit()
     print("Reports data initialized")
 
+def init_session_cleanup():
+    """Initialize session cleanup by removing any existing sessions"""
+    print("\nInitializing session cleanup...")
+    try:
+        # Remove all existing sessions
+        Session.query.delete()
+        db.session.commit()
+        print("Session data cleaned up")
+    except Exception as e:
+        print(f"Error cleaning up sessions: {str(e)}")
+        db.session.rollback()
+
 def setup():
     """Run the complete setup process"""
     print("Starting application setup...")
@@ -456,6 +520,9 @@ def setup():
         init_handoff_data()
         init_oncall_data()
         init_reports_data()
+        
+        # Initialize session cleanup
+        init_session_cleanup()
     
     # Now enable plugins but still skip migrations
     os.environ.pop('SKIP_PLUGIN_LOAD', None)
@@ -467,7 +534,10 @@ def setup():
         print("You may want to review and update it for your environment")
     
     print("\nYou can now start the application with:")
-    print("flask run")
+    print("Development:")
+    print("  flask run")
+    print("\nProduction:")
+    print("  gunicorn -c gunicorn.conf.py wsgi:app")
     print("\nDefault admin credentials:")
     print("Username: admin")
     print("Password: test123")

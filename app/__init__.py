@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect, url_for, flash, session
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
@@ -6,12 +6,35 @@ from config import config
 from datetime import datetime
 import os
 import click
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import extensions
-from app.extensions import db, login_manager, migrate
+from app.extensions import db, login_manager, migrate, session as flask_session
 
 # Initialize CSRF protection
 csrf = CSRFProtect()
+
+class SessionCleanupMiddleware:
+    """WSGI middleware to clean up expired sessions."""
+    def __init__(self, app, cleanup_interval=3600):  # 1 hour interval
+        self.app = app
+        self.cleanup_interval = cleanup_interval
+        self.last_cleanup = datetime.utcnow()
+
+    def __call__(self, environ, start_response):
+        now = datetime.utcnow()
+        if (now - self.last_cleanup).total_seconds() > self.cleanup_interval:
+            with self.app.app_context():
+                from app.models import Session
+                try:
+                    expired = Session.query.filter(Session.expiry < now).delete()
+                    db.session.commit()
+                    self.app.logger.info(f"Cleaned up {expired} expired sessions")
+                except Exception as e:
+                    self.app.logger.error(f"Session cleanup error: {str(e)}")
+                    db.session.rollback()
+            self.last_cleanup = now
+        return self.app(environ, start_response)
 
 def register_plugins(app):
     """Register plugin blueprints and routes"""
@@ -38,6 +61,24 @@ def register_plugins(app):
         from app.plugins.tracking import init_tracking
         init_tracking(app)
 
+def register_commands(app):
+    """Register CLI commands."""
+    @app.cli.command('cleanup-sessions')
+    def cleanup_sessions():
+        """Clean up expired sessions."""
+        from app.models import Session
+        try:
+            now = datetime.utcnow()
+            expired = Session.query.filter(Session.expiry < now).all()
+            count = len(expired)
+            for session in expired:
+                db.session.delete(session)
+            db.session.commit()
+            click.echo(f"Successfully cleaned up {count} expired sessions")
+        except Exception as e:
+            click.echo(f"Error cleaning up sessions: {str(e)}")
+            db.session.rollback()
+
 def create_app(config_name=None):
     app = Flask(__name__)
     
@@ -51,6 +92,7 @@ def create_app(config_name=None):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)  # Initialize CSRF protection
+    flask_session.init_app(app)  # Initialize Flask-Session
 
     # Initialize logging configuration
     from app.logging_utils import init_app as init_logging
@@ -84,6 +126,9 @@ def create_app(config_name=None):
     from app import template_filters
     template_filters.init_app(app)
 
+    # Register CLI commands
+    register_commands(app)
+
     # Make navigation manager available to templates
     @app.context_processor
     def inject_navigation():
@@ -91,6 +136,16 @@ def create_app(config_name=None):
             'navigation_manager': NavigationManager,
             'now': datetime.utcnow()
         }
+
+    # Session expiry handler
+    @app.before_request
+    def check_session_expiry():
+        if 'user_id' in session and session.get('_creation_time'):
+            creation_time = datetime.fromtimestamp(session['_creation_time'])
+            if datetime.utcnow() - creation_time > app.config['PERMANENT_SESSION_LIFETIME']:
+                session.clear()
+                flash('Your session has expired. Please log in again.', 'info')
+                return redirect(url_for('main.login'))
 
     # Register error handlers
     @app.errorhandler(404)
@@ -109,5 +164,9 @@ def create_app(config_name=None):
     @app.errorhandler(400)
     def bad_request_error(error):
         return render_template('400.html'), 400
+
+    # Add WSGI middleware
+    app.wsgi_app = ProxyFix(app.wsgi_app)  # Handle proxy headers
+    app.wsgi_app = SessionCleanupMiddleware(app.wsgi_app)  # Add session cleanup
 
     return app

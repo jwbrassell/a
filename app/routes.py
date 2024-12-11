@@ -5,9 +5,10 @@ from flask import (
 from flask_login import login_user, logout_user, login_required, current_user
 import logging
 import os
+from datetime import datetime, timedelta
 
 from app import db
-from app.models import User, UserActivity, UserPreferences
+from app.models import User, UserActivity, UserPreference, Session
 from app.forms import LoginForm
 from app.mock_ldap import authenticate_ldap
 from app.logging_utils import log_page_visit
@@ -59,10 +60,29 @@ def log_activity(user, activity):
     db.session.add(user_activity)
     db.session.commit()
 
+def cleanup_expired_sessions():
+    """Clean up expired sessions."""
+    try:
+        now = datetime.utcnow()
+        expired_sessions = Session.query.filter(Session.expiry < now).all()
+        for session in expired_sessions:
+            db.session.delete(session)
+        db.session.commit()
+    except Exception as e:
+        logger.error(f"Error cleaning up expired sessions: {str(e)}")
+        db.session.rollback()
+
 # Request Handlers for Page Visit Logging
 @main.before_request
 def before_request():
-    """Log page visit attempt before processing."""
+    """Log page visit attempt and clean up expired sessions."""
+    # Periodically clean up expired sessions
+    if not hasattr(before_request, 'last_cleanup'):
+        before_request.last_cleanup = datetime.utcnow()
+    elif datetime.utcnow() - before_request.last_cleanup > timedelta(hours=1):
+        cleanup_expired_sessions()
+        before_request.last_cleanup = datetime.utcnow()
+    
     return log_page_visit()
 
 @main.after_request
@@ -87,9 +107,13 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user)
+            # Set session creation time
+            session['_creation_time'] = datetime.utcnow().timestamp()
+            session.permanent = True  # Use permanent session with lifetime from config
+            
             # Create default preferences if not exists
-            if not UserPreferences.query.filter_by(user_id=user.id).first():
-                prefs = UserPreferences(user_id=user.id)
+            if not UserPreference.query.filter_by(user_id=user.id).first():
+                prefs = UserPreference(user_id=user.id)
                 db.session.add(prefs)
                 db.session.commit()
             flash(f'Welcome, {user.name}!', 'success')
@@ -109,13 +133,12 @@ def login():
                     employee_number=user_info['employee_number'],
                     name=user_info['name'],
                     email=user_info['email'],
-                    vzid=user_info['vzid'],
-                    cngroup=None
+                    vzid=user_info['vzid']
                 )
                 db.session.add(user)
                 db.session.commit()
                 # Create default preferences for new user
-                prefs = UserPreferences(user_id=user.id)
+                prefs = UserPreference(user_id=user.id)
                 db.session.add(prefs)
                 db.session.commit()
             else:
@@ -137,12 +160,15 @@ def login():
                     db.session.commit()
 
                 # Create preferences if not exists
-                if not UserPreferences.query.filter_by(user_id=user.id).first():
-                    prefs = UserPreferences(user_id=user.id)
+                if not UserPreference.query.filter_by(user_id=user.id).first():
+                    prefs = UserPreference(user_id=user.id)
                     db.session.add(prefs)
                     db.session.commit()
 
             login_user(user)
+            # Set session creation time
+            session['_creation_time'] = datetime.utcnow().timestamp()
+            session.permanent = True  # Use permanent session with lifetime from config
             session['user_info'] = user_info
             flash(f'Welcome, {user.name}!', 'success')
             log_activity(user, 'Logged in (LDAP)')
@@ -160,9 +186,15 @@ def login():
 def logout():
     """Handle user logout."""
     log_activity(current_user, 'Logged out')
+    # Clean up user's session
+    if session.sid:
+        user_session = Session.query.filter_by(sid=session.sid).first()
+        if user_session:
+            db.session.delete(user_session)
+            db.session.commit()
     logout_user()
     session.clear()
-    flash('You have been logged out.', 'info')
+    flash('You have been logged out. Please log in again to continue.', 'info')
     return redirect(url_for('main.login'))
 
 # General Routes
