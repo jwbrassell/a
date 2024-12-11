@@ -27,7 +27,7 @@ class Config:
     SESSION_TYPE = 'sqlalchemy'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=2)
     SESSION_SQLALCHEMY = None  # Will be set in init_app
-    SESSION_SQLALCHEMY_TABLE = 'session'
+    SESSION_SQLALCHEMY_TABLE = 'flask_sessions'  # Changed from 'session' to 'flask_sessions'
     SESSION_USE_SIGNER = True
     SESSION_FILE_THRESHOLD = 500
     
