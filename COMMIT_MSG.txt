@@ -1,5 +1,5 @@
-fix: update gitignore and static file paths
+fix: update gitignore to properly track static/dist
 
-- Remove instance/static and instance/templates exceptions from gitignore
-- Update imports.html to use correct paths for AdminLTE files from src directory
-- Add all static files to git tracking
+- Update gitignore to only ignore root dist/ directory
+- Ensure app/static/dist is properly tracked
+- Keep AdminLTE files in app/static/dist for proper asset serving
