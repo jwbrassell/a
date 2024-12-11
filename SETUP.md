@@ -67,13 +67,51 @@ For production environments using MariaDB:
    python setup.py --mariadb
    ```
 
+## Production Deployment with Gunicorn
+
+For production deployment using Gunicorn:
+
+1. Install Gunicorn:
+   ```bash
+   pip install gunicorn
+   ```
+
+2. Configure Gunicorn settings in .env:
+   ```ini
+   # Required settings
+   FLASK_APP=wsgi.py
+   FLASK_ENV=production
+   
+   # Gunicorn settings (customize as needed)
+   GUNICORN_WORKERS=  # defaults to (CPU count * 2) + 1
+   GUNICORN_WORKER_CLASS=sync
+   GUNICORN_TIMEOUT=120
+   GUNICORN_KEEPALIVE=5
+   ```
+
+3. Start with Gunicorn:
+   ```bash
+   # Using configuration file
+   gunicorn -c gunicorn.conf.py wsgi:app
+   
+   # Or with systemd service (recommended)
+   sudo systemctl start portal
+   ```
+
+4. For SSL/HTTPS:
+   ```bash
+   # Update .env with SSL certificate paths
+   SSL_KEYFILE=/path/to/key.pem
+   SSL_CERTFILE=/path/to/cert.pem
+   ```
+
 ## Configuration
 
 The setup script creates a .env file with secure defaults. You can modify these settings:
 
 ### Core Settings
 ```ini
-FLASK_APP=app.py
+FLASK_APP=wsgi.py
 FLASK_ENV=development  # or production
 SECRET_KEY=auto-generated-secure-key
 
@@ -90,6 +128,20 @@ MAIL_USE_TLS=True
 MAIL_USERNAME=your-email@example.com
 MAIL_PASSWORD=your-email-password
 MAIL_DEFAULT_SENDER=noreply@example.com
+
+# Gunicorn Configuration
+GUNICORN_ACCESS_LOG=-  # - for stdout
+GUNICORN_ERROR_LOG=-   # - for stderr
+GUNICORN_LOG_LEVEL=info
+GUNICORN_PROC_NAME=portal
+GUNICORN_WORKERS=  # defaults to (CPU count * 2) + 1
+GUNICORN_WORKER_CLASS=sync
+GUNICORN_WORKER_CONNECTIONS=1000
+GUNICORN_TIMEOUT=120
+GUNICORN_KEEPALIVE=5
+GUNICORN_MAX_REQUESTS=1000
+GUNICORN_MAX_REQUESTS_JITTER=50
+GUNICORN_DAEMON=false
 ```
 
 ## Database Management
@@ -134,6 +186,24 @@ If you need to make database schema changes after deployment:
    - Test connection:
      ```bash
      mysql -u flask_app_user -p
+     ```
+
+### Gunicorn Issues
+
+1. Worker timeout errors:
+   - Increase GUNICORN_TIMEOUT in .env
+   - Check application performance
+   - Monitor worker processes:
+     ```bash
+     ps aux | grep gunicorn
+     ```
+
+2. Connection issues:
+   - Verify bind address in gunicorn.conf.py
+   - Check firewall settings
+   - Test with curl:
+     ```bash
+     curl http://localhost:8000
      ```
 
 ## Command Line Options
