@@ -19,11 +19,13 @@ python setup.py
 
 The setup script will:
 - Create necessary directories
-- Initialize the database
-- Run all migrations
+- Initialize the database and create all required tables
+- Run all migrations automatically
 - Set up default roles and users
 - Configure route permissions
 - Initialize plugin settings
+
+**Important Note**: Always use `setup.py` for initial database configuration. Do not run `init_db.py` directly, as the setup script handles the proper sequence of database initialization and migrations.
 
 5. Run the application:
 ```bash
