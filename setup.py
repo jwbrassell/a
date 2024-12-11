@@ -15,6 +15,7 @@ from app.plugins.projects.models import ProjectStatus, ProjectPriority
 from app.plugins.reports.models import DatabaseConnection, ReportView
 from app.plugins.dispatch.models import DispatchTeam, DispatchPriority, DispatchTransaction
 from app.plugins.documents.models import Document, DocumentCategory
+from app.plugins.weblinks.models import WebLink, WebLinkCategory, WebLinkTag
 
 def init_core_data():
     """Initialize core roles and admin user"""
@@ -175,6 +176,37 @@ def init_document_data():
     db.session.commit()
     print("Document data initialized")
 
+def init_weblinks_data():
+    """Initialize web links categories and tags"""
+    print("\nInitializing web links data...")
+    
+    # Create default categories
+    categories = [
+        {'name': 'Development', 'created_by': 'system'},
+        {'name': 'Documentation', 'created_by': 'system'},
+        {'name': 'Tools', 'created_by': 'system'},
+        {'name': 'Resources', 'created_by': 'system'}
+    ]
+    
+    for cat_data in categories:
+        category = WebLinkCategory(**cat_data)
+        db.session.add(category)
+    
+    # Create default tags
+    tags = [
+        {'name': 'Reference', 'created_by': 'system'},
+        {'name': 'API', 'created_by': 'system'},
+        {'name': 'Tutorial', 'created_by': 'system'},
+        {'name': 'Guide', 'created_by': 'system'}
+    ]
+    
+    for tag_data in tags:
+        tag = WebLinkTag(**tag_data)
+        db.session.add(tag)
+    
+    db.session.commit()
+    print("Web links data initialized")
+
 def setup():
     """Run the complete setup process"""
     print("Starting application setup...")
@@ -213,6 +245,7 @@ def setup():
         init_project_data()
         init_dispatch_data()
         init_document_data()
+        init_weblinks_data()
     
     # Now enable plugins but still skip migrations
     os.environ.pop('SKIP_PLUGIN_LOAD', None)

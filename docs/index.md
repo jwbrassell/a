@@ -46,6 +46,10 @@ Welcome to the Black Friday Lunch documentation! This index will help you find a
 - [Tracking Plugin Documentation](plugins/tracking.md)
 - Features: Request tracking, user activity monitoring, system analytics
 
+### Weblinks Plugin
+- [Weblinks Plugin Documentation](plugins/weblinks.md)
+- Features: Link management, quick access grid, categorization, tag organization, usage analytics
+
 ## Technical Resources
 
 ### Development Tools

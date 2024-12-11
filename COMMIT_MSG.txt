@@ -1,31 +1,17 @@
-docs: complete plugin documentation and index update
+feat(weblinks): improve UI layout and add documentation
 
-- Created comprehensive documentation for all plugins:
-  - Admin: User/role management and system administration
-  - Dispatch: Team dispatch and notification system
-  - Documents: Document management with version control
-  - Handoffs: Shift handover tracking and metrics
-  - OnCall: Rotation scheduling and team management
-  - Profile: User profile and preferences
-  - Projects: Project/task management and collaboration
-  - Reports: Custom report generation and data analysis
-  - Tracking: System activity and request monitoring
+- UI Improvements:
+  - Reorganized quick access grid to flow left-to-right
+  - Limited display to three rows with vertical scrolling
+  - Implemented consistent default link icon (fa-link)
+  - Enhanced grid layout with fixed tile sizes
+  - Added visual consistency between grid and table views
 
-- Each plugin documentation includes:
-  - Feature overview
-  - Installation guide
-  - Usage examples
-  - API reference
-  - Database schema
-  - Security considerations
-  - Performance tips
-  - Troubleshooting guides
+- Documentation:
+  - Created comprehensive weblinks plugin documentation
+  - Added features overview and usage guidelines
+  - Included technical details and best practices
+  - Updated main documentation index with weblinks section
 
-- Updated docs/index.md:
-  - Added links to all plugin documentation
-  - Removed "Coming soon" notes for completed docs
-  - Updated documentation status
-  - Added progress tracking for future updates
-
-This documentation update provides a complete reference for all system plugins
-while maintaining consistent structure and accessible language.
+These changes improve the user experience by providing a more organized
+link display while ensuring comprehensive documentation for the plugin.

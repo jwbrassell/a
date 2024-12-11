@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Web Links</h1>
+            <div class="btn-group">
+                <a href="{{ url_for('weblinks.add_link') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add New Link
+                </a>
+                <button type="button" class="btn btn-success" id="exportCsv">
+                    <i class="fas fa-file-export"></i> Export CSV
+                </button>
+                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importModal">
+                    <i class="fas fa-file-import"></i> Import CSV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics (Collapsible) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#statsCollapse">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-pie mr-2"></i> Statistics
+                        <i class="fas fa-chevron-down float-right"></i>
+                    </h3>
+                </div>
+                <div class="collapse" id="statsCollapse">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div id="categoryChart"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="tagChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Filters -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Categories</h3>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary filter-category active" data-category="">All</button>
+                        {% for category in categories %}
+                        <button type="button" class="btn btn-outline-primary filter-category" data-category="{{ category.name }}">
+                            {{ category.name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Tags</h3>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary filter-tag active" data-tag="">All</button>
+                        {% for tag in tags %}
+                        <button type="button" class="btn btn-outline-secondary filter-tag" data-tag="{{ tag.name }}">
+                            {{ tag.name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Links Grid View -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Quick Access</h3>
+                </div>
+                <div class="card-body">
+                    <div id="linksGrid" class="links-grid">
+                        <!-- Links will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Links Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">All Links</h3>
+                </div>
+                <div class="card-body">
+                    <table id="linksTable" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Icon</th>
+                                <th>Name</th>
+                                <th>URL</th>
+                                <th>Category</th>
+                                <th>Tags</th>
+                                <th>Notes</th>
+                                <th>Created</th>
+                            </tr>
+                            <tr class="filters">
+                                <th><input type="text" class="form-control" placeholder="Filter Icon"></th>
+                                <th><input type="text" class="form-control" placeholder="Filter Name"></th>
+                                <th><input type="text" class="form-control" placeholder="Filter URL"></th>
+                                <th><input type="text" class="form-control" placeholder="Filter Category"></th>
+                                <th><input type="text" class="form-control" placeholder="Filter Tags"></th>
+                                <th><input type="text" class="form-control" placeholder="Filter Notes"></th>
+                                <th><input type="text" class="form-control" placeholder="Filter Created"></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Links from CSV</h5>
+                <button type="button" class="close" data-bs-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="importForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="csvFile">CSV File</label>
+                        <input type="file" class="form-control" id="csvFile" accept=".csv" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> CSV should have the following columns:<br>
+                        url, friendly_name, category, tags (comma-separated), notes, icon
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="importBtn">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.links-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+    overflow-y: auto;
+    max-height: calc(3 * (150px + 1rem)); /* 3 rows of tiles + gaps */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.3) transparent;
+}
+
+.links-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.links-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.links-grid::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.3);
+    border-radius: 4px;
+}
+
+.link-tile {
+    position: relative;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    height: 150px;
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.link-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.link-tile .icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.link-tile .name {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.link-tile .category {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.link-tile .tags {
+    margin-top: auto;
+    overflow: hidden;
+}
+
+.link-tile .badge {
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Category Colors */
+.category-development { background-color: #e3f2fd; }
+.category-documentation { background-color: #f3e5f5; }
+.category-tools { background-color: #e8f5e9; }
+.category-resources { background-color: #fff3e0; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script>
+$(document).ready(function() {
+    function updateGridView(data) {
+        const grid = $('#linksGrid');
+        grid.empty();
+
+        if (!data) return;
+
+        data.forEach(link => {
+            const categoryClass = link.category ? 
+                `category-${link.category.toLowerCase().replace(/\s+/g, '-')}` : 
+                'category-default';
+
+            const tile = $(`
+                <div class="link-tile ${categoryClass}">
+                    <div class="icon">
+                        <i class="fas ${link.icon || 'fa-link'}"></i>
+                    </div>
+                    <div class="name">
+                        <a href="${link.url}" target="_blank">${link.friendly_name}</a>
+                    </div>
+                    <div class="category">
+                        ${link.category || 'Uncategorized'}
+                    </div>
+                    <div class="tags">
+                        ${link.tags.map(tag => 
+                            `<span class="badge badge-info">${tag}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+            `);
+
+            grid.append(tile);
+        });
+    }
+
+    // Load initial data
+    $.get("{{ url_for('weblinks.get_links') }}", function(response) {
+        if (response && response.data) {
+            updateGridView(response.data);
+        }
+    });
+
+    // Initialize DataTable
+    var table = $('#linksTable').DataTable({
+        ajax: {
+            url: "{{ url_for('weblinks.get_links') }}",
+            dataSrc: 'data'
+        },
+        orderCellsTop: true,
+        fixedHeader: true,
+        columns: [
+            { 
+                data: 'icon',
+                render: function(data) {
+                    return `<i class="fas ${data || 'fa-link'}"></i>`;
+                }
+            },
+            { 
+                data: 'friendly_name',
+                render: function(data, type, row) {
+                    return `<a href="${row.url}" target="_blank">${data}</a>`;
+                }
+            },
+            { data: 'url' },
+            { data: 'category' },
+            { 
+                data: 'tags',
+                render: function(data) {
+                    return data.map(tag => 
+                        `<span class="badge badge-info">${tag}</span>`
+                    ).join(' ');
+                }
+            },
+            { data: 'notes' },
+            { data: 'created_at' }
+        ]
+    });
+
+    // Apply column filters
+    table.columns().every(function(index) {
+        var column = this;
+        $('input', $('.filters th').eq(index)).on('keyup change', function() {
+            if (column.search() !== this.value) {
+                column.search(this.value).draw();
+            }
+        });
+    });
+
+    // Initialize Highcharts
+    function updateCharts() {
+        $.get("{{ url_for('weblinks.get_stats') }}", function(data) {
+            // Category Chart
+            Highcharts.chart('categoryChart', {
+                chart: { type: 'pie' },
+                title: { text: 'Links by Category' },
+                series: [{
+                    name: 'Links',
+                    data: data.categories.map(item => ({
+                        name: item.name,
+                        y: item.count
+                    }))
+                }]
+            });
+
+            // Tag Chart
+            Highcharts.chart('tagChart', {
+                chart: { type: 'column' },
+                title: { text: 'Links by Tag' },
+                xAxis: {
+                    categories: data.tags.map(item => item.name),
+                    title: { text: 'Tags' }
+                },
+                yAxis: {
+                    title: { text: 'Number of Links' }
+                },
+                series: [{
+                    name: 'Links',
+                    data: data.tags.map(item => item.count)
+                }]
+            });
+        });
+    }
+
+    // Filter handlers
+    $('.filter-category').click(function() {
+        $('.filter-category').removeClass('active');
+        $(this).addClass('active');
+        var category = $(this).data('category');
+        table.column(3).search(category).draw();
+    });
+
+    $('.filter-tag').click(function() {
+        $('.filter-tag').removeClass('active');
+        $(this).addClass('active');
+        var tag = $(this).data('tag');
+        table.column(4).search(tag).draw();
+    });
+
+    // CSV Export
+    $('#exportCsv').click(function() {
+        window.location.href = "{{ url_for('weblinks.export_csv') }}";
+    });
+
+    // CSV Import
+    $('#importBtn').click(function() {
+        var formData = new FormData();
+        var file = $('#csvFile')[0].files[0];
+        formData.append('file', file);
+        formData.append('csrf_token', "{{ csrf_token() }}");
+
+        $.ajax({
+            url: "{{ url_for('weblinks.import_csv') }}",
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    $('#importModal').modal('hide');
+                    table.ajax.reload();
+                    updateGridView(table.ajax.json().data);
+                    updateCharts();
+                    toastr.success('Links imported successfully');
+                } else {
+                    toastr.error(response.error);
+                }
+            },
+            error: function() {
+                toastr.error('Error importing links');
+            }
+        });
+    });
+
+    // Update grid view when table is redrawn
+    table.on('draw', function() {
+        updateGridView(table.ajax.json().data);
+    });
+
+    // Initial chart load
+    updateCharts();
+
+    // Update charts every minute
+    setInterval(updateCharts, 60000);
+});
+</script>
+{% endblock %}
