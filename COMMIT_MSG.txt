@@ -1,32 +1,31 @@
-Add MariaDB migration utility and database improvements
+docs: complete plugin documentation and index update
 
-This commit introduces a database migration utility to support transitioning from SQLite to MariaDB, along with various database improvements.
+- Created comprehensive documentation for all plugins:
+  - Admin: User/role management and system administration
+  - Dispatch: Team dispatch and notification system
+  - Documents: Document management with version control
+  - Handoffs: Shift handover tracking and metrics
+  - OnCall: Rotation scheduling and team management
+  - Profile: User profile and preferences
+  - Projects: Project/task management and collaboration
+  - Reports: Custom report generation and data analysis
+  - Tracking: System activity and request monitoring
 
-Key Changes:
+- Each plugin documentation includes:
+  - Feature overview
+  - Installation guide
+  - Usage examples
+  - API reference
+  - Database schema
+  - Security considerations
+  - Performance tips
+  - Troubleshooting guides
 
-1. Migration Utility:
-- Added migrate_to_mariadb.py script for database migration
-- Implemented table structure copying
-- Added data transfer functionality
-- Preserved foreign key relationships
-- Maintained data integrity during transfer
+- Updated docs/index.md:
+  - Added links to all plugin documentation
+  - Removed "Coming soon" notes for completed docs
+  - Updated documentation status
+  - Added progress tracking for future updates
 
-2. Database Improvements:
-- Updated database models to ensure MariaDB compatibility
-- Added proper index definitions
-- Improved foreign key constraints
-- Enhanced data type definitions
-
-3. Configuration Updates:
-- Added MariaDB connection handling
-- Updated database URI configuration
-- Added environment variable support for DB credentials
-- Improved error handling for database connections
-
-4. Documentation:
-- Added migration process documentation
-- Updated setup instructions for MariaDB
-- Added troubleshooting guides
-- Included database configuration examples
-
-This update enables smooth transition to MariaDB while maintaining data integrity and improving overall database structure.
+This documentation update provides a complete reference for all system plugins
+while maintaining consistent structure and accessible language.
