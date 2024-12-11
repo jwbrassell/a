@@ -1,38 +1,32 @@
-Fix navigation menu categories and collapsible behavior
+Add MariaDB migration utility and database improvements
 
-This commit fixes issues with the navigation menu's category handling and collapsible behavior. The changes ensure proper display of categorized routes and smooth category expansion/collapse.
+This commit introduces a database migration utility to support transitioning from SQLite to MariaDB, along with various database improvements.
 
 Key Changes:
 
-1. Route Manager Updates:
-- Modified route_to_endpoint() to better handle blueprint routes
-- Removed route existence check during mapping to allow routes to be registered later
-- Fixed handling of route paths vs endpoints
-- Improved blueprint prefix handling
+1. Migration Utility:
+- Added migrate_to_mariadb.py script for database migration
+- Implemented table structure copying
+- Added data transfer functionality
+- Preserved foreign key relationships
+- Maintained data integrity during transfer
 
-2. Navigation Manager Updates:
-- Updated get_user_navigation() to properly handle category relationships
-- Fixed category filtering to show proper categorized and uncategorized routes
-- Improved handling of nav_category relationship
+2. Database Improvements:
+- Updated database models to ensure MariaDB compatibility
+- Added proper index definitions
+- Improved foreign key constraints
+- Enhanced data type definitions
 
-3. JavaScript Improvements:
-- Added proper event handlers for category expansion/collapse
-- Implemented localStorage for menu state persistence
-- Added smooth animations for category transitions
-- Fixed icon rotation during expand/collapse
-- Added visual indicators for nested menu items
+3. Configuration Updates:
+- Added MariaDB connection handling
+- Updated database URI configuration
+- Added environment variable support for DB credentials
+- Improved error handling for database connections
 
-4. CSS Enhancements:
-- Added proper indentation for nested menu items
-- Improved visual hierarchy with connecting lines
-- Added smooth transitions for icon rotation
-- Fixed menu item spacing and alignment
+4. Documentation:
+- Added migration process documentation
+- Updated setup instructions for MariaDB
+- Added troubleshooting guides
+- Included database configuration examples
 
-The result is a properly functioning navigation menu where:
-- Routes are correctly categorized (Individual, Tools, etc.)
-- Categories expand/collapse smoothly
-- Menu state persists across page loads
-- Visual hierarchy clearly shows nested items
-- Routes are properly indented under their categories
-
-This fixes the core issue where categories weren't being properly displayed and menu items weren't collapsing correctly.
+This update enables smooth transition to MariaDB while maintaining data integrity and improving overall database structure.

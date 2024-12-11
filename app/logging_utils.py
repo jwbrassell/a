@@ -1,7 +1,25 @@
+import logging
 from flask import request, current_app
 from flask_login import current_user
 from app import db
 from app.models import PageVisit
+
+class StaticFileFilter(logging.Filter):
+    """Filter to suppress logging of 304 responses for static files."""
+    def filter(self, record):
+        try:
+            # Check if this is a werkzeug access log record
+            if hasattr(record, 'msg') and '304' in str(record.msg) and '/static/' in str(record.msg):
+                return False
+            return True
+        except:
+            return True
+
+def init_app(app):
+    """Initialize logging configuration for the app."""
+    # Add our custom filter to the werkzeug logger
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.addFilter(StaticFileFilter())
 
 def log_page_visit(response=None):
     """

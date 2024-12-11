@@ -34,6 +34,10 @@ def register_plugins(app):
         from app.plugins.dispatch.utils.register_routes import register_dispatch_routes
         register_dispatch_routes()
 
+        # Initialize tracking plugin
+        from app.plugins.tracking import init_tracking
+        init_tracking(app)
+
 def create_app(config_name=None):
     app = Flask(__name__)
     
@@ -47,6 +51,10 @@ def create_app(config_name=None):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)  # Initialize CSRF protection
+
+    # Initialize logging configuration
+    from app.logging_utils import init_app as init_logging
+    init_logging(app)
 
     # Skip migrations if requested
     if os.getenv('SKIP_MIGRATIONS') != '1':

@@ -9,6 +9,7 @@ from datetime import datetime
 from app import db
 from app.utils.plugin_manager import PluginMetadata
 from app.utils.activity_tracking import track_activity
+from app.models import UserActivity
 
 # Create blueprint
 bp = Blueprint('profile', __name__, 
@@ -100,10 +101,16 @@ def index():
         avatar = f'images/{random.choice(DEFAULT_AVATARS)}'
         current_user.set_preference('avatar', avatar)
 
+    # Get user activities
+    activities = UserActivity.query.filter_by(user_id=current_user.id)\
+        .order_by(UserActivity.timestamp.desc())\
+        .all()
+
     return render_template('profile/index.html', 
                          theme=theme,
                          avatar=avatar,
-                         default_avatars=DEFAULT_AVATARS)
+                         default_avatars=DEFAULT_AVATARS,
+                         activities=activities)
 
 @bp.route('/preferences/theme', methods=['POST'])
 @login_required

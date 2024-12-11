@@ -2,6 +2,13 @@
 
 {% block title %}User Profile{% endblock %}
 
+{% block styles %}
+{{ super() }}
+<!-- DataTables -->
+<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/dataTables.bootstrap4.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/responsive.bootstrap4.min.css') }}">
+{% endblock %}
+
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
 <li class="breadcrumb-item active">Profile</li>
@@ -49,9 +56,10 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table id="activity-table" class="table table-bordered table-hover">
                         <thead>
                             <tr>
+                                <th>#</th>
                                 <th>Activity</th>
                                 <th>Time</th>
                             </tr>
@@ -59,8 +67,11 @@
                         <tbody>
                             {% for activity in activities %}
                             <tr>
+                                <td>{{ activity.id }}</td>
                                 <td>{{ activity.activity }}</td>
-                                <td>{{ activity.timestamp|datetime }}</td>
+                                <td data-order="{{ activity.timestamp.isoformat() }}">
+                                    {{ activity.timestamp|datetime }}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -70,4 +81,37 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- DataTables & Plugins -->
+<script src="{{ url_for('static', filename='src/datatables/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/dataTables.bootstrap4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/responsive.bootstrap4.min.js') }}"></script>
+
+<script>
+$(function () {
+    $('#activity-table').DataTable({
+        "paging": true,
+        "lengthChange": true,
+        "searching": true,
+        "ordering": true,
+        "info": true,
+        "autoWidth": false,
+        "responsive": true,
+        "order": [[2, 'desc']], // Sort by timestamp descending by default
+        "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        "language": {
+            "search": "Search activities:",
+            "lengthMenu": "Show _MENU_ activities per page",
+            "info": "Showing _START_ to _END_ of _TOTAL_ activities",
+            "infoEmpty": "No activities found",
+            "emptyTable": "No activities recorded yet"
+        }
+    });
+});
+</script>
 {% endblock %}
