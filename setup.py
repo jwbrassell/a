@@ -17,6 +17,7 @@ import argparse
 from datetime import datetime
 import secrets
 import pymysql
+pymysql.install_as_MySQLdb()  # Add this line to use PyMySQL as MySQLdb
 from dotenv import load_dotenv
 from app import create_app, db
 from app.models import Role, User, NavigationCategory, PageRouteMapping
@@ -25,6 +26,8 @@ from app.plugins.reports.models import DatabaseConnection, ReportView
 from app.plugins.dispatch.models import DispatchTeam, DispatchPriority, DispatchTransaction
 from app.plugins.documents.models import Document, DocumentCategory
 from app.plugins.weblinks.models import WebLink, WebLinkCategory, WebLinkTag
+from app.plugins.handoffs.models import HandoffShift
+from app.plugins.oncall.models import Team as OnCallTeam
 
 def parse_args():
     """Parse command line arguments"""
@@ -306,6 +309,93 @@ def init_weblinks_data():
     db.session.commit()
     print("Web links data initialized")
 
+def init_handoff_data():
+    """Initialize handoff shifts"""
+    print("\nInitializing handoff data...")
+    
+    # Create default shifts
+    shifts = [
+        {'name': '1st', 'description': 'First shift'},
+        {'name': '2nd', 'description': 'Second shift'},
+        {'name': '3rd', 'description': 'Third shift'}
+    ]
+    
+    for shift_data in shifts:
+        shift = HandoffShift(**shift_data)
+        db.session.add(shift)
+    
+    db.session.commit()
+    print("Handoff data initialized")
+
+def init_oncall_data():
+    """Initialize oncall teams"""
+    print("\nInitializing oncall data...")
+    
+    # Create default teams
+    teams = [
+        {'name': 'Network', 'color': 'primary'},
+        {'name': 'Security', 'color': 'danger'},
+        {'name': 'Support', 'color': 'success'}
+    ]
+    
+    for team_data in teams:
+        team = OnCallTeam(**team_data)
+        db.session.add(team)
+    
+    db.session.commit()
+    print("Oncall data initialized")
+
+def init_reports_data():
+    """Initialize reports data"""
+    print("\nInitializing reports data...")
+    
+    # Get admin user for created_by reference
+    admin = User.query.filter_by(username='admin').first()
+    
+    # Create default database connections
+    connections = [
+        {
+            'name': 'Application DB',
+            'description': 'Main application database',
+            'db_type': 'sqlite',
+            'database': 'instance/app.db',
+            'created_by': admin.id
+        }
+    ]
+    
+    for conn_data in connections:
+        conn = DatabaseConnection(**conn_data)
+        db.session.add(conn)
+    
+    db.session.commit()
+    
+    # Get the application DB connection for report views
+    app_db = DatabaseConnection.query.filter_by(name='Application DB').first()
+    
+    # Create default report views
+    views = [
+        {
+            'title': 'Active Users',
+            'description': 'List of all active users in the system',
+            'database_id': app_db.id,
+            'query': 'SELECT username, name, email FROM user WHERE is_active = 1',
+            'column_config': {
+                'username': {'label': 'Username'},
+                'name': {'label': 'Full Name'},
+                'email': {'label': 'Email Address'}
+            },
+            'is_private': False,
+            'created_by': admin.id
+        }
+    ]
+    
+    for view_data in views:
+        view = ReportView(**view_data)
+        db.session.add(view)
+    
+    db.session.commit()
+    print("Reports data initialized")
+
 def setup():
     """Run the complete setup process"""
     print("Starting application setup...")
@@ -363,6 +453,9 @@ def setup():
         init_dispatch_data()
         init_document_data()
         init_weblinks_data()
+        init_handoff_data()
+        init_oncall_data()
+        init_reports_data()
     
     # Now enable plugins but still skip migrations
     os.environ.pop('SKIP_PLUGIN_LOAD', None)
