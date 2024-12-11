@@ -59,20 +59,8 @@ def pre_fork(server, worker):
 
 def post_fork(server, worker):
     """Called just after a worker has been forked."""
-    # Clean up any expired sessions on worker start
-    from app import create_app
-    from app.models import Session
-    from datetime import datetime
-    
-    app = create_app(os.getenv('FLASK_ENV', 'production'))
-    with app.app_context():
-        try:
-            now = datetime.utcnow()
-            Session.query.filter(Session.expiry < now).delete()
-            app.db.session.commit()
-        except Exception as e:
-            app.logger.error(f"Error cleaning up sessions in worker startup: {str(e)}")
-            app.db.session.rollback()
+    # Flask-Session handles its own cleanup, so we don't need to do it here
+    pass
 
 def pre_exec(server):
     """Called just before a new master process is forked."""

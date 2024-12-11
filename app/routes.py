@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timedelta
 
 from app import db
-from app.models import User, UserActivity, UserPreference, Session
+from app.models import User, UserActivity, UserPreference
 from app.forms import LoginForm
 from app.mock_ldap import authenticate_ldap
 from app.logging_utils import log_page_visit
@@ -60,29 +60,10 @@ def log_activity(user, activity):
     db.session.add(user_activity)
     db.session.commit()
 
-def cleanup_expired_sessions():
-    """Clean up expired sessions."""
-    try:
-        now = datetime.utcnow()
-        expired_sessions = Session.query.filter(Session.expiry < now).all()
-        for session in expired_sessions:
-            db.session.delete(session)
-        db.session.commit()
-    except Exception as e:
-        logger.error(f"Error cleaning up expired sessions: {str(e)}")
-        db.session.rollback()
-
 # Request Handlers for Page Visit Logging
 @main.before_request
 def before_request():
-    """Log page visit attempt and clean up expired sessions."""
-    # Periodically clean up expired sessions
-    if not hasattr(before_request, 'last_cleanup'):
-        before_request.last_cleanup = datetime.utcnow()
-    elif datetime.utcnow() - before_request.last_cleanup > timedelta(hours=1):
-        cleanup_expired_sessions()
-        before_request.last_cleanup = datetime.utcnow()
-    
+    """Log page visit attempt."""
     return log_page_visit()
 
 @main.after_request
@@ -186,13 +167,8 @@ def login():
 def logout():
     """Handle user logout."""
     log_activity(current_user, 'Logged out')
-    # Clean up user's session
-    if session.sid:
-        user_session = Session.query.filter_by(sid=session.sid).first()
-        if user_session:
-            db.session.delete(user_session)
-            db.session.commit()
     logout_user()
+    # Clear the session
     session.clear()
     flash('You have been logged out. Please log in again to continue.', 'info')
     return redirect(url_for('main.login'))

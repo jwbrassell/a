@@ -14,28 +14,6 @@ from app.extensions import db, login_manager, migrate, session as flask_session
 # Initialize CSRF protection
 csrf = CSRFProtect()
 
-class SessionCleanupMiddleware:
-    """WSGI middleware to clean up expired sessions."""
-    def __init__(self, app, cleanup_interval=3600):  # 1 hour interval
-        self.app = app
-        self.cleanup_interval = cleanup_interval
-        self.last_cleanup = datetime.utcnow()
-
-    def __call__(self, environ, start_response):
-        now = datetime.utcnow()
-        if (now - self.last_cleanup).total_seconds() > self.cleanup_interval:
-            with self.app.app_context():
-                from app.models import Session
-                try:
-                    expired = Session.query.filter(Session.expiry < now).delete()
-                    db.session.commit()
-                    self.app.logger.info(f"Cleaned up {expired} expired sessions")
-                except Exception as e:
-                    self.app.logger.error(f"Session cleanup error: {str(e)}")
-                    db.session.rollback()
-            self.last_cleanup = now
-        return self.app(environ, start_response)
-
 def register_plugins(app):
     """Register plugin blueprints and routes"""
     from app.utils.plugin_manager import PluginManager
@@ -63,21 +41,8 @@ def register_plugins(app):
 
 def register_commands(app):
     """Register CLI commands."""
-    @app.cli.command('cleanup-sessions')
-    def cleanup_sessions():
-        """Clean up expired sessions."""
-        from app.models import Session
-        try:
-            now = datetime.utcnow()
-            expired = Session.query.filter(Session.expiry < now).all()
-            count = len(expired)
-            for session in expired:
-                db.session.delete(session)
-            db.session.commit()
-            click.echo(f"Successfully cleaned up {count} expired sessions")
-        except Exception as e:
-            click.echo(f"Error cleaning up sessions: {str(e)}")
-            db.session.rollback()
+    # Flask-Session handles its own session cleanup
+    pass
 
 def create_app(config_name=None):
     app = Flask(__name__)
@@ -167,6 +132,5 @@ def create_app(config_name=None):
 
     # Add WSGI middleware
     app.wsgi_app = ProxyFix(app.wsgi_app)  # Handle proxy headers
-    app.wsgi_app = SessionCleanupMiddleware(app.wsgi_app)  # Add session cleanup
 
     return app
