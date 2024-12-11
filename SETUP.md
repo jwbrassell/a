@@ -25,6 +25,8 @@ That's it! The setup script automatically:
 - Creates all required tables
 - Sets up initial data
 
+Note: The migrations directory is not needed for initial setup. It's only used when making database schema changes after deployment.
+
 ## Production Setup (MariaDB)
 
 For production environments using MariaDB:
@@ -74,6 +76,9 @@ The setup script creates a .env file with secure defaults. You can modify these 
 FLASK_APP=app.py
 FLASK_ENV=development  # or production
 SECRET_KEY=auto-generated-secure-key
+
+# Skip migrations for initial setup
+SKIP_MIGRATIONS=1
 ```
 
 ### Optional Settings
@@ -86,6 +91,21 @@ MAIL_USERNAME=your-email@example.com
 MAIL_PASSWORD=your-email-password
 MAIL_DEFAULT_SENDER=noreply@example.com
 ```
+
+## Database Management
+
+### Initial Setup
+The setup script uses SQLAlchemy's create_all() to create tables directly, so migrations are not needed for initial setup.
+
+### Making Schema Changes
+If you need to make database schema changes after deployment:
+
+1. Set `SKIP_MIGRATIONS=0` in .env
+2. Use Flask-Migrate commands to manage changes:
+   ```bash
+   flask db migrate -m "describe your changes"
+   flask db upgrade
+   ```
 
 ## Troubleshooting
 

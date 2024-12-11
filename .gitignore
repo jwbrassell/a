@@ -43,10 +43,8 @@ env/
 # Flask
 .webassets-cache
 
-# Instance directory - but keep static files
+# Instance directory
 instance/*
-!instance/static/
-!instance/templates/
 
 # Environment variables
 .env

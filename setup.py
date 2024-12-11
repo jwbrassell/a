@@ -45,6 +45,9 @@ SECRET_KEY={secrets.token_hex(32)}
 DB_TYPE=sqlite
 SQLITE_PATH=instance/app.db
 
+# Skip migrations for initial setup
+SKIP_MIGRATIONS=1
+
 # Mail Configuration for Dispatch Plugin
 MAIL_SERVER=smtp.example.com
 MAIL_PORT=587

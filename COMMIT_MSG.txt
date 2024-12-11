@@ -1,22 +1,5 @@
-feat(weblinks): improve UI layout and setup documentation
+fix: update gitignore and static file paths
 
-- UI Improvements:
-  - Reorganized quick access grid to flow left-to-right
-  - Limited display to three rows with vertical scrolling
-  - Implemented consistent default link icon (fa-link)
-  - Enhanced grid layout with fixed tile sizes
-  - Added visual consistency between grid and table views
-
-- Documentation:
-  - Created comprehensive weblinks plugin documentation
-  - Added features overview and usage guidelines
-  - Included technical details and best practices
-  - Updated main documentation index with weblinks section
-  - Enhanced SETUP.md with crucial first-time setup details:
-    * Added required directory creation steps (instance, logs, uploads)
-    * Improved database troubleshooting section
-    * Added detailed SQLite setup and permissions guidance
-    * Clarified directory structure requirements
-
-These changes improve the user experience with better link organization
-while ensuring a smooth setup process for new installations.
+- Remove instance/static and instance/templates exceptions from gitignore
+- Update imports.html to use correct paths for AdminLTE files from src directory
+- Add all static files to git tracking
