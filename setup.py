@@ -5,10 +5,19 @@ This script:
 1. Creates database and tables
 2. Initializes core user and role data
 3. Then lets plugins attach
+
+Usage:
+    python setup.py              # Use SQLite (default)
+    python setup.py --mariadb   # Use MariaDB
 """
 
 import os
+import sys
+import argparse
 from datetime import datetime
+import secrets
+import pymysql
+from dotenv import load_dotenv
 from app import create_app, db
 from app.models import Role, User, NavigationCategory, PageRouteMapping
 from app.plugins.projects.models import ProjectStatus, ProjectPriority
@@ -16,6 +25,93 @@ from app.plugins.reports.models import DatabaseConnection, ReportView
 from app.plugins.dispatch.models import DispatchTeam, DispatchPriority, DispatchTransaction
 from app.plugins.documents.models import Document, DocumentCategory
 from app.plugins.weblinks.models import WebLink, WebLinkCategory, WebLinkTag
+
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description='Setup the application database and initial data.')
+    parser.add_argument('--mariadb', action='store_true', help='Use MariaDB instead of SQLite')
+    return parser.parse_args()
+
+def ensure_env_file():
+    """Create .env file with defaults if it doesn't exist"""
+    if not os.path.exists('.env'):
+        print("Creating default .env file...")
+        env_content = f"""# Flask Configuration
+FLASK_APP=app.py
+FLASK_ENV=development
+SECRET_KEY={secrets.token_hex(32)}
+
+# Database Configuration
+DB_TYPE=sqlite
+SQLITE_PATH=instance/app.db
+
+# Mail Configuration for Dispatch Plugin
+MAIL_SERVER=smtp.example.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-email@example.com
+MAIL_PASSWORD=your-email-password
+MAIL_DEFAULT_SENDER=noreply@example.com
+"""
+        with open('.env', 'w') as f:
+            f.write(env_content)
+        print("Created .env file with default settings")
+        return True
+    return False
+
+def init_mariadb():
+    """Initialize MariaDB database and user if they don't exist"""
+    try:
+        # Check for required environment variables
+        root_password = os.getenv('MYSQL_ROOT_PASSWORD')
+        if not root_password:
+            print("Error: MYSQL_ROOT_PASSWORD environment variable is required for MariaDB setup")
+            print("Please set it in your .env file")
+            return False
+
+        # Connect to MariaDB as root to create database and user
+        root_connection = pymysql.connect(
+            host=os.getenv('DATABASE_HOST', 'localhost'),
+            user='root',
+            password=root_password,
+        )
+        
+        with root_connection.cursor() as cursor:
+            # Create database if it doesn't exist
+            database_name = os.getenv('DATABASE_NAME', 'portal_db')
+            cursor.execute(f"CREATE DATABASE IF NOT EXISTS {database_name}")
+            
+            # Create user if it doesn't exist and grant privileges
+            user = os.getenv('DATABASE_USER', 'flask_app_user')
+            password = os.getenv('DATABASE_PASSWORD', 'your-password-here')
+            
+            # Drop user if exists to reset privileges (handles password changes)
+            cursor.execute(f"DROP USER IF EXISTS '{user}'@'localhost'")
+            cursor.execute(f"DROP USER IF EXISTS '{user}'@'%'")
+            
+            # Create user with password and grant privileges
+            cursor.execute(f"CREATE USER '{user}'@'localhost' IDENTIFIED BY '{password}'")
+            cursor.execute(f"CREATE USER '{user}'@'%' IDENTIFIED BY '{password}'")
+            cursor.execute(f"GRANT ALL PRIVILEGES ON {database_name}.* TO '{user}'@'localhost'")
+            cursor.execute(f"GRANT ALL PRIVILEGES ON {database_name}.* TO '{user}'@'%'")
+            cursor.execute("FLUSH PRIVILEGES")
+            
+        root_connection.close()
+        print(f"Successfully initialized MariaDB database '{database_name}' and user '{user}'")
+        return True
+        
+    except Exception as e:
+        print(f"Error initializing MariaDB: {str(e)}")
+        print("\nFor MariaDB setup, ensure:")
+        print("1. MariaDB is installed and running")
+        print("2. You have root access to MariaDB")
+        print("3. Set MYSQL_ROOT_PASSWORD environment variable")
+        print("4. Configure other DB settings in .env:")
+        print("   DATABASE_USER")
+        print("   DATABASE_PASSWORD")
+        print("   DATABASE_HOST")
+        print("   DATABASE_NAME")
+        return False
 
 def init_core_data():
     """Initialize core roles and admin user"""
@@ -211,17 +307,35 @@ def setup():
     """Run the complete setup process"""
     print("Starting application setup...")
     
-    # Create instance directory if it doesn't exist
-    instance_path = "instance"
-    if not os.path.exists(instance_path):
-        os.makedirs(instance_path)
-        print("Created instance directory")
+    # Parse command line arguments
+    args = parse_args()
     
-    # Always start with a fresh database
-    db_path = os.path.join(instance_path, "app.db")
-    if os.path.exists(db_path):
-        os.remove(db_path)
-        print("Removed existing database")
+    # Ensure .env file exists with defaults
+    env_created = ensure_env_file()
+    
+    # Load environment variables
+    load_dotenv()
+    
+    # Set DB_TYPE based on arguments
+    if args.mariadb:
+        os.environ['DB_TYPE'] = 'mariadb'
+        print("\nInitializing MariaDB...")
+        if not init_mariadb():
+            print("\nFailed to initialize MariaDB. Please check the requirements above and try again.")
+            sys.exit(1)
+    else:
+        os.environ['DB_TYPE'] = 'sqlite'
+        # Create instance directory if it doesn't exist
+        instance_path = "instance"
+        if not os.path.exists(instance_path):
+            os.makedirs(instance_path)
+            print("Created instance directory")
+        
+        # Always start with a fresh SQLite database
+        db_path = os.path.join(instance_path, "app.db")
+        if os.path.exists(db_path):
+            os.remove(db_path)
+            print("Removed existing database")
     
     # Skip both migrations and plugins for initial setup
     os.environ['SKIP_MIGRATIONS'] = '1'
@@ -252,6 +366,10 @@ def setup():
     app = create_app()
     
     print("\nSetup complete!")
+    if env_created:
+        print("\nNOTE: A new .env file was created with default settings")
+        print("You may want to review and update it for your environment")
+    
     print("\nYou can now start the application with:")
     print("flask run")
     print("\nDefault admin credentials:")

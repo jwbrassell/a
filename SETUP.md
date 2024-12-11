@@ -1,151 +1,124 @@
 # Setup Guide
 
-## System Requirements
+## Quick Start (Development with SQLite)
 
-- Python 3.8+
-- MariaDB/MySQL
-- Git
-- Virtual Environment support
+1. Clone the repository
+2. Install requirements:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Run setup:
+   ```bash
+   python setup.py
+   ```
+4. Start the application:
+   ```bash
+   flask run
+   ```
+5. Login with:
+   - Username: admin
+   - Password: test123
 
-## Installation Steps
+That's it! The setup script automatically:
+- Creates the .env file with secure defaults
+- Initializes the SQLite database
+- Creates all required tables
+- Sets up initial data
 
-### 1. Database Setup
+## Production Setup (MariaDB)
 
-```bash
-# Install MariaDB if needed
-# On macOS:
-brew install mariadb
-# On Ubuntu:
-sudo apt-get install mariadb-server
+For production environments using MariaDB:
 
-# Start MariaDB service
-# On macOS:
-brew services start mariadb
-# On Ubuntu:
-sudo systemctl start mariadb
+1. Install MariaDB:
+   ```bash
+   # On Rocky Linux/RHEL/CentOS:
+   sudo dnf install mariadb-server
+   sudo systemctl enable mariadb
+   sudo systemctl start mariadb
+   ```
 
-# Create database
-mysql -u root -p
-CREATE DATABASE blackfridaylunch;
-CREATE USER 'bflunch'@'localhost' IDENTIFIED BY 'your_password';
-GRANT ALL PRIVILEGES ON blackfridaylunch.* TO 'bflunch'@'localhost';
-FLUSH PRIVILEGES;
+2. Secure the installation:
+   ```bash
+   sudo mysql_secure_installation
+   ```
+
+3. Set root password:
+   ```bash
+   sudo mysql -u root
+   ALTER USER 'root'@'localhost' IDENTIFIED BY 'your-root-password';
+   FLUSH PRIVILEGES;
+   exit;
+   ```
+
+4. Configure environment:
+   ```bash
+   # Edit .env file (created by setup.py) and update:
+   MYSQL_ROOT_PASSWORD=your-root-password
+   DATABASE_USER=flask_app_user
+   DATABASE_PASSWORD=your-password-here
+   DATABASE_HOST=localhost
+   DATABASE_NAME=portal_db
+   ```
+
+5. Run setup with MariaDB flag:
+   ```bash
+   python setup.py --mariadb
+   ```
+
+## Configuration
+
+The setup script creates a .env file with secure defaults. You can modify these settings:
+
+### Core Settings
+```ini
+FLASK_APP=app.py
+FLASK_ENV=development  # or production
+SECRET_KEY=auto-generated-secure-key
 ```
 
-### 2. Application Setup
-
-```bash
-# Clone repository
-git clone [repository-url]
-cd blackfridaylunch
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your settings:
-# - Database credentials
-# - Secret key
-# - LDAP settings
-# - Other configuration options
-
-# Initialize database
-flask db upgrade
-python init_db.py
-python init_database_values.py
+### Optional Settings
+```ini
+# Mail Configuration (for Dispatch Plugin)
+MAIL_SERVER=smtp.example.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-email@example.com
+MAIL_PASSWORD=your-email-password
+MAIL_DEFAULT_SENDER=noreply@example.com
 ```
-
-### 3. Plugin Configuration
-
-Each plugin may require additional setup:
-
-#### Documents Plugin
-- Configure upload directory in .env
-- Ensure proper permissions on upload directory
-
-#### Dispatch Plugin
-- Set up required categories
-- Configure notification settings
-
-#### Projects Plugin
-- Initialize project settings
-- Set up role permissions
-
-#### On-call Plugin
-- Configure schedule rotation
-- Set up notification channels
-
-### 4. Running the Application
-
-Development server:
-```bash
-flask run
-```
-
-Production deployment with gunicorn:
-```bash
-gunicorn -w 4 -b 127.0.0.1:5000 wsgi:app
-```
-
-### 5. First-time Setup
-
-1. Create admin user:
-```bash
-python init_database_values.py --create-admin
-```
-
-2. Log in with default credentials:
-- Username: admin
-- Password: (check .env.example)
-
-3. Change admin password immediately
-
-### 6. Verification
-
-1. Access http://localhost:5000
-2. Verify database connectivity
-3. Test LDAP authentication
-4. Check plugin functionality
-5. Verify file uploads
-6. Test report generation
 
 ## Troubleshooting
 
-### Common Issues
+### SQLite Issues
 
-1. Database Connection
+1. "unable to open database file":
+   - Check instance directory permissions
+   - Run setup.py again to recreate the database
+
+2. Database locked:
+   - Stop any running flask instances
+   - Check for other processes using the database
+
+### MariaDB Issues
+
+1. Access denied for root:
+   - Verify MYSQL_ROOT_PASSWORD in .env
+   - Ensure MariaDB is running:
+     ```bash
+     sudo systemctl status mariadb
+     ```
+
+2. Connection issues:
+   - Check if MariaDB is running
+   - Verify DATABASE_HOST setting
+   - Test connection:
+     ```bash
+     mysql -u flask_app_user -p
+     ```
+
+## Command Line Options
+
 ```bash
-# Check database status
-mysql -u bflunch -p blackfridaylunch
-# Verify credentials in .env
-```
-
-2. LDAP Connection
-- Check LDAP server accessibility
-- Verify credentials
-- Test with mock_ldap if needed
-
-3. File Permissions
-```bash
-# Fix upload directory permissions
-chmod -R 755 app/static/uploads
-```
-
-4. Migration Issues
-```bash
-# Reset migrations
-flask db stamp head
-flask db migrate
-flask db upgrade
-```
-
-### Getting Help
-
-- Check logs in logs/ directory
-- Review error messages in browser console
-- Submit issues with detailed error information
+python setup.py           # Use SQLite (default)
+python setup.py --mariadb # Use MariaDB
+python setup.py --help    # Show help

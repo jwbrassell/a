@@ -1,4 +1,4 @@
-feat(weblinks): improve UI layout and add documentation
+feat(weblinks): improve UI layout and setup documentation
 
 - UI Improvements:
   - Reorganized quick access grid to flow left-to-right
@@ -12,6 +12,11 @@ feat(weblinks): improve UI layout and add documentation
   - Added features overview and usage guidelines
   - Included technical details and best practices
   - Updated main documentation index with weblinks section
+  - Enhanced SETUP.md with crucial first-time setup details:
+    * Added required directory creation steps (instance, logs, uploads)
+    * Improved database troubleshooting section
+    * Added detailed SQLite setup and permissions guidance
+    * Clarified directory structure requirements
 
-These changes improve the user experience by providing a more organized
-link display while ensuring comprehensive documentation for the plugin.
+These changes improve the user experience with better link organization
+while ensuring a smooth setup process for new installations.
