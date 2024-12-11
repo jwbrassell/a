@@ -19,10 +19,10 @@ import secrets
 import multiprocessing
 import pymysql
 pymysql.install_as_MySQLdb()
-from python_dotenv import load_dotenv
+from dotenv import load_dotenv
 from app import create_app, db
 from app.models import (
-    Role, User, NavigationCategory, PageRouteMapping, Session,
+    Role, User, NavigationCategory, PageRouteMapping,
     UserPreference, UserActivity, PageVisit
 )
 from app.plugins.projects.models import ProjectStatus, ProjectPriority
@@ -448,18 +448,6 @@ def init_reports_data():
     db.session.commit()
     print("Reports data initialized")
 
-def init_session_cleanup():
-    """Initialize session cleanup by removing any existing sessions"""
-    print("\nInitializing session cleanup...")
-    try:
-        # Remove all existing sessions
-        Session.query.delete()
-        db.session.commit()
-        print("Session data cleaned up")
-    except Exception as e:
-        print(f"Error cleaning up sessions: {str(e)}")
-        db.session.rollback()
-
 def setup():
     """Run the complete setup process"""
     print("Starting application setup...")
@@ -520,9 +508,6 @@ def setup():
         init_handoff_data()
         init_oncall_data()
         init_reports_data()
-        
-        # Initialize session cleanup
-        init_session_cleanup()
     
     # Now enable plugins but still skip migrations
     os.environ.pop('SKIP_PLUGIN_LOAD', None)

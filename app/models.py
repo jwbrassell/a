@@ -157,17 +157,8 @@ class PageVisit(db.Model):
     def __repr__(self):
         return f'<PageVisit {self.route}>'
 
-class Session(db.Model):
-    """Model for storing Flask-Session data."""
-    __tablename__ = 'session'  # Match the table name in config
-    
-    id = db.Column(db.Integer, primary_key=True)
-    sid = db.Column(db.String(255), unique=True)  # Changed from session_id to sid
-    val = db.Column(LONGTEXT)  # Changed from data to val
-    expiry = db.Column(db.DateTime, nullable=True)  # Made nullable to match Flask-Session expectations
-
-    def __repr__(self):
-        return f'<Session {self.sid}>'
+# Let Flask-Session handle the session table
+# Remove our Session model definition since Flask-Session will create and manage it
 
 @login_manager.user_loader
 def load_user(id):
