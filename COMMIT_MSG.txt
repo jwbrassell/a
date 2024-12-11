@@ -1,34 +1,38 @@
-feat: Harden application initialization process
+Fix navigation menu categories and collapsible behavior
 
-- Remove dependency on migrations in favor of direct database creation
-- Add proper initialization order for core and plugin data
-- Fix plugin route registration and role mapping
-- Add comprehensive data initialization for all plugins
-- Update app initialization to handle plugin dependencies correctly
+This commit fixes issues with the navigation menu's category handling and collapsible behavior. The changes ensure proper display of categorized routes and smooth category expansion/collapse.
 
-This commit improves the application's initialization reliability by:
-1. Removing complex migration dependencies
-2. Ensuring proper initialization order:
-   - Create database tables
-   - Initialize core data (users, roles, navigation)
-   - Initialize plugin data (projects, dispatch, documents)
-   - Register blueprints
-   - Register routes
-   - Map routes to roles
-3. Adding proper data seeding for all plugins
-4. Fixing route registration to handle plugin dependencies
+Key Changes:
 
-Breaking Changes:
-- Removed reliance on database migrations
-- Changed initialization process to use setup.py
-- Modified plugin loading order to ensure proper route registration
+1. Route Manager Updates:
+- Modified route_to_endpoint() to better handle blueprint routes
+- Removed route existence check during mapping to allow routes to be registered later
+- Fixed handling of route paths vs endpoints
+- Improved blueprint prefix handling
 
-The application can now be reliably initialized from a fresh clone with:
-1. python setup.py
-2. flask run
+2. Navigation Manager Updates:
+- Updated get_user_navigation() to properly handle category relationships
+- Fixed category filtering to show proper categorized and uncategorized routes
+- Improved handling of nav_category relationship
 
-All plugins (projects, dispatch, documents, reports) are now properly initialized with:
-- Correct database tables
-- Required initial data
-- Proper route mappings and role assignments
-- Navigation structure
+3. JavaScript Improvements:
+- Added proper event handlers for category expansion/collapse
+- Implemented localStorage for menu state persistence
+- Added smooth animations for category transitions
+- Fixed icon rotation during expand/collapse
+- Added visual indicators for nested menu items
+
+4. CSS Enhancements:
+- Added proper indentation for nested menu items
+- Improved visual hierarchy with connecting lines
+- Added smooth transitions for icon rotation
+- Fixed menu item spacing and alignment
+
+The result is a properly functioning navigation menu where:
+- Routes are correctly categorized (Individual, Tools, etc.)
+- Categories expand/collapse smoothly
+- Menu state persists across page loads
+- Visual hierarchy clearly shows nested items
+- Routes are properly indented under their categories
+
+This fixes the core issue where categories weren't being properly displayed and menu items weren't collapsing correctly.

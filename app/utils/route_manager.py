@@ -61,17 +61,30 @@ def route_to_endpoint(route):
             return actual_endpoint
         return None
 
-    # Handle plugin routes
+    # Handle plugin routes that start with /
     if route.startswith('/'):
         parts = route.lstrip('/').split('/')
-        if len(parts) > 1:
+        if len(parts) > 0:
             # Convert URL path to endpoint format
-            endpoint = f"{parts[0]}.{parts[1]}" if len(parts) > 1 else f"{parts[0]}.index"
+            plugin_name = parts[0]
+            action = parts[1] if len(parts) > 1 else 'index'
+            endpoint = f"{plugin_name}.{action}"
+            
+            # Try to find the endpoint in the URL map
+            for rule in current_app.url_map.iter_rules():
+                if rule.endpoint == endpoint:
+                    _route_cache[route] = endpoint
+                    return endpoint
+                # Also check if the rule matches the route path
+                if rule.rule == route:
+                    _route_cache[route] = rule.endpoint
+                    return rule.endpoint
+            
+            # If not found directly, try with normalized names
             actual_endpoint = get_actual_endpoint(endpoint)
             if actual_endpoint:
                 _route_cache[route] = actual_endpoint
                 return actual_endpoint
-            return None
     
     # Default handling
     endpoint = route.lstrip('/').replace('/', '.')
@@ -92,11 +105,7 @@ def route_to_endpoint(route):
     return None
 
 def cleanup_invalid_routes():
-    """Remove route mappings for endpoints that no longer exist.
-    
-    Returns:
-        tuple: (number of routes removed, list of removed route names)
-    """
+    """Remove route mappings for endpoints that no longer exist."""
     try:
         removed_count = 0
         removed_routes = []
@@ -131,29 +140,11 @@ def cleanup_invalid_routes():
 def map_route_to_roles(route_path, page_name, roles=None, category_id=None, icon='fa-link', weight=0):
     """Map a route to specific roles and create/update the PageRouteMapping."""
     try:
-        # First check if the route exists in Flask's URL map
-        route_exists = False
-        actual_route = None
-        for rule in current_app.url_map.iter_rules():
-            if rule.rule == route_path:
-                route_exists = True
-                actual_route = route_path
-                break
-            # Also check if it matches when converted to endpoint
-            elif route_to_endpoint(route_path) == rule.endpoint:
-                route_exists = True
-                actual_route = rule.rule
-                break
-        
-        if not route_exists:
-            logger.warning(f"Attempted to map non-existent route: {route_path}")
-            return False
-        
-        # Get or create the route mapping using the actual route path
-        mapping = PageRouteMapping.query.filter_by(route=actual_route).first()
+        # Get or create the route mapping
+        mapping = PageRouteMapping.query.filter_by(route=route_path).first()
         if not mapping:
             mapping = PageRouteMapping(
-                route=actual_route,
+                route=route_path,
                 page_name=page_name,
                 category_id=category_id,
                 icon=icon,
@@ -180,10 +171,10 @@ def map_route_to_roles(route_path, page_name, roles=None, category_id=None, icon
             if role:
                 mapping.allowed_roles.append(role)
             else:
-                logger.warning(f"Role '{role_name}' not found when mapping route '{actual_route}'")
+                logger.warning(f"Role '{role_name}' not found when mapping route '{route_path}'")
         
         db.session.commit()
-        logger.info(f"Successfully mapped route '{actual_route}' to roles: {roles}")
+        logger.info(f"Successfully mapped route '{route_path}' to roles: {roles}")
         return True
         
     except Exception as e:
@@ -194,12 +185,7 @@ def map_route_to_roles(route_path, page_name, roles=None, category_id=None, icon
 def get_route_roles(route_path):
     """Get all roles associated with a route."""
     try:
-        # Convert route_path to actual endpoint
-        endpoint = route_to_endpoint(route_path)
-        if not endpoint:
-            return ['admin']  # Default roles for invalid routes
-            
-        mapping = PageRouteMapping.query.filter_by(route=endpoint).first()
+        mapping = PageRouteMapping.query.filter_by(route=route_path).first()
         
         # If no mapping exists, return default roles (admin only)
         if not mapping:
@@ -214,16 +200,11 @@ def get_route_roles(route_path):
 def remove_route_mapping(route_path):
     """Remove a route mapping and its role associations."""
     try:
-        # Convert route_path to actual endpoint
-        endpoint = route_to_endpoint(route_path)
-        if not endpoint:
-            return False
-            
-        mapping = PageRouteMapping.query.filter_by(route=endpoint).first()
+        mapping = PageRouteMapping.query.filter_by(route=route_path).first()
         if mapping:
             db.session.delete(mapping)
             db.session.commit()
-            logger.info(f"Successfully removed mapping for route '{endpoint}'")
+            logger.info(f"Successfully removed mapping for route '{route_path}'")
             return True
         return False
         
@@ -259,15 +240,11 @@ def sync_blueprint_routes(blueprint_name, route_mappings):
             
         # Get all existing mappings for this blueprint
         existing_routes = PageRouteMapping.query.filter(
-            PageRouteMapping.route.startswith(f'{blueprint_name}.')
+            PageRouteMapping.route.startswith(f'/{blueprint_name}/')
         ).all()
         
-        # Create a set of routes that should exist (in endpoint format)
-        new_routes = set()
-        for mapping in route_mappings:
-            endpoint = route_to_endpoint(mapping['route'])
-            if endpoint:  # Only include valid endpoints
-                new_routes.add(endpoint)
+        # Create a set of routes that should exist
+        new_routes = {mapping['route'] for mapping in route_mappings}
         
         # Remove mappings that shouldn't exist anymore
         for existing in existing_routes:

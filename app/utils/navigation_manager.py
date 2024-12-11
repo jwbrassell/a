@@ -24,9 +24,6 @@ class NavigationManager:
         # Get user's roles
         user_roles = {role.name for role in current_user.roles}
         
-        # Get all categories ordered by weight
-        categories = NavigationCategory.query.order_by(NavigationCategory.weight).all()
-        
         # Get all visible route mappings ordered by weight
         route_mappings = PageRouteMapping.query.filter_by(show_in_navbar=True).order_by(PageRouteMapping.weight).all()
         
@@ -44,13 +41,19 @@ class NavigationManager:
             if not route_roles or route_roles & user_roles:  # If no roles specified or user has required role
                 accessible_routes.append(route)
 
+        # Get all valid categories
+        categories = NavigationCategory.query.filter(
+            NavigationCategory.name != '',  # Skip empty category
+            NavigationCategory.routes.any()  # Only get categories with routes
+        ).order_by(NavigationCategory.weight).all()
+        
         # Organize routes by category
         nav_structure = {
             'categories': [],
             'uncategorized': []
         }
 
-        # Process categorized routes
+        # Process categories and their routes
         for category in categories:
             category_routes = [
                 route for route in accessible_routes 
@@ -65,7 +68,7 @@ class NavigationManager:
                     'routes': sorted(category_routes, key=lambda x: x.weight)
                 })
 
-        # Process uncategorized routes
+        # Add uncategorized routes (those with no category)
         nav_structure['uncategorized'] = sorted(
             [route for route in accessible_routes if route.category_id is None],
             key=lambda x: x.weight

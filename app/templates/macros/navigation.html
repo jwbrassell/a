@@ -9,7 +9,7 @@
                     <p>{{ route.page_name }}</p>
                 </a>
             {% else %}
-                <a href="{{ url_for(endpoint) }}" class="nav-link">
+                <a href="{{ url_for(endpoint) }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                     <i class="{% if is_child %}fas {{ route.icon }} nav-icon{% else %}nav-icon fas {{ route.icon }}{% endif %}"></i>
                     <p>{{ route.page_name }}</p>
                 </a>
@@ -28,7 +28,7 @@
     {% endfor %}
 
     {% if valid_routes %}
-        <li class="nav-item">
+        <li class="nav-item has-treeview" data-category-id="{{ category.id }}">
             <a href="#" class="nav-link">
                 <i class="nav-icon fas {{ category.icon }}"></i>
                 <p>
@@ -36,8 +36,8 @@
                     <i class="fas fa-angle-left right"></i>
                 </p>
             </a>
-            <ul class="nav nav-treeview">
-                {% for route in valid_routes %}
+            <ul class="nav nav-treeview bg-secondary bg-opacity-25">
+                {% for route in valid_routes|sort(attribute='weight') %}
                     {{ render_nav_item(route, true) }}
                 {% endfor %}
             </ul>
