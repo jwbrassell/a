@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, request, jsonify, current_app, abort, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, current_app, abort, redirect, url_for, flash
 from flask_login import login_required, current_user
 from sqlalchemy import create_engine, text, inspect, or_
 from app import db
 from app.utils.rbac import requires_roles
-from .models import DatabaseConnection, ReportView
+from .models import DatabaseConnection, ReportView, view_role
 import json
 from decimal import Decimal
 import re
@@ -120,7 +120,10 @@ def create_view():
 
         db.session.add(view)
         db.session.commit()
-        return jsonify(view.to_dict())
+        
+        # Redirect to the view page with a success message
+        flash('Report created successfully', 'success')
+        return jsonify({'redirect': url_for('reports.view_report', view_id=view.id)})
 
     databases = DatabaseConnection.query.filter_by(is_active=True).all()
     return render_template('reports/create_view.html', databases=databases)
@@ -181,17 +184,27 @@ def view_report(view_id):
 @login_required
 def delete_view(view_id):
     """Delete a report view."""
-    view = db.session.query(ReportView).get(view_id)
-    if not view:
-        abort(404)
-    
-    # Check permissions
-    if view.created_by != current_user.id and not current_user.has_role('admin'):
-        return jsonify({'error': 'Access denied'}), 403
-    
-    db.session.delete(view)
-    db.session.commit()
-    return '', 204
+    try:
+        view = db.session.query(ReportView).get(view_id)
+        if not view:
+            return jsonify({'error': 'Report view not found'}), 404
+        
+        # Check permissions
+        if view.created_by != current_user.id and not current_user.has_role('admin'):
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Clear role associations first
+        view.roles = []
+        
+        # Delete the view
+        db.session.delete(view)
+        db.session.commit()
+        
+        return '', 204
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting view {view_id}: {str(e)}")
+        return jsonify({'error': 'Failed to delete report view'}), 500
 
 @bp.route('/api/view/<int:view_id>/data')
 @login_required

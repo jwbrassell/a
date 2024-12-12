@@ -7,9 +7,10 @@ from datetime import datetime
 import os
 import click
 from werkzeug.middleware.proxy_fix import ProxyFix
+from redis.exceptions import RedisError
 
 # Import extensions
-from app.extensions import db, login_manager, migrate, cache
+from app.extensions import db, login_manager, migrate, cache, redis_client
 
 # Initialize CSRF protection
 csrf = CSRFProtect()
@@ -41,7 +42,14 @@ def register_plugins(app):
 
 def register_commands(app):
     """Register CLI commands."""
-    pass
+    @app.cli.command('check-redis')
+    def check_redis():
+        """Check Redis connection health."""
+        try:
+            redis_client.ping()
+            click.echo('Redis connection is healthy')
+        except RedisError as e:
+            click.echo(f'Redis connection error: {e}')
 
 def create_app(config_name=None, skip_session=False):
     app = Flask(__name__)
@@ -56,11 +64,20 @@ def create_app(config_name=None, skip_session=False):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)  # Initialize CSRF protection
-    cache.init_app(app)  # Initialize cache
+    
+    # Initialize Redis
+    redis_client.init_app(app)
+    
+    # Configure cache to use Redis
+    app.config['CACHE_REDIS_URL'] = app.config['REDIS_URL']
+    cache.init_app(app)  # Initialize cache with Redis backend
 
     # Initialize Flask-Session only if not skipped
     if not skip_session:
         from flask_session import Session
+        # Configure session to use Redis
+        app.config['SESSION_TYPE'] = 'redis'
+        app.config['SESSION_REDIS'] = redis_client
         Session(app)
 
     # Initialize logging configuration
@@ -105,6 +122,16 @@ def create_app(config_name=None, skip_session=False):
             'navigation_manager': NavigationManager,
             'now': datetime.utcnow()
         }
+
+    # Redis health check endpoint
+    @app.route('/health/redis')
+    def redis_health():
+        try:
+            redis_client.ping()
+            return {'status': 'healthy'}, 200
+        except RedisError as e:
+            app.logger.error(f'Redis health check failed: {e}')
+            return {'status': 'unhealthy', 'error': str(e)}, 503
 
     # Session expiry handler
     @app.before_request

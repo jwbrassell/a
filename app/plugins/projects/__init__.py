@@ -1,67 +1,96 @@
-"""Projects plugin for managing project tasks and tracking.
+from flask import Blueprint, current_app
+from sqlalchemy.exc import SQLAlchemyError
+import logging
 
-This plugin follows a structured organization pattern:
+bp = Blueprint('projects', __name__, template_folder='templates', static_folder='static')
+logger = logging.getLogger(__name__)
 
-1. Core Setup:
-   - Blueprint creation with proper template and static folders
-   - Plugin metadata definition for system integration
-   - Context processors for template utilities
-
-2. Import Order:
-   - Models and utils are imported first as they provide the foundational classes
-   - Route utilities (can_edit_project, can_view_project) come next as they're used across routes
-   - Main routes are imported last to ensure all dependencies are available
-
-This structure ensures proper initialization and prevents circular imports while
-maintaining a clear separation of concerns.
-"""
-
-from flask import Blueprint
-from app.utils.plugin_manager import PluginMetadata
-
-# Create blueprint with proper static and template directories
-bp = Blueprint('projects', __name__,
-               template_folder='templates',
-               static_folder='static',
-               url_prefix='/projects')
-
-# Define plugin metadata for system integration
-plugin_metadata = PluginMetadata(
-    name="Project Management",
-    version="1.0.0",
-    description="Manage and track projects, tasks, and progress",
-    author="System",
-    required_roles=["user", "admin"],
-    icon="fa-project-diagram",
-    category="Tools",
-    weight=200
-)
-
-# Import models and utils first as they're required by routes
-from app.plugins.projects import models
-from .utils import init_project_settings
-from .utils.register_routes import register_project_routes
-
-# Import route utilities that are used across different route modules
-from .routes.projects.utils import can_edit_project, can_view_project
-
-# Import routes after all dependencies are available
-# Routes are organized in routes/__init__.py to prevent conflicts
-from app.plugins.projects.routes import main_routes
-from app.plugins.projects.routes.tasks import crud as task_crud, dependencies, ordering
-from app.plugins.projects.routes.projects import crud, team, todos
+def init_default_configurations(app):
+    """Initialize default project configurations if they don't exist"""
+    from .models import ProjectStatus, ProjectPriority
+    from app.extensions import db
+    
+    try:
+        # Check for project statuses
+        if not ProjectStatus.query.first():
+            logger.info("No project statuses found. Creating defaults...")
+            default_statuses = [
+                ('Not Started', '#dc3545'),
+                ('In Progress', '#ffc107'),
+                ('On Hold', '#6c757d'),
+                ('Completed', '#28a745'),
+                ('Cancelled', '#343a40')
+            ]
+            for name, color in default_statuses:
+                status = ProjectStatus(
+                    name=name,
+                    color=color,
+                    created_by='system'
+                )
+                db.session.add(status)
+                logger.debug(f"Created status: {name}")
+        
+        # Check for project priorities
+        if not ProjectPriority.query.first():
+            logger.info("No project priorities found. Creating defaults...")
+            default_priorities = [
+                ('Low', '#28a745'),
+                ('Medium', '#ffc107'),
+                ('High', '#dc3545'),
+                ('Critical', '#9c27b0')
+            ]
+            for name, color in default_priorities:
+                priority = ProjectPriority(
+                    name=name,
+                    color=color,
+                    created_by='system'
+                )
+                db.session.add(priority)
+                logger.debug(f"Created priority: {name}")
+        
+        db.session.commit()
+        logger.info("Project configurations initialized successfully")
+        
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Database error initializing project configurations: {str(e)}")
+        # Re-raise if in debug mode
+        if app.debug:
+            raise
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error initializing project configurations: {str(e)}")
+        if app.debug:
+            raise
 
 def init_app(app):
     """Initialize the projects plugin"""
-    with app.app_context():
-        init_project_settings()
-        register_project_routes()
+    from . import routes  # Import routes after Blueprint creation
+    
+    # Register configuration check to run before first request
+    @app.before_first_request
+    def ensure_configurations():
+        with app.app_context():
+            init_default_configurations(app)
+    
+    # Register error handlers
+    @bp.errorhandler(SQLAlchemyError)
+    def handle_db_error(error):
+        logger.error(f"Database error in projects plugin: {str(error)}")
+        return {
+            'success': False,
+            'message': 'A database error occurred. Please try again later.'
+        }, 500
+    
+    # Register the blueprint
+    app.register_blueprint(bp, url_prefix='/projects')
+    
+    # Initialize configurations immediately if not in testing mode
+    if not app.testing:
+        with app.app_context():
+            init_default_configurations(app)
+    
+    return bp
 
-# Add template context processor for commonly used functions
-@bp.app_context_processor
-def utility_processor():
-    """Make utility functions available in templates"""
-    return {
-        'can_edit_project': can_edit_project,
-        'can_view_project': can_view_project
-    }
+# Import views after Blueprint creation to avoid circular imports
+from . import routes

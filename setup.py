@@ -19,6 +19,8 @@ import secrets
 import multiprocessing
 import pymysql
 import importlib
+import glob
+import re
 pymysql.install_as_MySQLdb()
 from dotenv import load_dotenv
 from app import create_app, db
@@ -29,10 +31,44 @@ from app.models import (
 from app.plugins.projects.models import ProjectStatus, ProjectPriority
 from app.plugins.reports.models import DatabaseConnection, ReportView
 from app.plugins.dispatch.models import DispatchTeam, DispatchPriority, DispatchTransaction
-from app.plugins.documents.models import Document, DocumentCategory
+from app.plugins.documents.models import Document, DocumentCategory, DocumentTag
 from app.plugins.weblinks.models import WebLink, WebLinkCategory, WebLinkTag
 from app.plugins.handoffs.models import HandoffShift
 from app.plugins.oncall.models import Team as OnCallTeam
+
+def find_nginx_ssl_certs():
+    """Find SSL certificates in nginx configuration files"""
+    ssl_certs = {'cert': None, 'key': None}
+    nginx_conf_dir = '/etc/nginx/conf.d'
+    
+    if not os.path.exists(nginx_conf_dir):
+        return ssl_certs
+    
+    try:
+        # Look for .conf files in nginx conf.d directory
+        conf_files = glob.glob(os.path.join(nginx_conf_dir, '*.conf'))
+        
+        for conf_file in conf_files:
+            with open(conf_file, 'r') as f:
+                content = f.read()
+                
+                # Look for SSL certificate paths
+                cert_match = re.search(r'ssl_certificate\s+(.*?);', content)
+                key_match = re.search(r'ssl_certificate_key\s+(.*?);', content)
+                
+                if cert_match and key_match:
+                    cert_path = cert_match.group(1).strip()
+                    key_path = key_match.group(1).strip()
+                    
+                    # Verify files exist
+                    if os.path.exists(cert_path) and os.path.exists(key_path):
+                        ssl_certs['cert'] = cert_path
+                        ssl_certs['key'] = key_path
+                        break
+    except Exception as e:
+        print(f"Warning: Error reading nginx configuration: {e}")
+    
+    return ssl_certs
 
 def parse_args():
     """Parse command line arguments"""
@@ -45,6 +81,24 @@ def ensure_env_file(use_mariadb=False):
     # Get the absolute path for the SQLite database
     current_dir = os.getcwd()
     sqlite_path = os.path.join(current_dir, 'instance', 'app.db')
+    
+    # Find SSL certificates from nginx if available
+    ssl_certs = find_nginx_ssl_certs()
+    
+    # Base Redis configuration
+    redis_config = """
+# Redis Configuration
+REDIS_URL=redis://localhost:6379/0
+REDIS_SSL=False"""
+
+    # If SSL certificates were found, add SSL configuration
+    if ssl_certs['cert'] and ssl_certs['key']:
+        redis_config = f"""
+# Redis Configuration (with SSL from nginx certificates)
+REDIS_URL=rediss://localhost:6379/0
+REDIS_SSL=True
+REDIS_SSL_CERTFILE={ssl_certs['cert']}
+REDIS_SSL_KEYFILE={ssl_certs['key']}"""
     
     if use_mariadb:
         env_content = f"""# Flask Configuration
@@ -66,7 +120,7 @@ SQLALCHEMY_POOL_SIZE=30
 SQLALCHEMY_POOL_TIMEOUT=20
 SQLALCHEMY_POOL_RECYCLE=3600
 SQLALCHEMY_MAX_OVERFLOW=10
-"""
+{redis_config}"""
     else:
         env_content = f"""# Flask Configuration
 FLASK_APP=app
@@ -84,13 +138,15 @@ SQLALCHEMY_POOL_SIZE=30
 SQLALCHEMY_POOL_TIMEOUT=20
 SQLALCHEMY_POOL_RECYCLE=3600
 SQLALCHEMY_MAX_OVERFLOW=10
-"""
+{redis_config}"""
     
     if not os.path.exists('.env'):
         print("Creating default .env file...")
         with open('.env', 'w') as f:
             f.write(env_content)
         print("Created .env file with default settings")
+        if ssl_certs['cert'] and ssl_certs['key']:
+            print("Found and configured nginx SSL certificates for Redis")
         return True
     else:
         print("Updating existing .env file...")
@@ -100,6 +156,8 @@ SQLALCHEMY_MAX_OVERFLOW=10
             print("Updated .env file for MariaDB configuration")
         else:
             print(f"Updated .env file with SQLite configuration at: {sqlite_path}")
+        if ssl_certs['cert'] and ssl_certs['key']:
+            print("Found and configured nginx SSL certificates for Redis")
         return False
 
 def init_mariadb():
@@ -335,14 +393,19 @@ def init_dispatch_data():
     print("Dispatch data initialized")
 
 def init_document_data():
-    """Initialize document categories"""
+    """Initialize document categories and templates"""
     print("\nInitializing document data...")
+    
+    # Get admin user for created_by reference
+    admin = User.query.filter_by(username='admin').first()
     
     # Create document categories
     categories = [
         {'name': 'General', 'description': 'General documents'},
         {'name': 'Procedures', 'description': 'Procedure documents'},
-        {'name': 'Templates', 'description': 'Template documents'}
+        {'name': 'Templates', 'description': 'Template documents'},
+        {'name': 'Knowledge Base', 'description': 'Knowledge base articles'},
+        {'name': 'Guides', 'description': 'User guides and tutorials'}
     ]
     
     for cat_data in categories:
@@ -350,6 +413,95 @@ def init_document_data():
         if not category:
             category = DocumentCategory(**cat_data)
             db.session.add(category)
+    
+    db.session.flush()  # Get category IDs
+    
+    # Create default tags
+    tags = [
+        'Guide', 'Tutorial', 'Reference', 'Policy', 'Template',
+        'Important', 'Draft', 'Review', 'Approved', 'Archived'
+    ]
+    
+    for tag_name in tags:
+        tag = DocumentTag.query.filter_by(name=tag_name).first()
+        if not tag:
+            tag = DocumentTag(name=tag_name)
+            db.session.add(tag)
+    
+    db.session.flush()  # Get tag IDs
+    
+    # Get categories for templates
+    template_category = DocumentCategory.query.filter_by(name='Templates').first()
+    
+    # Create default document templates
+    templates = [
+        {
+            'title': 'Standard Procedure Template',
+            'content': '''
+            <h1>Procedure Title</h1>
+            <h2>Purpose</h2>
+            <p>[Describe the purpose of this procedure]</p>
+            
+            <h2>Scope</h2>
+            <p>[Define the scope and applicability]</p>
+            
+            <h2>Prerequisites</h2>
+            <ul>
+                <li>Requirement 1</li>
+                <li>Requirement 2</li>
+            </ul>
+            
+            <h2>Procedure Steps</h2>
+            <ol>
+                <li>Step 1</li>
+                <li>Step 2</li>
+                <li>Step 3</li>
+            </ol>
+            
+            <h2>References</h2>
+            <p>[List any related documents or references]</p>
+            ''',
+            'template_name': 'Standard Procedure'
+        },
+        {
+            'title': 'Knowledge Base Article Template',
+            'content': '''
+            <h1>Article Title</h1>
+            
+            <h2>Overview</h2>
+            <p>[Provide a brief overview of the topic]</p>
+            
+            <h2>Details</h2>
+            <p>[Detailed explanation of the topic]</p>
+            
+            <h2>Common Issues</h2>
+            <ul>
+                <li>Issue 1: [Solution]</li>
+                <li>Issue 2: [Solution]</li>
+            </ul>
+            
+            <h2>Related Articles</h2>
+            <p>[List related knowledge base articles]</p>
+            ''',
+            'template_name': 'Knowledge Base Article'
+        }
+    ]
+    
+    template_tag = DocumentTag.query.filter_by(name='Template').first()
+    
+    for template_data in templates:
+        template = Document.query.filter_by(title=template_data['title']).first()
+        if not template:
+            template = Document(
+                title=template_data['title'],
+                content=template_data['content'],
+                category_id=template_category.id,
+                created_by=admin.id,
+                is_template=True,
+                template_name=template_data['template_name']
+            )
+            template.tags.append(template_tag)
+            db.session.add(template)
     
     db.session.commit()
     print("Document data initialized")

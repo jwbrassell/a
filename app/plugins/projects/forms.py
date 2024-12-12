@@ -1,25 +1,15 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, BooleanField, IntegerField
 from wtforms.validators import DataRequired, Length, Optional
+from ..models import ProjectStatus, ProjectPriority
 
 class ProjectForm(FlaskForm):
     """Form for creating/editing projects"""
     name = StringField('Name', validators=[DataRequired(), Length(max=200)])
     summary = StringField('Summary', validators=[Optional(), Length(max=500)])
     description = TextAreaField('Description')
-    status = SelectField('Status', choices=[
-        ('New', 'New'),
-        ('In Progress', 'In Progress'),
-        ('On Hold', 'On Hold'),
-        ('Completed', 'Completed'),
-        ('Cancelled', 'Cancelled'),
-        ('Archived', 'Archived')
-    ])
-    priority = SelectField('Priority', choices=[
-        ('Low', 'Low'),
-        ('Medium', 'Medium'),
-        ('High', 'High')
-    ])
+    status = SelectField('Status')  # Choices set in __init__
+    priority = SelectField('Priority')  # Choices set in __init__
     lead_id = SelectField('Lead', coerce=int)
     is_private = BooleanField('Private Project')
     notify_task_created = BooleanField('Task Creation Notifications')
@@ -28,6 +18,14 @@ class ProjectForm(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)
+        # Dynamically set status choices from database
+        statuses = ProjectStatus.query.all()
+        self.status.choices = [(s.name, s.name) for s in statuses] if statuses else [('Not Started', 'Not Started')]
+        
+        # Dynamically set priority choices from database
+        priorities = ProjectPriority.query.all()
+        self.priority.choices = [(p.name, p.name) for p in priorities] if priorities else [('Medium', 'Medium')]
+        
         self.lead_id.choices = []  # Will be populated with users
 
     def populate_from_project(self, project):

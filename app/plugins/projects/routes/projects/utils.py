@@ -1,7 +1,7 @@
 """Utility functions for project management."""
 
 from datetime import datetime
-from ...models import History, UserActivity
+from ...models import History, UserActivity, ProjectStatus, ProjectPriority
 from app.extensions import db
 
 def serialize_date(date_obj):
@@ -59,8 +59,33 @@ def validate_project_data(data, is_update=False):
     if not is_update:
         if not data.get('name'):
             errors.append('Project name is required')
-    elif 'name' in data and not data['name']:
-        errors.append('Project name cannot be empty')
+            
+        # Validate status exists if provided
+        if 'status' in data:
+            status = ProjectStatus.query.filter_by(name=data['status']).first()
+            if not status:
+                errors.append(f'Invalid project status: {data["status"]}')
+                
+        # Validate priority exists if provided
+        if 'priority' in data:
+            priority = ProjectPriority.query.filter_by(name=data['priority']).first()
+            if not priority:
+                errors.append(f'Invalid project priority: {data["priority"]}')
+    
+    elif 'name' in data:
+        if not data['name']:
+            errors.append('Project name cannot be empty')
+            
+        # For updates, only validate status/priority if they're being updated
+        if 'status' in data:
+            status = ProjectStatus.query.filter_by(name=data['status']).first()
+            if not status:
+                errors.append(f'Invalid project status: {data["status"]}')
+                
+        if 'priority' in data:
+            priority = ProjectPriority.query.filter_by(name=data['priority']).first()
+            if not priority:
+                errors.append(f'Invalid project priority: {data["priority"]}')
     
     # Percent complete validation
     if 'percent_complete' in data:

@@ -24,6 +24,18 @@ class Config:
     # SQLite configuration
     SQLITE_PATH = os.getenv('SQLITE_PATH', 'instance/app.db')
     
+    # Redis configuration with SSL (allowing self-signed certificates)
+    REDIS_URL = os.getenv('REDIS_URL', 'rediss://localhost:6379/0')  # Using rediss:// for SSL
+    REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+    REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
+    REDIS_DB = int(os.getenv('REDIS_DB', 0))
+    REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
+    REDIS_SSL = os.getenv('REDIS_SSL', 'True').lower() == 'true'
+    # Certificate paths are optional for self-signed certificates
+    REDIS_SSL_CA_CERTS = os.getenv('REDIS_SSL_CA_CERTS')
+    REDIS_SSL_CERTFILE = os.getenv('REDIS_SSL_CERTFILE')
+    REDIS_SSL_KEYFILE = os.getenv('REDIS_SSL_KEYFILE')
+    
     # Session configuration
     SESSION_TYPE = 'sqlalchemy'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=2)
@@ -116,6 +128,10 @@ class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
     
+    # Override Redis SSL settings for development
+    REDIS_SSL = False
+    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')  # Use non-SSL in development
+    
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
@@ -130,6 +146,10 @@ class TestingConfig(Config):
     TESTING = True
     WTF_CSRF_ENABLED = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    
+    # Override Redis SSL settings for testing
+    REDIS_SSL = False
+    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')  # Use non-SSL in testing
     
     @classmethod
     def init_app(cls, app):

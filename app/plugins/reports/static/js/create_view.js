@@ -473,7 +473,9 @@ $(document).ready(function() {
             contentType: 'application/json',
             data: JSON.stringify(data),
             success: function(response) {
-                window.location.href = '/reports/';
+                if (response.redirect) {
+                    window.location.href = response.redirect;
+                }
             },
             error: function(xhr) {
                 alert('Error creating view: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));

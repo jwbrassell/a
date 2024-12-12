@@ -72,7 +72,8 @@
                                 <i class="fas fa-edit"></i> Edit
                             </a>
                             <button class="btn btn-danger btn-sm delete-view" 
-                                    data-view-id="{{ view.id }}">
+                                    data-view-id="{{ view.id }}"
+                                    data-delete-url="{{ url_for('reports.delete_view', view_id=view.id) }}">
                                 <i class="fas fa-trash"></i>
                             </button>
                             {% endif %}
@@ -126,7 +127,8 @@
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 <button class="btn btn-danger btn-sm delete-view" 
-                                                        data-view-id="{{ view.id }}">
+                                                        data-view-id="{{ view.id }}"
+                                                        data-delete-url="{{ url_for('reports.delete_view', view_id=view.id) }}">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                                 {% endif %}
@@ -187,15 +189,16 @@ $(document).ready(function() {
         e.preventDefault();
         e.stopPropagation();
         var viewId = $(this).data('view-id');
+        var deleteUrl = $(this).data('delete-url');
         if (confirm('Are you sure you want to delete this view?')) {
             $.ajax({
-                url: '/reports/api/view/' + viewId,
+                url: deleteUrl,
                 method: 'DELETE',
                 success: function() {
                     location.reload();
                 },
                 error: function(xhr) {
-                    alert('Error deleting view: ' + xhr.responseJSON.error);
+                    alert('Error deleting view: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error'));
                 }
             });
         }

@@ -52,16 +52,23 @@ def create_project():
     default_status = ProjectStatus.query.first()
     default_priority = ProjectPriority.query.first()
     
+    if not default_status or not default_priority:
+        return jsonify({
+            'success': False,
+            'message': 'Project status and priority configurations are missing. Please contact an administrator.'
+        }), 500
+    
     # Create a dummy project object for the template
     project = Project(
         name='',
         summary='',
         description='',
-        status=default_status.name if default_status else None,
-        priority=default_priority.name if default_priority else None,
+        status=default_status.name,
+        priority=default_priority.name,
         percent_complete=0,
         lead_id=current_user.id,
-        is_private=False
+        is_private=False,
+        created_by=current_user.username
     )
     
     # Initialize relationships as empty lists
@@ -104,24 +111,47 @@ def create_project_post():
         # Get first available status and priority if not provided
         if not data.get('status'):
             default_status = ProjectStatus.query.first()
-            if default_status:
-                data['status'] = default_status.name
+            if not default_status:
+                return jsonify({
+                    'success': False,
+                    'message': 'No project status configurations found. Please contact an administrator.'
+                }), 500
+            data['status'] = default_status.name
                 
         if not data.get('priority'):
             default_priority = ProjectPriority.query.first()
-            if default_priority:
-                data['priority'] = default_priority.name
+            if not default_priority:
+                return jsonify({
+                    'success': False,
+                    'message': 'No project priority configurations found. Please contact an administrator.'
+                }), 500
+            data['priority'] = default_priority.name
+        
+        # Validate status exists
+        if not ProjectStatus.query.filter_by(name=data['status']).first():
+            return jsonify({
+                'success': False,
+                'message': f'Invalid project status: {data["status"]}'
+            }), 400
+            
+        # Validate priority exists
+        if not ProjectPriority.query.filter_by(name=data['priority']).first():
+            return jsonify({
+                'success': False,
+                'message': f'Invalid project priority: {data["priority"]}'
+            }), 400
         
         # Create project with all fields
         project = Project(
             name=data['name'],
             summary=data.get('summary', ''),
             description=data.get('description', ''),
-            status=data.get('status'),
-            priority=data.get('priority'),
+            status=data['status'],
+            priority=data['priority'],
             icon=data.get('icon'),
             lead_id=current_user.id,
-            is_private=data.get('is_private', False)
+            is_private=data.get('is_private', False),
+            created_by=current_user.username  # Ensure created_by is set
         )
         
         # Add watchers if provided
@@ -160,7 +190,8 @@ def create_project_post():
                         description=todo_data['description'],
                         completed=todo_data.get('completed', False),
                         due_date=due_date,
-                        sort_order=todo_data.get('sort_order', 0)
+                        sort_order=todo_data.get('sort_order', 0),
+                        created_by=current_user.username  # Ensure created_by is set for todos
                     )
                     project.todos.append(todo)
         
@@ -286,6 +317,22 @@ def update_project(project_id):
         }), 400
     
     try:
+        # Validate status exists if being updated
+        if 'status' in data:
+            if not ProjectStatus.query.filter_by(name=data['status']).first():
+                return jsonify({
+                    'success': False,
+                    'message': f'Invalid project status: {data["status"]}'
+                }), 400
+                
+        # Validate priority exists if being updated
+        if 'priority' in data:
+            if not ProjectPriority.query.filter_by(name=data['priority']).first():
+                return jsonify({
+                    'success': False,
+                    'message': f'Invalid project priority: {data["priority"]}'
+                }), 400
+        
         # Update basic fields if provided
         if 'name' in data:
             project.name = data['name']
@@ -367,7 +414,8 @@ def update_project(project_id):
                         due_date=due_date,
                         project_id=project.id,
                         task_id=None,  # Explicitly set task_id to None
-                        sort_order=todo_data.get('sort_order', 0)
+                        sort_order=todo_data.get('sort_order', 0),
+                        created_by=current_user.username  # Ensure created_by is set for new todos
                     )
                     print(f"Adding project todo: {todo.description}, due: {todo.due_date}")
                     db.session.add(todo)
