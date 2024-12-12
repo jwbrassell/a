@@ -41,10 +41,9 @@ def register_plugins(app):
 
 def register_commands(app):
     """Register CLI commands."""
-    # Flask-Session handles its own session cleanup
     pass
 
-def create_app(config_name=None):
+def create_app(config_name=None, skip_session=False):
     app = Flask(__name__)
     
     # Set configuration
@@ -58,16 +57,10 @@ def create_app(config_name=None):
     login_manager.init_app(app)
     csrf.init_app(app)  # Initialize CSRF protection
 
-    # Initialize Flask-Session after db is initialized
-    from app.extensions import session as flask_session
-    with app.app_context():
-        if not os.getenv('SKIP_MIGRATIONS'):
-            # Create the sessions table explicitly
-            from flask_session.sessions import SqlAlchemySessionInterface
-            table = SqlAlchemySessionInterface(app, db, 'flask_sessions', 'sess_', use_signer=True).sql_session_model
-            if not db.engine.dialect.has_table(db.engine, 'flask_sessions'):
-                table.__table__.create(db.engine)
-    flask_session.init_app(app)
+    # Initialize Flask-Session only if not skipped
+    if not skip_session:
+        from flask_session import Session
+        Session(app)
 
     # Initialize logging configuration
     from app.logging_utils import init_app as init_logging

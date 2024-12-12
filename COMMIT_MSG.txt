@@ -1,5 +1,12 @@
-fix: update gitignore to properly track static/dist
+fix: resolve SQLAlchemy session table conflicts during setup
 
-- Update gitignore to only ignore root dist/ directory
-- Ensure app/static/dist is properly tracked
-- Keep AdminLTE files in app/static/dist for proper asset serving
+- Add skip_session parameter to create_app to avoid session initialization during setup
+- Update init_reports_data to use db.session.query instead of Model.query
+- Modify setup.py to skip session initialization during database setup
+- Keep SQLAlchemy session configuration for normal app operation
+- Fix database initialization order to prevent table conflicts
+
+This resolves the issue where Flask-Session was trying to create its session
+table while other tables were being created, causing conflicts in the SQLAlchemy
+metadata. The setup process now properly initializes the database without session
+conflicts while maintaining database session support during normal operation.

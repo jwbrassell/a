@@ -27,9 +27,15 @@ class Config:
     SESSION_TYPE = 'sqlalchemy'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=2)
     SESSION_SQLALCHEMY = None  # Will be set in init_app
-    SESSION_SQLALCHEMY_TABLE = 'flask_sessions'  # Changed from 'session' to 'flask_sessions'
+    SESSION_SQLALCHEMY_TABLE = 'flask_sessions'
     SESSION_USE_SIGNER = True
     SESSION_FILE_THRESHOLD = 500
+    
+    # SQLAlchemy session table configuration
+    SQLALCHEMY_TABLE_ARGS = {
+        'extend_existing': True,  # Allow table redefinition
+        'sqlite_on_conflict': 'IGNORE'  # Handle SQLite conflicts
+    }
     
     # Session cookie settings
     SESSION_COOKIE_NAME = 'portal_session'

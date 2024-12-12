@@ -148,7 +148,8 @@ def map_route_to_roles(route_path, page_name, roles=None, category_id=None, icon
                 page_name=page_name,
                 category_id=category_id,
                 icon=icon,
-                weight=weight
+                weight=weight,
+                created_by='system'  # Set created_by to 'system'
             )
             db.session.add(mapping)
         else:

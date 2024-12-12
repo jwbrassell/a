@@ -43,12 +43,10 @@ def ensure_env_file():
     """Create .env file with defaults if it doesn't exist"""
     if not os.path.exists('.env'):
         print("Creating default .env file...")
-        # Calculate optimal number of workers
-        workers = multiprocessing.cpu_count() * 2 + 1
-        env_content = f"""# Flask Configuration
+        env_content = """# Flask Configuration
 FLASK_APP=app.py
 FLASK_ENV=development
-SECRET_KEY={secrets.token_hex(32)}
+SECRET_KEY=your-secret-key-here
 
 # Database Configuration
 DB_TYPE=sqlite
@@ -64,19 +62,6 @@ SESSION_COOKIE_SECURE=True
 SESSION_COOKIE_HTTPONLY=True
 SESSION_COOKIE_SAMESITE=Lax
 SESSION_USE_SIGNER=True
-
-# WSGI Configuration
-GUNICORN_WORKERS={workers}
-GUNICORN_WORKER_CLASS=sync
-GUNICORN_WORKER_CONNECTIONS=1000
-GUNICORN_TIMEOUT=120
-GUNICORN_KEEPALIVE=5
-GUNICORN_MAX_REQUESTS=1000
-GUNICORN_MAX_REQUESTS_JITTER=50
-GUNICORN_LOG_LEVEL=info
-GUNICORN_ACCESS_LOG=-
-GUNICORN_ERROR_LOG=-
-GUNICORN_PROC_NAME=portal
 
 # Database Pool Configuration
 SQLALCHEMY_POOL_SIZE=10
@@ -157,28 +142,32 @@ def init_core_data():
     print("\nInitializing core data...")
     
     # Create admin role
-    admin_role = Role(
-        name='admin',
-        notes='Administrator role',
-        icon='fa-shield-alt',
-        created_by='system',
-        created_at=datetime.utcnow()
-    )
-    db.session.add(admin_role)
-    db.session.commit()
+    admin_role = Role.query.filter_by(name='admin').first()
+    if not admin_role:
+        admin_role = Role(
+            name='admin',
+            notes='Administrator role',
+            icon='fa-shield-alt',
+            created_by='system',
+            created_at=datetime.utcnow()
+        )
+        db.session.add(admin_role)
+        db.session.commit()
     
     # Create admin user
-    admin = User(
-        username='admin',
-        employee_number='ADMIN001',
-        name='System Administrator',
-        email='admin@example.com',
-        vzid='admin',
-        roles=[admin_role]
-    )
-    admin.set_password('test123')
-    db.session.add(admin)
-    db.session.commit()
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        admin = User(
+            username='admin',
+            employee_number='ADMIN001',
+            name='System Administrator',
+            email='admin@example.com',
+            vzid='admin',
+            roles=[admin_role]
+        )
+        admin.set_password('test123')
+        db.session.add(admin)
+        db.session.commit()
     
     # Create other core roles
     roles = [
@@ -187,14 +176,16 @@ def init_core_data():
     ]
     
     for role_data in roles:
-        role = Role(
-            name=role_data['name'],
-            notes=role_data['notes'],
-            icon=role_data['icon'],
-            created_by='system',
-            created_at=datetime.utcnow()
-        )
-        db.session.add(role)
+        role = Role.query.filter_by(name=role_data['name']).first()
+        if not role:
+            role = Role(
+                name=role_data['name'],
+                notes=role_data['notes'],
+                icon=role_data['icon'],
+                created_by='system',
+                created_at=datetime.utcnow()
+            )
+            db.session.add(role)
     
     db.session.commit()
     print("Core data initialized")
@@ -211,13 +202,15 @@ def init_navigation():
     ]
     
     for cat_data in categories:
-        category = NavigationCategory(
-            name=cat_data['name'],
-            icon=cat_data['icon'],
-            weight=cat_data['weight'],
-            created_by='system'
-        )
-        db.session.add(category)
+        category = NavigationCategory.query.filter_by(name=cat_data['name']).first()
+        if not category:
+            category = NavigationCategory(
+                name=cat_data['name'],
+                icon=cat_data['icon'],
+                weight=cat_data['weight'],
+                created_by='system'
+            )
+            db.session.add(category)
     
     db.session.commit()
 
@@ -226,19 +219,21 @@ def init_navigation():
     admin_role = Role.query.filter_by(name='admin').first()
 
     # Create admin dashboard route mapping
-    admin_route = PageRouteMapping(
-        page_name='Admin Dashboard',
-        route='/admin',
-        icon='fa-cogs',
-        weight=0,
-        category_id=admin_category.id,
-        show_in_navbar=True,
-        created_by='system'
-    )
-    admin_route.allowed_roles.append(admin_role)
-    db.session.add(admin_route)
-    db.session.commit()
+    admin_route = PageRouteMapping.query.filter_by(route='/admin').first()
+    if not admin_route:
+        admin_route = PageRouteMapping(
+            page_name='Admin Dashboard',
+            route='/admin',
+            icon='fa-cogs',
+            weight=0,
+            category_id=admin_category.id,
+            show_in_navbar=True,
+            created_by='system'
+        )
+        admin_route.allowed_roles.append(admin_role)
+        db.session.add(admin_route)
     
+    db.session.commit()
     print("Navigation categories initialized")
 
 def init_project_data():
@@ -256,12 +251,14 @@ def init_project_data():
     ]
     
     for status_data in statuses:
-        status = ProjectStatus(
-            name=status_data['name'],
-            color=status_data['color'],
-            created_by='system'
-        )
-        db.session.add(status)
+        status = ProjectStatus.query.filter_by(name=status_data['name']).first()
+        if not status:
+            status = ProjectStatus(
+                name=status_data['name'],
+                color=status_data['color'],
+                created_by='system'
+            )
+            db.session.add(status)
     
     # Create project priorities
     priorities = [
@@ -272,12 +269,14 @@ def init_project_data():
     ]
     
     for priority_data in priorities:
-        priority = ProjectPriority(
-            name=priority_data['name'],
-            color=priority_data['color'],
-            created_by='system'
-        )
-        db.session.add(priority)
+        priority = ProjectPriority.query.filter_by(name=priority_data['name']).first()
+        if not priority:
+            priority = ProjectPriority(
+                name=priority_data['name'],
+                color=priority_data['color'],
+                created_by='system'
+            )
+            db.session.add(priority)
     
     db.session.commit()
     print("Project data initialized")
@@ -294,8 +293,10 @@ def init_dispatch_data():
     ]
     
     for team_data in teams:
-        team = DispatchTeam(**team_data)
-        db.session.add(team)
+        team = DispatchTeam.query.filter_by(name=team_data['name']).first()
+        if not team:
+            team = DispatchTeam(**team_data)
+            db.session.add(team)
     
     # Create dispatch priorities
     priorities = [
@@ -306,8 +307,10 @@ def init_dispatch_data():
     ]
     
     for priority_data in priorities:
-        priority = DispatchPriority(**priority_data)
-        db.session.add(priority)
+        priority = DispatchPriority.query.filter_by(name=priority_data['name']).first()
+        if not priority:
+            priority = DispatchPriority(**priority_data)
+            db.session.add(priority)
     
     db.session.commit()
     print("Dispatch data initialized")
@@ -324,8 +327,10 @@ def init_document_data():
     ]
     
     for cat_data in categories:
-        category = DocumentCategory(**cat_data)
-        db.session.add(category)
+        category = DocumentCategory.query.filter_by(name=cat_data['name']).first()
+        if not category:
+            category = DocumentCategory(**cat_data)
+            db.session.add(category)
     
     db.session.commit()
     print("Document data initialized")
@@ -343,8 +348,10 @@ def init_weblinks_data():
     ]
     
     for cat_data in categories:
-        category = WebLinkCategory(**cat_data)
-        db.session.add(category)
+        category = WebLinkCategory.query.filter_by(name=cat_data['name']).first()
+        if not category:
+            category = WebLinkCategory(**cat_data)
+            db.session.add(category)
     
     # Create default tags
     tags = [
@@ -355,8 +362,10 @@ def init_weblinks_data():
     ]
     
     for tag_data in tags:
-        tag = WebLinkTag(**tag_data)
-        db.session.add(tag)
+        tag = WebLinkTag.query.filter_by(name=tag_data['name']).first()
+        if not tag:
+            tag = WebLinkTag(**tag_data)
+            db.session.add(tag)
     
     db.session.commit()
     print("Web links data initialized")
@@ -373,8 +382,10 @@ def init_handoff_data():
     ]
     
     for shift_data in shifts:
-        shift = HandoffShift(**shift_data)
-        db.session.add(shift)
+        shift = HandoffShift.query.filter_by(name=shift_data['name']).first()
+        if not shift:
+            shift = HandoffShift(**shift_data)
+            db.session.add(shift)
     
     db.session.commit()
     print("Handoff data initialized")
@@ -391,8 +402,10 @@ def init_oncall_data():
     ]
     
     for team_data in teams:
-        team = OnCallTeam(**team_data)
-        db.session.add(team)
+        team = OnCallTeam.query.filter_by(name=team_data['name']).first()
+        if not team:
+            team = OnCallTeam(**team_data)
+            db.session.add(team)
     
     db.session.commit()
     print("Oncall data initialized")
@@ -416,13 +429,15 @@ def init_reports_data():
     ]
     
     for conn_data in connections:
-        conn = DatabaseConnection(**conn_data)
-        db.session.add(conn)
+        conn = db.session.query(DatabaseConnection).filter_by(name=conn_data['name']).first()
+        if not conn:
+            conn = DatabaseConnection(**conn_data)
+            db.session.add(conn)
     
     db.session.commit()
     
     # Get the application DB connection for report views
-    app_db = DatabaseConnection.query.filter_by(name='Application DB').first()
+    app_db = db.session.query(DatabaseConnection).filter_by(name='Application DB').first()
     
     # Create default report views
     views = [
@@ -442,8 +457,10 @@ def init_reports_data():
     ]
     
     for view_data in views:
-        view = ReportView(**view_data)
-        db.session.add(view)
+        view = db.session.query(ReportView).filter_by(title=view_data['title']).first()
+        if not view:
+            view = ReportView(**view_data)
+            db.session.add(view)
     
     db.session.commit()
     print("Reports data initialized")
@@ -482,24 +499,27 @@ def setup():
             os.remove(db_path)
             print("Removed existing database")
     
-    # Skip both migrations and plugins for initial setup
+    # Skip both migrations and plugins initially
     os.environ['SKIP_MIGRATIONS'] = '1'
     os.environ['SKIP_PLUGIN_LOAD'] = '1'
     
-    # Create app without migrations or plugins
-    app = create_app()
+    # Create app without plugins first and skip session
+    app = create_app(skip_session=True)
     
     with app.app_context():
         # Create all tables
         db.create_all()
         print("\nCreated database tables")
         
-        # Initialize core data
+        # Initialize core data first
         init_core_data()
-        
-        # Initialize navigation categories
         init_navigation()
-        
+    
+    # Now enable plugins and reinitialize the app
+    os.environ.pop('SKIP_PLUGIN_LOAD', None)
+    app = create_app(skip_session=True)
+    
+    with app.app_context():
         # Initialize plugin data
         init_project_data()
         init_dispatch_data()
@@ -508,10 +528,6 @@ def setup():
         init_handoff_data()
         init_oncall_data()
         init_reports_data()
-    
-    # Now enable plugins but still skip migrations
-    os.environ.pop('SKIP_PLUGIN_LOAD', None)
-    app = create_app()
     
     print("\nSetup complete!")
     if env_created:
