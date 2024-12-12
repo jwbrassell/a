@@ -94,6 +94,9 @@ graph TD
     C --> D[Database]
     C --> E[File Storage]
     B --> F[Authentication]
+    B --> G[Caching System]
+    G --> H[In-Memory Cache]
+    G --> I[Browser Cache]
 ```
 
 ### Database Structure
@@ -114,6 +117,55 @@ graph LR
     B --> D[Documents Plugin]
     B --> E[Projects Plugin]
 ```
+
+### Caching System
+
+The application implements a multi-level caching system to optimize performance:
+
+#### 1. In-Memory Caching
+- Uses Flask-Caching for server-side caching
+- Caches rendered templates and expensive operations
+- Default cache timeout: 1 hour for templates
+- Example usage in routes:
+```python
+from app.extensions import cache
+
+@app.route('/expensive-operation')
+@cache.cached(timeout=300)  # Cache for 5 minutes
+def expensive_operation():
+    # Expensive operation here
+    return result
+```
+
+#### 2. Browser-Side Caching
+- Implements cache headers for static files
+- Cache duration: 30 days for static assets
+- Includes CSS, JavaScript, images, and other static files
+- Configuration in config.py:
+```python
+# Static file configuration
+STATIC_CACHE_TIMEOUT = 2592000  # 30 days in seconds
+```
+
+#### 3. Template Caching
+- Caches frequently used templates like imports.html
+- Reduces server load for common components
+- Usage in templates:
+```jinja
+{{ get_cached_imports()|safe }}
+```
+
+#### Cache Configuration
+The caching system can be configured through the following settings:
+- CACHE_TYPE: Type of caching backend (default: SimpleCache)
+- CACHE_DEFAULT_TIMEOUT: Default cache timeout in seconds
+- STATIC_CACHE_TIMEOUT: Browser cache duration for static files
+
+#### Best Practices
+1. Cache expensive database queries
+2. Use appropriate cache timeouts based on data volatility
+3. Implement cache invalidation when data changes
+4. Monitor cache hit rates and adjust timeouts accordingly
 
 ## 5. Appendices
 

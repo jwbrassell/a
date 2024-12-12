@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
+from flask import request
 
 load_dotenv()
 
@@ -31,44 +32,21 @@ class Config:
     SESSION_USE_SIGNER = True
     SESSION_FILE_THRESHOLD = 500
     
-    # SQLAlchemy session table configuration
-    SQLALCHEMY_TABLE_ARGS = {
-        'extend_existing': True,  # Allow table redefinition
-        'sqlite_on_conflict': 'IGNORE'  # Handle SQLite conflicts
-    }
-    
-    # Session cookie settings
-    SESSION_COOKIE_NAME = 'portal_session'
-    SESSION_COOKIE_SECURE = True  # Only send cookie over HTTPS
-    SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
-    SESSION_COOKIE_SAMESITE = 'Lax'  # Protect against CSRF
-    PERMANENT_SESSION = True  # Enable session lifetime
-    
-    # WSGI configuration
-    PREFERRED_URL_SCHEME = 'https'
-    PROXY_FIX = True  # Enable proxy support
-    PROXY_COUNT = 1  # Number of proxies in front of the app
+    # Static file configuration
+    SEND_FILE_MAX_AGE_DEFAULT = 31536000  # 1 year in seconds
+    STATIC_CACHE_TIMEOUT = 2592000  # 30 days in seconds
     
     # SQLAlchemy configuration
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,  # Maximum number of connections in the pool
-        'pool_recycle': 3600,  # Recycle connections after 1 hour
-        'pool_pre_ping': True,  # Enable connection health checks
-        'pool_timeout': 30,  # Connection timeout in seconds
+        'pool_size': 30,  # Increased pool size for better performance
+        'pool_recycle': 3600,
+        'pool_pre_ping': True,
+        'max_overflow': 10,  # Allow more overflow connections
+        'pool_timeout': 20,  # Reduced timeout
+        'echo': False,  # Disable SQL echoing for better performance
+        'pool_use_lifo': True,  # Use LIFO to reduce thread contention
     }
-    
-    # Vault configuration
-    VAULT_ADDR = os.getenv('VAULT_ADDR', 'http://localhost:8200')
-    VAULT_TOKEN = os.getenv('VAULT_TOKEN')
-
-    # Mail configuration
-    MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.example.com')
-    MAIL_PORT = int(os.getenv('MAIL_PORT', 587))
-    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME', '')
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', '')
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@example.com')
     
     @staticmethod
     def init_app(app):
@@ -88,7 +66,7 @@ class Config:
                 f'mysql+pymysql://{app.config["DATABASE_USER"]}:'
                 f'{app.config["DATABASE_PASSWORD"]}@'
                 f'{app.config["DATABASE_HOST"]}/'
-                f'{app.config["DATABASE_NAME"]}'
+                f'{app.config["DATABASE_NAME"]}?charset=utf8mb4'
             )
             app.logger.info("Using MariaDB configuration")
         else:
@@ -102,10 +80,19 @@ class Config:
         from app.extensions import db
         app.config['SESSION_SQLALCHEMY'] = db
 
+        # Add cache headers for static files
+        @app.after_request
+        def add_cache_headers(response):
+            if 'static' in request.path:
+                # Cache static files for 30 days
+                response.cache_control.max_age = app.config['STATIC_CACHE_TIMEOUT']
+                response.cache_control.public = True
+                response.cache_control.must_revalidate = True
+            return response
+
 class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
-    SESSION_COOKIE_SECURE = False  # Allow HTTP in development
     
     @classmethod
     def init_app(cls, app):
@@ -115,17 +102,12 @@ class DevelopmentConfig(Config):
         import logging
         logging.basicConfig(level=logging.DEBUG)
         app.logger.setLevel(logging.DEBUG)
-        
-        # Log database configuration
-        app.logger.info(f"Using database type: {app.config['DB_TYPE']}")
-        app.logger.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 class TestingConfig(Config):
     """Testing configuration."""
     TESTING = True
     WTF_CSRF_ENABLED = False
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'  # Always use in-memory SQLite for testing
-    SESSION_COOKIE_SECURE = False  # Allow HTTP in testing
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     
     @classmethod
     def init_app(cls, app):
@@ -139,15 +121,6 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
-    
-    # Production-specific SQLAlchemy settings
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 20,  # Larger connection pool for production
-        'pool_recycle': 1800,  # Recycle connections more frequently
-        'pool_pre_ping': True,
-        'pool_timeout': 60,
-        'max_overflow': 5  # Allow up to 5 connections over pool_size
-    }
     
     @classmethod
     def init_app(cls, app):
@@ -169,12 +142,6 @@ class ProductionConfig(Config):
         
         # Set production log level
         app.logger.setLevel(logging.WARNING)
-        
-        # Log database configuration
-        app.logger.info(f"Using database type: {app.config['DB_TYPE']}")
-        if app.config['DB_TYPE'] == 'mariadb':
-            app.logger.info(f"Database host: {app.config['DATABASE_HOST']}")
-            app.logger.info(f"Database name: {app.config['DATABASE_NAME']}")
 
 config = {
     'development': DevelopmentConfig,

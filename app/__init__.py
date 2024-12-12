@@ -9,7 +9,7 @@ import click
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import extensions
-from app.extensions import db, login_manager, migrate
+from app.extensions import db, login_manager, migrate, cache
 
 # Initialize CSRF protection
 csrf = CSRFProtect()
@@ -56,6 +56,7 @@ def create_app(config_name=None, skip_session=False):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)  # Initialize CSRF protection
+    cache.init_app(app)  # Initialize cache
 
     # Initialize Flask-Session only if not skipped
     if not skip_session:

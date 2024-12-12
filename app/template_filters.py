@@ -2,8 +2,9 @@
 
 import json
 from markupsafe import escape
-from flask import current_app
+from flask import current_app, render_template_string
 from app.utils.route_manager import route_to_endpoint as convert_route
+from app.extensions import cache
 
 def init_app(app):
     """Initialize template filters.
@@ -58,3 +59,17 @@ def init_app(app):
         except Exception as e:
             current_app.logger.warning(f"Error checking route existence for {route}: {str(e)}")
             return False
+
+    @cache.cached(timeout=3600, key_prefix='cached_imports')  # Cache for 1 hour
+    def get_cached_imports():
+        """Cache the imports template."""
+        return render_template_string("""
+            {% include 'imports.html' %}
+        """)
+
+    @app.context_processor
+    def utility_processor():
+        """Add utility functions to template context."""
+        return {
+            'get_cached_imports': get_cached_imports
+        }

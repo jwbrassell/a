@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 import secrets
 import multiprocessing
 import pymysql
+import importlib
 pymysql.install_as_MySQLdb()
 from dotenv import load_dotenv
 from app import create_app, db
@@ -39,49 +40,67 @@ def parse_args():
     parser.add_argument('--mariadb', action='store_true', help='Use MariaDB instead of SQLite')
     return parser.parse_args()
 
-def ensure_env_file():
+def ensure_env_file(use_mariadb=False):
     """Create .env file with defaults if it doesn't exist"""
-    if not os.path.exists('.env'):
-        print("Creating default .env file...")
-        env_content = """# Flask Configuration
-FLASK_APP=app.py
+    # Get the absolute path for the SQLite database
+    current_dir = os.getcwd()
+    sqlite_path = os.path.join(current_dir, 'instance', 'app.db')
+    
+    if use_mariadb:
+        env_content = f"""# Flask Configuration
+FLASK_APP=app
 FLASK_ENV=development
-SECRET_KEY=your-secret-key-here
+SECRET_KEY={secrets.token_hex(32)}
 
-# Database Configuration
-DB_TYPE=sqlite
-SQLITE_PATH=instance/app.db
+# Database Type (mariadb or sqlite)
+DB_TYPE=mariadb
 
-# Skip migrations for initial setup
-SKIP_MIGRATIONS=1
-
-# Session Configuration
-SESSION_TYPE=sqlalchemy
-PERMANENT_SESSION_LIFETIME=7200
-SESSION_COOKIE_SECURE=True
-SESSION_COOKIE_HTTPONLY=True
-SESSION_COOKIE_SAMESITE=Lax
-SESSION_USE_SIGNER=True
+# MariaDB Configuration
+DATABASE_USER=flask_app_user
+DATABASE_PASSWORD=default_password
+DATABASE_HOST=localhost
+DATABASE_NAME=portal_db
 
 # Database Pool Configuration
-SQLALCHEMY_POOL_SIZE=10
-SQLALCHEMY_POOL_TIMEOUT=30
+SQLALCHEMY_POOL_SIZE=30
+SQLALCHEMY_POOL_TIMEOUT=20
 SQLALCHEMY_POOL_RECYCLE=3600
-SQLALCHEMY_MAX_OVERFLOW=5
-
-# Mail Configuration for Dispatch Plugin
-MAIL_SERVER=smtp.example.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=your-email@example.com
-MAIL_PASSWORD=your-email-password
-MAIL_DEFAULT_SENDER=noreply@example.com
+SQLALCHEMY_MAX_OVERFLOW=10
 """
+    else:
+        env_content = f"""# Flask Configuration
+FLASK_APP=app
+FLASK_ENV=development
+SECRET_KEY={secrets.token_hex(32)}
+
+# Database Type (mariadb or sqlite)
+DB_TYPE=sqlite
+
+# SQLite Configuration (absolute path)
+SQLITE_PATH={sqlite_path}
+
+# Database Pool Configuration
+SQLALCHEMY_POOL_SIZE=30
+SQLALCHEMY_POOL_TIMEOUT=20
+SQLALCHEMY_POOL_RECYCLE=3600
+SQLALCHEMY_MAX_OVERFLOW=10
+"""
+    
+    if not os.path.exists('.env'):
+        print("Creating default .env file...")
         with open('.env', 'w') as f:
             f.write(env_content)
         print("Created .env file with default settings")
         return True
-    return False
+    else:
+        print("Updating existing .env file...")
+        with open('.env', 'w') as f:
+            f.write(env_content)
+        if use_mariadb:
+            print("Updated .env file for MariaDB configuration")
+        else:
+            print(f"Updated .env file with SQLite configuration at: {sqlite_path}")
+        return False
 
 def init_mariadb():
     """Initialize MariaDB database and user if they don't exist"""
@@ -473,10 +492,14 @@ def setup():
     args = parse_args()
     
     # Ensure .env file exists with defaults
-    env_created = ensure_env_file()
+    env_created = ensure_env_file(use_mariadb=args.mariadb)
     
     # Load environment variables
     load_dotenv()
+    
+    # Reload config module to pick up new environment variables
+    import config
+    importlib.reload(config)
     
     # Set DB_TYPE based on arguments
     if args.mariadb:

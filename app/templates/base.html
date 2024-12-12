@@ -9,12 +9,51 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}Portal{% endblock %}</title>
     
-    {% include 'imports.html' %}
+    {{ get_cached_imports()|safe }}
+
+    <style>
+        #page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+
+        .dark-mode #page-loader {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 
     {% block head %}{% endblock %}
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed {% if current_user.is_authenticated and current_user.get_preference('theme') == 'dark' %}dark-mode{% endif %}">
+    <!-- Page Loader -->
+    <div id="page-loader">
+        <div class="loader-spinner"></div>
+    </div>
+
     <div class="wrapper">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -189,5 +228,40 @@
 
     {% block scripts %}{% endblock %}
     <script src="{{ url_for('static', filename='src/js/theme.js') }}"></script>
+    <script>
+        // Page transition handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const loader = document.getElementById('page-loader');
+            
+            // Show loader before page navigation
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('a');
+                if (target && target.href && !target.href.includes('#') && 
+                    !target.href.includes('javascript:') && 
+                    target.getAttribute('target') !== '_blank') {
+                    loader.style.display = 'flex';
+                }
+            });
+
+            // Show loader on form submissions
+            document.addEventListener('submit', function(e) {
+                if (e.target.tagName === 'FORM') {
+                    loader.style.display = 'flex';
+                }
+            });
+
+            // Hide loader when page is fully loaded
+            window.addEventListener('load', function() {
+                loader.style.display = 'none';
+            });
+
+            // Hide loader if navigation is cancelled
+            window.addEventListener('pageshow', function(e) {
+                if (e.persisted) {
+                    loader.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 </html>

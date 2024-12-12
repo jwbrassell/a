@@ -1,12 +1,15 @@
-fix: resolve SQLAlchemy session table conflicts during setup
+feat: implement multi-level caching system
 
-- Add skip_session parameter to create_app to avoid session initialization during setup
-- Update init_reports_data to use db.session.query instead of Model.query
-- Modify setup.py to skip session initialization during database setup
-- Keep SQLAlchemy session configuration for normal app operation
-- Fix database initialization order to prevent table conflicts
+- Add Flask-Caching extension for in-memory caching support
+- Cache static file imports template to reduce server load
+- Add browser-side caching for static assets (30 days)
+- Configure cache headers for optimal static file delivery
+- Add loading overlay to improve page transitions
 
-This resolves the issue where Flask-Session was trying to create its session
-table while other tables were being created, causing conflicts in the SQLAlchemy
-metadata. The setup process now properly initializes the database without session
-conflicts while maintaining database session support during normal operation.
+This implements a comprehensive caching system that:
+1. Uses in-memory caching for templates and expensive operations
+2. Leverages browser caching for static assets
+3. Provides a smooth loading experience during navigation
+
+These changes significantly improve application performance by reducing
+server load and minimizing unnecessary file downloads.
