@@ -64,17 +64,6 @@
                                 <th>Time</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for activity in activities %}
-                            <tr>
-                                <td>{{ activity.id }}</td>
-                                <td>{{ activity.activity }}</td>
-                                <td data-order="{{ activity.timestamp.isoformat() }}">
-                                    {{ activity.timestamp|datetime }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
                     </table>
                 </div>
             </div>
@@ -94,23 +83,38 @@
 <script>
 $(function () {
     $('#activity-table').DataTable({
-        "paging": true,
-        "lengthChange": true,
-        "searching": true,
-        "ordering": true,
-        "info": true,
-        "autoWidth": false,
-        "responsive": true,
+        "processing": true,
+        "serverSide": true,
+        "ajax": {
+            "url": "{{ url_for('profile.get_activities_data') }}",
+            "type": "GET"
+        },
+        "columns": [
+            {"data": "id"},
+            {"data": "activity"},
+            {
+                "data": "timestamp",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data.display;
+                    }
+                    return data.timestamp;
+                }
+            }
+        ],
         "order": [[2, 'desc']], // Sort by timestamp descending by default
         "pageLength": 10,
         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
         "language": {
+            "processing": '<i class="fa fa-spinner fa-spin fa-2x fa-fw"></i><span class="sr-only">Loading...</span>',
             "search": "Search activities:",
             "lengthMenu": "Show _MENU_ activities per page",
             "info": "Showing _START_ to _END_ of _TOTAL_ activities",
             "infoEmpty": "No activities found",
             "emptyTable": "No activities recorded yet"
-        }
+        },
+        "responsive": true,
+        "autoWidth": false
     });
 });
 </script>

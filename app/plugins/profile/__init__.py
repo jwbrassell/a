@@ -10,6 +10,8 @@ from app import db
 from app.utils.plugin_manager import PluginMetadata
 from app.utils.activity_tracking import track_activity
 from app.models import UserActivity
+from app.extensions import cache
+from sqlalchemy import desc
 
 # Create blueprint
 bp = Blueprint('profile', __name__, 
@@ -101,16 +103,64 @@ def index():
         avatar = f'images/{random.choice(DEFAULT_AVATARS)}'
         current_user.set_preference('avatar', avatar)
 
-    # Get user activities
-    activities = UserActivity.query.filter_by(user_id=current_user.id)\
-        .order_by(UserActivity.timestamp.desc())\
-        .all()
-
     return render_template('profile/index.html', 
                          theme=theme,
                          avatar=avatar,
-                         default_avatars=DEFAULT_AVATARS,
-                         activities=activities)
+                         default_avatars=DEFAULT_AVATARS)
+
+@bp.route('/activities/data')
+@login_required
+@cache.memoize(timeout=60)  # Cache for 1 minute
+def get_activities_data():
+    """Server-side processing endpoint for activities DataTable"""
+    # Get request parameters
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = request.args.get('search[value]', type=str, default='')
+    order_column = request.args.get('order[0][column]', type=int, default=2)  # Default sort by timestamp
+    order_dir = request.args.get('order[0][dir]', type=str, default='desc')
+
+    # Base query
+    query = UserActivity.query.filter_by(user_id=current_user.id)
+    total_records = query.count()
+
+    # Apply search if provided
+    if search:
+        query = query.filter(UserActivity.activity.ilike(f'%{search}%'))
+    
+    filtered_records = query.count()
+
+    # Column ordering
+    columns = ['id', 'activity', 'timestamp']
+    if order_column < len(columns):
+        column = columns[order_column]
+        if order_dir == 'asc':
+            query = query.order_by(getattr(UserActivity, column).asc())
+        else:
+            query = query.order_by(getattr(UserActivity, column).desc())
+
+    # Pagination
+    activities = query.offset(start).limit(length).all()
+
+    # Format data for DataTables
+    data = []
+    for activity in activities:
+        data.append({
+            'id': activity.id,
+            'activity': activity.activity,
+            'timestamp': {
+                'display': activity.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'timestamp': activity.timestamp.isoformat()
+            }
+        })
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': total_records,
+        'recordsFiltered': filtered_records,
+        'data': data
+    })
 
 @bp.route('/preferences/theme', methods=['POST'])
 @login_required
