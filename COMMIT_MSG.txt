@@ -1,8 +1,11 @@
-fix: Activity history not showing in profile
+rollback: remove Redis in favor of SimpleCache
 
-- Updated profile template to use server-side DataTable processing
-- Modified activity tracking decorator to commit activities immediately
-- Improved activity table UI with search, sort, and pagination
-- Added loading indicator for better UX during data fetch
+- Removed Redis dependencies and configurations
+- Switched to SimpleCache for caching backend
+- Using SQLAlchemy for session storage instead of Redis
+- Removed Redis monitoring and health check endpoints
+- Updated configuration files to remove Redis settings
 
-This fixes the issue where user activity history wasn't displaying in the profile page by properly implementing server-side processing and ensuring activities are committed to the database.
+This rollback was necessary due to issues encountered while trying to
+set up Redis integration. We'll stick with SimpleCache for now as it's
+more straightforward and doesn't require external dependencies.

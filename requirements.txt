@@ -18,7 +18,6 @@ Flask-Bcrypt
 Flask-Caching
 Flask-Login
 Flask-Migrate
-Flask-Redis
 Flask-Session
 Flask-SQLAlchemy
 Flask-WTF
@@ -55,7 +54,6 @@ pyOpenSSL
 pyparsing
 pyperclip
 python-dotenv
-redis
 requests
 ruamel.yaml
 ruamel.yaml.clib

@@ -67,12 +67,6 @@ def init_app(app):
     """Initialize the projects plugin"""
     from . import routes  # Import routes after Blueprint creation
     
-    # Register configuration check to run before first request
-    @app.before_first_request
-    def ensure_configurations():
-        with app.app_context():
-            init_default_configurations(app)
-    
     # Register error handlers
     @bp.errorhandler(SQLAlchemyError)
     def handle_db_error(error):
