@@ -71,6 +71,20 @@ def after_request(response):
     """Log page visit result after processing."""
     return log_page_visit(response)
 
+def init_user_preferences(user):
+    """Initialize default preferences for a user."""
+    default_preferences = {
+        'theme': 'light',
+        'notifications': 'true',
+        'language': 'en'
+    }
+    
+    for key, value in default_preferences.items():
+        if not UserPreference.query.filter_by(user_id=user.id, key=key).first():
+            pref = UserPreference(user_id=user.id, key=key, value=str(value))
+            db.session.add(pref)
+    db.session.commit()
+
 # Authentication Routes
 @main.route('/login', methods=['GET', 'POST'])
 @track_activity
@@ -92,11 +106,9 @@ def login():
             session['_creation_time'] = datetime.utcnow().timestamp()
             session.permanent = True  # Use permanent session with lifetime from config
             
-            # Create default preferences if not exists
-            if not UserPreference.query.filter_by(user_id=user.id).first():
-                prefs = UserPreference(user_id=user.id)
-                db.session.add(prefs)
-                db.session.commit()
+            # Initialize default preferences if not exists
+            init_user_preferences(user)
+            
             flash(f'Welcome, {user.name}!', 'success')
             log_activity(user, 'Logged in (local auth)')
             next_page = session.pop('next_page', None)
@@ -118,10 +130,8 @@ def login():
                 )
                 db.session.add(user)
                 db.session.commit()
-                # Create default preferences for new user
-                prefs = UserPreference(user_id=user.id)
-                db.session.add(prefs)
-                db.session.commit()
+                # Initialize default preferences for new user
+                init_user_preferences(user)
             else:
                 # Update existing user information
                 updated = False
@@ -140,11 +150,8 @@ def login():
                 if updated:
                     db.session.commit()
 
-                # Create preferences if not exists
-                if not UserPreference.query.filter_by(user_id=user.id).first():
-                    prefs = UserPreference(user_id=user.id)
-                    db.session.add(prefs)
-                    db.session.commit()
+                # Initialize preferences if not exists
+                init_user_preferences(user)
 
             login_user(user)
             # Set session creation time
