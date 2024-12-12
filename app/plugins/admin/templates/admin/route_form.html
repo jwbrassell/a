@@ -84,12 +84,12 @@
                         <label>Navigation Type</label>
                         <div class="custom-control custom-radio">
                             <input type="radio" id="type_individual" name="nav_type" class="custom-control-input" 
-                                   value="individual" {{ 'checked' if not mapping or not mapping.nav_category }}>
+                                   value="individual" {{ 'checked' if not mapping or not mapping.category }}>
                             <label class="custom-control-label" for="type_individual">Individual Link</label>
                         </div>
                         <div class="custom-control custom-radio">
                             <input type="radio" id="type_category" name="nav_type" class="custom-control-input" 
-                                   value="category" {{ 'checked' if mapping and mapping.nav_category }}>
+                                   value="category" {{ 'checked' if mapping and mapping.category }}>
                             <label class="custom-control-label" for="type_category">Part of Category</label>
                         </div>
                     </div>
@@ -102,7 +102,7 @@
                             <option value="">Select Category</option>
                             {% for category in categories %}
                             <option value="{{ category.id }}" 
-                                    {{ 'selected' if mapping and mapping.nav_category and mapping.nav_category.id == category.id }}>
+                                    {{ 'selected' if mapping and mapping.category and mapping.category.id == category.id }}>
                                 {{ category.name }}
                             </option>
                             {% endfor %}

@@ -450,7 +450,8 @@ def new_route():
             icon=icon,
             weight=weight,
             category_id=category_id,
-            show_in_navbar=show_in_navbar
+            show_in_navbar=show_in_navbar,
+            created_by=current_user.username
         )
         
         # Add allowed roles
@@ -508,6 +509,8 @@ def edit_route(id):
             mapping.weight = weight
             mapping.category_id = category_id
             mapping.show_in_navbar = show_in_navbar
+            mapping.updated_by = current_user.username
+            mapping.updated_at = datetime.utcnow()
             
             # Update allowed roles
             if role_ids:

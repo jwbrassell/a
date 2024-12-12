@@ -128,17 +128,6 @@
                                 <th>Time</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for activity in activities %}
-                            <tr>
-                                <td>{{ activity.id }}</td>
-                                <td>{{ activity.activity }}</td>
-                                <td data-order="{{ activity.timestamp.isoformat() }}">
-                                    {{ activity.timestamp|datetime }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
                     </table>
                 </div>
             </div>
@@ -160,15 +149,21 @@
 
 <script>
 $(function () {
-    // Initialize DataTable
+    // Initialize DataTable with server-side processing
     $('#activity-table').DataTable({
-        "paging": true,
-        "lengthChange": true,
-        "searching": true,
-        "ordering": true,
-        "info": true,
-        "autoWidth": false,
-        "responsive": true,
+        "processing": true,
+        "serverSide": true,
+        "ajax": "{{ url_for('profile.get_activities_data') }}",
+        "columns": [
+            {"data": "id"},
+            {"data": "activity"},
+            {
+                "data": "timestamp",
+                "render": function(data, type, row) {
+                    return type === 'display' ? data.display : data.timestamp;
+                }
+            }
+        ],
         "order": [[2, 'desc']], // Sort by timestamp descending by default
         "pageLength": 10,
         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
@@ -177,8 +172,11 @@ $(function () {
             "lengthMenu": "Show _MENU_ activities per page",
             "info": "Showing _START_ to _END_ of _TOTAL_ activities",
             "infoEmpty": "No activities found",
-            "emptyTable": "No activities recorded yet"
-        }
+            "emptyTable": "No activities recorded yet",
+            "processing": "Loading activities..."
+        },
+        "responsive": true,
+        "autoWidth": false
     });
 
     // Initialize bs-custom-file-input

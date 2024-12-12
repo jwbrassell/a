@@ -21,7 +21,7 @@ def track_activity(f):
                     activity=f"Accessed {request.endpoint}"
                 )
                 db.session.add(activity)
-                # Don't commit here, let the route handle the commit
+                db.session.commit()  # Commit the activity immediately
             
             # Execute the route
             return f(*args, **kwargs)

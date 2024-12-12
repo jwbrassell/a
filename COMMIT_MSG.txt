@@ -1,15 +1,8 @@
-feat: implement multi-level caching system
+fix: Activity history not showing in profile
 
-- Add Flask-Caching extension for in-memory caching support
-- Cache static file imports template to reduce server load
-- Add browser-side caching for static assets (30 days)
-- Configure cache headers for optimal static file delivery
-- Add loading overlay to improve page transitions
+- Updated profile template to use server-side DataTable processing
+- Modified activity tracking decorator to commit activities immediately
+- Improved activity table UI with search, sort, and pagination
+- Added loading indicator for better UX during data fetch
 
-This implements a comprehensive caching system that:
-1. Uses in-memory caching for templates and expensive operations
-2. Leverages browser caching for static assets
-3. Provides a smooth loading experience during navigation
-
-These changes significantly improve application performance by reducing
-server load and minimizing unnecessary file downloads.
+This fixes the issue where user activity history wasn't displaying in the profile page by properly implementing server-side processing and ensuring activities are committed to the database.

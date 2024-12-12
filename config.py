@@ -80,14 +80,36 @@ class Config:
         from app.extensions import db
         app.config['SESSION_SQLALCHEMY'] = db
 
-        # Add cache headers for static files
+        # Add security and cache headers
         @app.after_request
-        def add_cache_headers(response):
+        def add_security_headers(response):
+            # Security Headers
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+            response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+            response.headers['X-XSS-Protection'] = '1; mode=block'
+            response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+            
+            # Content Security Policy
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "  # Consider removing unsafe-inline/eval if possible
+                "style-src 'self' 'unsafe-inline'; "  # Consider removing unsafe-inline if possible
+                "img-src 'self' data: https:; "
+                "font-src 'self'; "
+                "connect-src 'self'; "
+                "frame-ancestors 'self'; "
+                "form-action 'self'; "
+                "base-uri 'self'; "
+                "object-src 'none'"
+            )
+            response.headers['Content-Security-Policy'] = csp
+            
+            # Cache headers for static files
             if 'static' in request.path:
-                # Cache static files for 30 days
                 response.cache_control.max_age = app.config['STATIC_CACHE_TIMEOUT']
                 response.cache_control.public = True
                 response.cache_control.must_revalidate = True
+            
             return response
 
 class DevelopmentConfig(Config):
@@ -125,6 +147,12 @@ class ProductionConfig(Config):
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
+        
+        # Add HSTS header only in production
+        @app.after_request
+        def add_hsts_header(response):
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+            return response
         
         # Production logging configuration
         import logging

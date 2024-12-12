@@ -45,10 +45,10 @@
                         <td>{{ mapping.route }}</td>
                         <td><i class="fas {{ mapping.icon }}"></i></td>
                         <td>
-                            {% if mapping.nav_category %}
+                            {% if mapping.category %}
                                 <span class="badge badge-info">
-                                    <i class="fas {{ mapping.nav_category.icon }}"></i>
-                                    {{ mapping.nav_category.name }}
+                                    <i class="fas {{ mapping.category.icon }}"></i>
+                                    {{ mapping.category.name }}
                                 </span>
                             {% else %}
                                 <span class="badge badge-secondary">Individual</span>
