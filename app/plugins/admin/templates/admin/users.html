@@ -50,7 +50,7 @@
                     <div class="modal fade" id="editRolesModal{{ user.id }}" tabindex="-1" role="dialog" aria-labelledby="editRolesModalLabel{{ user.id }}" aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div class="modal-content">
-                                <form id="editRolesForm{{ user.id }}" action="{{ url_for('admin.update_user_roles', id=user.id) }}" method="POST">
+                                <form id="editRolesForm{{ user.id }}" action="{{ url_for('admin.update_user_roles', id=user.id) }}" method="POST" onsubmit="return false;">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="editRolesModalLabel{{ user.id }}">Edit Roles for {{ user.username }}</h5>
@@ -103,12 +103,19 @@ $(document).ready(function() {
         const modal = form.closest('.modal');
         const userId = modal.attr('id').replace('editRolesModal', '');
         const userRow = $(`#user-row-${userId}`);
+        const loader = document.getElementById('page-loader');
+        
+        // Show loader
+        loader.style.display = 'flex';
         
         $.ajax({
             url: url,
             method: 'POST',
             data: form.serialize(),
             success: function(response) {
+                // Hide loader
+                loader.style.display = 'none';
+                
                 if (response.success) {
                     // Update the roles display in the table
                     const rolesHtml = response.roles.map(role => 
@@ -132,6 +139,9 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
+                // Hide loader
+                loader.style.display = 'none';
+                
                 const errorMsg = xhr.responseJSON?.error || 'Failed to update user roles. Please try again.';
                 // Show error message
                 Swal.fire({

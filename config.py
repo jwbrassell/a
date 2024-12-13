@@ -36,6 +36,10 @@ class Config:
     SEND_FILE_MAX_AGE_DEFAULT = 31536000  # 1 year in seconds
     STATIC_CACHE_TIMEOUT = 2592000  # 30 days in seconds
     
+    # Cache timeouts for specific file types
+    FONT_CACHE_TIMEOUT = 31536000  # 1 year for fonts
+    IMAGE_CACHE_TIMEOUT = 2592000   # 30 days for images
+    
     # SQLAlchemy configuration
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
@@ -104,11 +108,27 @@ class Config:
             )
             response.headers['Content-Security-Policy'] = csp
             
-            # Cache headers for static files
+            # Enhanced cache headers for static files
             if 'static' in request.path:
-                response.cache_control.max_age = app.config['STATIC_CACHE_TIMEOUT']
-                response.cache_control.public = True
-                response.cache_control.must_revalidate = True
+                # Set ETag for all static files
+                response.add_etag()
+                
+                # Set cache timeout based on file type
+                if any(ext in request.path.lower() for ext in ['.woff', '.woff2', '.ttf', '.eot']):
+                    # Font files get longest cache time
+                    response.cache_control.max_age = app.config['FONT_CACHE_TIMEOUT']
+                    response.cache_control.public = True
+                    response.cache_control.immutable = True
+                elif any(ext in request.path.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+                    # Images get medium cache time
+                    response.cache_control.max_age = app.config['IMAGE_CACHE_TIMEOUT']
+                    response.cache_control.public = True
+                    response.cache_control.must_revalidate = True
+                else:
+                    # Other static files use default cache timeout
+                    response.cache_control.max_age = app.config['STATIC_CACHE_TIMEOUT']
+                    response.cache_control.public = True
+                    response.cache_control.must_revalidate = True
             
             return response
 

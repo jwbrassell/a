@@ -109,21 +109,25 @@ def create_app(config_name=None, skip_session=False):
                 flash('Your session has expired. Please log in again.', 'info')
                 return redirect(url_for('main.login'))
 
-    # Register error handlers
+    # Register error handlers with caching
     @app.errorhandler(404)
+    @cache.cached(timeout=300, key_prefix='error_404')
     def not_found_error(error):
         return render_template('404.html'), 404
 
     @app.errorhandler(500)
+    @cache.cached(timeout=300, key_prefix='error_500')
     def internal_error(error):
         db.session.rollback()
         return render_template('500.html'), 500
 
     @app.errorhandler(403)
+    @cache.cached(timeout=300, key_prefix='error_403')
     def forbidden_error(error):
         return render_template('403.html'), 403
 
     @app.errorhandler(400)
+    @cache.cached(timeout=300, key_prefix='error_400')
     def bad_request_error(error):
         return render_template('400.html'), 400
 

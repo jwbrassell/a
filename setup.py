@@ -35,6 +35,10 @@ from app.plugins.documents.models import Document, DocumentCategory, DocumentTag
 from app.plugins.weblinks.models import WebLink, WebLinkCategory, WebLinkTag
 from app.plugins.handoffs.models import HandoffShift
 from app.plugins.oncall.models import Team as OnCallTeam
+from app.plugins.admin.models import (
+    SystemMetric, ApplicationMetric, UserMetric,
+    FeatureUsage, ResourceMetric
+)
 
 def find_nginx_ssl_certs():
     """Find SSL certificates in nginx configuration files"""
@@ -309,6 +313,21 @@ def init_navigation():
         )
         admin_route.allowed_roles.append(admin_role)
         db.session.add(admin_route)
+    
+    # Create monitoring dashboard route mapping
+    monitoring_route = PageRouteMapping.query.filter_by(route='/admin/monitoring').first()
+    if not monitoring_route:
+        monitoring_route = PageRouteMapping(
+            page_name='System Monitoring',
+            route='/admin/monitoring',
+            icon='fa-chart-line',
+            weight=50,
+            category_id=admin_category.id,
+            show_in_navbar=True,
+            created_by='system'
+        )
+        monitoring_route.allowed_roles.append(admin_role)
+        db.session.add(monitoring_route)
     
     db.session.commit()
     print("Navigation categories initialized")

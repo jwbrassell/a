@@ -10,7 +10,7 @@
         {{ comment.created_at.strftime('%d %b %I:%M %p') }}
       </span>
     </div>
-    <img class="direct-chat-img" src="{{ url_for('static', filename=comment.user.get_preference('avatar', 'images/user_1.jpg')) }}" alt="message user image">
+    <img class="direct-chat-img" src="{{ url_for('profile.get_avatar', user_id=comment.user_id) }}" alt="message user image">
     <div class="direct-chat-text">
       {{ comment.content|safe }}
     </div>

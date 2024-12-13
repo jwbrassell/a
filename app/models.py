@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.extensions import db, login_manager
+from app.extensions import db, login_manager, cache
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 # Association table for user roles
@@ -28,6 +28,10 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Avatar fields
+    avatar_data = db.Column(db.LargeBinary)
+    avatar_mimetype = db.Column(db.String(32))
     
     # Relationships
     roles = db.relationship('Role', secondary=user_roles, lazy='subquery',
@@ -60,6 +64,35 @@ class User(UserMixin, db.Model):
         else:
             pref = UserPreference(user_id=self.id, key=key, value=value)
             db.session.add(pref)
+
+    def set_avatar(self, image_data, mimetype):
+        """Set user avatar."""
+        self.avatar_data = image_data
+        self.avatar_mimetype = mimetype
+        # Clear the cached avatar
+        cache.delete(f'avatar_{self.id}')
+
+    def get_avatar_url(self):
+        """Get URL for avatar image."""
+        if self.avatar_data:
+            # Return URL to avatar endpoint
+            return f'/profile/avatar/{self.id}'
+        # Return URL to default avatar
+        return '/static/images/user_1.jpg'
+
+    def get_avatar_data(self):
+        """Get avatar data with caching."""
+        if not self.avatar_data:
+            return None, None
+
+        # Try to get from cache first
+        cached_data = cache.get(f'avatar_{self.id}')
+        if cached_data:
+            return cached_data, self.avatar_mimetype
+
+        # If not in cache, get from database and cache it
+        cache.set(f'avatar_{self.id}', self.avatar_data, timeout=3600)  # Cache for 1 hour
+        return self.avatar_data, self.avatar_mimetype
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -156,9 +189,6 @@ class PageVisit(db.Model):
 
     def __repr__(self):
         return f'<PageVisit {self.route}>'
-
-# Let Flask-Session handle the session table
-# Remove our Session model definition since Flask-Session will create and manage it
 
 @login_manager.user_loader
 def load_user(id):

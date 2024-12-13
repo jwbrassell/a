@@ -16,6 +16,7 @@ def create_project_history(project, action, user_id, details=None):
         entity_type='project',
         action=action,
         user_id=user_id,
+        created_by=project.created_by,  # Use the same created_by from the project
         project_id=project.id,
         details=details
     )

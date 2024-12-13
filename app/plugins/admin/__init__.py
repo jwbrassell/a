@@ -8,7 +8,7 @@ bp = Blueprint('admin', __name__, url_prefix='/admin', template_folder='template
 plugin_metadata = PluginMetadata(
     name="Admin Dashboard",
     version="1.0.0",
-    description="Administrative interface for managing roles, routes, and navigation",
+    description="Administrative interface for managing roles, routes, navigation, and system monitoring",
     author="System",
     required_roles=["admin"],
     icon="fa-cogs",
@@ -16,4 +16,9 @@ plugin_metadata = PluginMetadata(
     weight=0  # Show first in navigation
 )
 
+# Import routes after blueprint creation to avoid circular imports
 from app.plugins.admin import routes
+from app.plugins.admin import monitoring
+
+# Register the monitoring blueprint
+bp.register_blueprint(monitoring.bp)

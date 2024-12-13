@@ -26,7 +26,10 @@
             </div>
             <div class="card-body">
                 <div class="text-center mb-4">
-                    <img src="{{ url_for('static', filename=avatar) }}" class="img-circle elevation-2" alt="User Avatar" style="width: 128px; height: 128px;">
+                    <img src="{{ url_for('profile.get_avatar', user_id=current_user.id) }}" 
+                         class="img-circle elevation-2" 
+                         alt="User Avatar" 
+                         style="width: 128px; height: 128px; object-fit: cover;">
                 </div>
                 <div class="form-group">
                     <label>Username</label>
@@ -61,6 +64,7 @@
             <div class="card-body">
                 <!-- Theme Selection -->
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label>Theme</label>
                         <select name="theme" class="form-control" onchange="this.form.submit()">
@@ -74,6 +78,7 @@
                 <div class="form-group mt-4">
                     <label>Custom Avatar</label>
                     <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="input-group">
                             <div class="custom-file">
                                 <input type="file" class="custom-file-input" name="avatar" id="avatar" accept=".png,.jpg,.jpeg">
@@ -94,12 +99,13 @@
                         {% for default_avatar in default_avatars %}
                         <div class="col-3 mb-3">
                             <form method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="default_avatar" value="{{ default_avatar }}">
                                 <button type="submit" class="btn p-0">
                                     <img src="{{ url_for('static', filename='images/' + default_avatar) }}" 
                                          class="img-circle" 
                                          alt="Default Avatar"
-                                         style="width: 64px; height: 64px;">
+                                         style="width: 64px; height: 64px; object-fit: cover;">
                                 </button>
                             </form>
                         </div>
@@ -153,7 +159,12 @@ $(function () {
     $('#activity-table').DataTable({
         "processing": true,
         "serverSide": true,
-        "ajax": "{{ url_for('profile.get_activities_data') }}",
+        "ajax": {
+            "url": "{{ url_for('profile.get_activities_data') }}",
+            "headers": {
+                "X-CSRFToken": "{{ csrf_token() }}"
+            }
+        },
         "columns": [
             {"data": "id"},
             {"data": "activity"},

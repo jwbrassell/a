@@ -124,7 +124,7 @@
                 <!-- User Panel -->
                 <div class="user-panel mt-3 pb-3 mb-3 d-flex">
                     <div class="image">
-                        <img src="{{ url_for('static', filename=current_user.get_preference('avatar', 'images/user_1.jpg')) }}" 
+                        <img src="{{ url_for('profile.get_avatar', user_id=current_user.id) }}" 
                              class="img-circle elevation-2" 
                              alt="User Avatar"
                              style="width: 40px; height: 40px; object-fit: cover;">
@@ -238,14 +238,15 @@
                 const target = e.target.closest('a');
                 if (target && target.href && !target.href.includes('#') && 
                     !target.href.includes('javascript:') && 
-                    target.getAttribute('target') !== '_blank') {
+                    target.getAttribute('target') !== '_blank' &&
+                    !target.classList.contains('no-loader')) {
                     loader.style.display = 'flex';
                 }
             });
 
-            // Show loader on form submissions
+            // Show loader on form submissions except AJAX forms
             document.addEventListener('submit', function(e) {
-                if (e.target.tagName === 'FORM') {
+                if (e.target.tagName === 'FORM' && !e.target.classList.contains('ajax-form')) {
                     loader.style.display = 'flex';
                 }
             });

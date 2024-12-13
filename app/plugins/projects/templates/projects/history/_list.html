@@ -30,7 +30,7 @@
           <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
             <div class="d-flex align-items-center">
               {% if entry.user %}
-                <img src="{{ url_for('static', filename='images/user_1.jpg') }}" class="rounded-circle me-2" style="width: 24px; height: 24px;">
+                <img src="{{ url_for('profile.get_avatar', user_id=entry.user.id) }}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
                 <span class="text-primary">{{ entry.user.username }}</span>
               {% endif %}
               <span class="ms-2">
