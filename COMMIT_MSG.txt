@@ -17,5 +17,10 @@ Adds a comprehensive vault monitoring system to the admin plugin with:
   * Secret engine mounts
   * Auto-refresh every 30 seconds
 
+Security:
+- Added .env.vault to .gitignore to prevent token exposure
+- Vault tokens and unseal keys should be managed securely
+- Development tokens should never be committed to source control
+
 This enhances our admin capabilities with real-time vault health monitoring
 and visualization, making it easier to track vault status and identify issues.

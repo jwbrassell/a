@@ -48,6 +48,7 @@ instance/*
 
 # Environment variables
 .env
+.env.vault
 
 # Database
 *.db
@@ -91,3 +92,7 @@ package-lock.json
 
 # Local development settings
 local_settings.py
+
+# Vault
+vault-data/
+bin/vault*
