@@ -289,7 +289,8 @@ def edit_project(project_id):
         'projects/edit.html',
         project=project,
         statuses=statuses,
-        priorities=priorities
+        priorities=priorities,
+        readonly=False  # Explicitly set readonly to False for edit mode
     )
 
 @bp.route('/<int:project_id>', methods=['PUT'])
@@ -361,13 +362,7 @@ def update_project(project_id):
         if 'roles' in data:
             project.roles = Role.query.filter(Role.name.in_(data['roles'])).all()
         
-        # Handle deleted todos first
-        if 'deleted_todos' in data:
-            print("Processing deleted todos:", data['deleted_todos'])
-            for todo_id in data['deleted_todos']:
-                Todo.query.filter_by(id=todo_id, project_id=project.id).delete()
-        
-        # Update remaining todos if provided
+        # Only process todos if they are explicitly included in the update data
         if 'todos' in data:
             print("Processing todos:", data['todos'])
             
@@ -420,11 +415,12 @@ def update_project(project_id):
                     print(f"Adding project todo: {todo.description}, due: {todo.due_date}")
                     db.session.add(todo)
             
-            # Delete any remaining todos that weren't processed
-            unprocessed_ids = existing_todo_ids - processed_todo_ids
-            if unprocessed_ids:
-                print("Deleting unprocessed todos:", unprocessed_ids)
-                Todo.query.filter(Todo.id.in_(unprocessed_ids)).delete(synchronize_session=False)
+            # Only delete unprocessed todos if we received todos in the update
+            if data['todos']:
+                unprocessed_ids = existing_todo_ids - processed_todo_ids
+                if unprocessed_ids:
+                    print("Deleting unprocessed todos:", unprocessed_ids)
+                    Todo.query.filter(Todo.id.in_(unprocessed_ids)).delete(synchronize_session=False)
         
         # Create history entry
         changes = track_project_changes(project, data)

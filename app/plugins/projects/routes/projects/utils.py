@@ -3,6 +3,7 @@
 from datetime import datetime
 from ...models import History, UserActivity, ProjectStatus, ProjectPriority
 from app.extensions import db
+from app.models import PageRouteMapping
 
 def serialize_date(date_obj):
     """Helper function to serialize date/datetime objects to ISO format strings"""
@@ -100,24 +101,63 @@ def validate_project_data(data, is_update=False):
     return errors if errors else None
 
 def can_edit_project(user, project):
-    """Check if user can edit the project"""
-    return (
-        user.has_role('admin') or 
-        project.lead_id == user.id
-    )
+    """Check if user can edit the project based on RBAC permissions"""
+    if not user or not project:
+        return False
+        
+    # Admin users always have access
+    if any(role.name == 'admin' for role in user.roles):
+        return True
+        
+    # Get the route mapping for the edit project endpoint
+    mapping = PageRouteMapping.query.filter_by(route='projects.edit_project').first()
+    
+    if not mapping:
+        # If no mapping exists, default to requiring authentication only
+        return True
+        
+    # Get the set of role names required for this route
+    required_roles = {role.name for role in mapping.allowed_roles}
+    
+    if not required_roles:
+        # If no roles are specified, default to requiring authentication only
+        return True
+        
+    # Get the set of user's role names
+    user_roles = {role.name for role in user.roles}
+    
+    # Check if user has any of the required roles
+    return bool(required_roles & user_roles)
 
 def can_view_project(user, project):
-    """Check if user can view the project"""
+    """Check if user can view the project based on RBAC permissions"""
+    if not user or not project:
+        return False
+        
+    # Public projects can be viewed by any authenticated user with appropriate role
     if not project.is_private:
-        return True
+        # Get the route mapping for the view project endpoint
+        mapping = PageRouteMapping.query.filter_by(route='projects.view_project').first()
+        
+        if not mapping:
+            # If no mapping exists, default to requiring authentication only
+            return True
+            
+        # Get the set of role names required for this route
+        required_roles = {role.name for role in mapping.allowed_roles}
+        
+        if not required_roles:
+            # If no roles are specified, default to requiring authentication only
+            return True
+            
+        # Get the set of user's role names
+        user_roles = {role.name for role in user.roles}
+        
+        # Check if user has any of the required roles
+        return bool(required_roles & user_roles)
     
-    return (
-        user.has_role('admin') or
-        project.lead_id == user.id or
-        user in project.watchers or
-        user in project.stakeholders or
-        user in project.shareholders
-    )
+    # For private projects, user must have edit permission
+    return can_edit_project(user, project)
 
 def get_project_stats(project):
     """Get project statistics"""

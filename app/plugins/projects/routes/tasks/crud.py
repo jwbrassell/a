@@ -63,7 +63,8 @@ def create_task(project_id):
             assigned_to_id=data.get('assigned_to_id'),
             project_id=project_id,
             position=data.get('position', 0),
-            list_position=data.get('list_position', 'todo')
+            list_position=data.get('list_position', 'todo'),
+            created_by=current_user.username  # Add created_by field
         )
         
         # Add task to session
@@ -77,6 +78,7 @@ def create_task(project_id):
             user_id=current_user.id,
             project_id=project_id,
             task_id=task.id,
+            created_by=current_user.username,  # Add created_by field
             details={
                 'name': task.name,
                 'summary': task.summary,
@@ -99,7 +101,8 @@ def create_task(project_id):
                         completed=todo_data.get('completed', False),
                         due_date=datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date() if todo_data.get('due_date') else None,
                         task_id=task.id,  # Only set task_id for task todos
-                        assigned_to_id=todo_data.get('assigned_to_id')
+                        assigned_to_id=todo_data.get('assigned_to_id'),
+                        created_by=current_user.username  # Add created_by field
                     )
                     print(f"CREATE TASK - Adding todo: {todo.description}")
                     db.session.add(todo)
@@ -164,7 +167,8 @@ def add_task_comment(task_id):
         comment = Comment(
             content=data['content'],
             user_id=current_user.id,
-            task_id=task_id
+            task_id=task_id,
+            created_by=current_user.username  # Add created_by field
         )
         db.session.add(comment)
         
@@ -175,6 +179,7 @@ def add_task_comment(task_id):
             user_id=current_user.id,
             project_id=task.project_id,
             task_id=task.id,
+            created_by=current_user.username,  # Add created_by field
             details={'comment': data['content']}
         )
         db.session.add(history)
@@ -240,6 +245,7 @@ def update_task(task_id):
             user_id=current_user.id,
             project_id=task.project_id,
             task_id=task.id,
+            created_by=current_user.username,  # Add created_by field
             details=track_task_changes(task, data)
         )
         db.session.add(history)
@@ -289,7 +295,8 @@ def update_task(task_id):
                         completed=todo_data.get('completed', False),
                         due_date=datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date() if todo_data.get('due_date') else None,
                         task_id=task.id,  # Only set task_id for task todos
-                        assigned_to_id=todo_data.get('assigned_to_id')
+                        assigned_to_id=todo_data.get('assigned_to_id'),
+                        created_by=current_user.username  # Add created_by field
                     )
                     print(f"UPDATE TASK - Adding todo: {todo.description}")
                     db.session.add(todo)
@@ -338,6 +345,7 @@ def delete_task(task_id):
             action='deleted',
             user_id=current_user.id,
             project_id=task.project_id,
+            created_by=current_user.username,  # Add created_by field
             details={'name': task_name}
         )
         db.session.add(history)

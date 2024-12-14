@@ -20,6 +20,7 @@ from .utils import (
 @requires_roles('user')
 def get_project_todos(project_id):
     """Get all todos for a project"""
+    print(f"[DEBUG] Getting todos for project {project_id}")  # Debug log
     project = Project.query.get_or_404(project_id)
     
     todos = Todo.query.filter_by(
@@ -27,9 +28,31 @@ def get_project_todos(project_id):
         task_id=None  # Only get project-level todos
     ).order_by(Todo.sort_order).all()
     
+    print(f"[DEBUG] Found {len(todos)} todos")  # Debug log
     return jsonify({
         'success': True,
         'todos': [todo.to_dict() for todo in todos]
+    })
+
+@bp.route('/todo/<int:todo_id>', methods=['GET'])
+@login_required
+@requires_roles('user')
+def get_todo(todo_id):
+    """Get a specific todo"""
+    print(f"[DEBUG] Getting todo {todo_id}")  # Debug log
+    todo = Todo.query.get_or_404(todo_id)
+    project = Project.query.get(todo.project_id)
+    
+    if not can_edit_project(current_user, project):
+        print(f"[DEBUG] User {current_user.id} not authorized to view todo {todo_id}")  # Debug log
+        return jsonify({
+            'success': False,
+            'message': 'Unauthorized to view project todos'
+        }), 403
+    
+    return jsonify({
+        'success': True,
+        'todo': todo.to_dict()
     })
 
 @bp.route('/<int:project_id>/todos', methods=['POST'])
@@ -38,9 +61,11 @@ def get_project_todos(project_id):
 @track_activity
 def create_project_todo(project_id):
     """Create a new project todo"""
+    print(f"[DEBUG] Creating todo for project {project_id}")  # Debug log
     project = Project.query.get_or_404(project_id)
     
     if not can_edit_project(current_user, project):
+        print(f"[DEBUG] User {current_user.id} not authorized to create todos for project {project_id}")  # Debug log
         return jsonify({
             'success': False,
             'message': 'Unauthorized to create project todos'
@@ -48,9 +73,11 @@ def create_project_todo(project_id):
     
     try:
         data = request.get_json()
+        print(f"[DEBUG] Received todo data: {data}")  # Debug log
         
         # Validate required fields
         if not data.get('description'):
+            print("[DEBUG] Missing todo description")  # Debug log
             return jsonify({
                 'success': False,
                 'message': 'Todo description is required'
@@ -67,7 +94,8 @@ def create_project_todo(project_id):
             project_id=project_id,
             description=data['description'],
             completed=data.get('completed', False),
-            sort_order=max_order + 1
+            sort_order=max_order + 1,
+            created_by=current_user.username  # Add created_by
         )
         
         # Handle due date
@@ -75,6 +103,7 @@ def create_project_todo(project_id):
             try:
                 todo.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date()
             except ValueError:
+                print(f"[DEBUG] Invalid due date format: {data['due_date']}")  # Debug log
                 return jsonify({
                     'success': False,
                     'message': 'Invalid due date format. Use YYYY-MM-DD'
@@ -99,6 +128,7 @@ def create_project_todo(project_id):
         db.session.add(todo)
         db.session.commit()
         
+        print(f"[DEBUG] Created todo {todo.id}")  # Debug log
         return jsonify({
             'success': True,
             'message': 'Todo created successfully',
@@ -106,6 +136,7 @@ def create_project_todo(project_id):
         })
         
     except Exception as e:
+        print(f"[DEBUG] Error creating todo: {str(e)}")  # Debug log
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -118,9 +149,11 @@ def create_project_todo(project_id):
 @track_activity
 def reorder_project_todos(project_id):
     """Reorder project todos"""
+    print(f"[DEBUG] Reordering todos for project {project_id}")  # Debug log
     project = Project.query.get_or_404(project_id)
     
     if not can_edit_project(current_user, project):
+        print(f"[DEBUG] User {current_user.id} not authorized to reorder todos for project {project_id}")  # Debug log
         return jsonify({
             'success': False,
             'message': 'Unauthorized to reorder project todos'
@@ -129,6 +162,7 @@ def reorder_project_todos(project_id):
     try:
         data = request.get_json()
         todo_ids = data.get('todo_ids', [])
+        print(f"[DEBUG] Reordering todos: {todo_ids}")  # Debug log
         
         # Track old positions
         old_positions = {
@@ -164,6 +198,7 @@ def reorder_project_todos(project_id):
         })
         
     except Exception as e:
+        print(f"[DEBUG] Error reordering todos: {str(e)}")  # Debug log
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -176,10 +211,12 @@ def reorder_project_todos(project_id):
 @track_activity
 def update_project_todo(todo_id):
     """Update a project todo"""
+    print(f"[DEBUG] Updating todo {todo_id}")  # Debug log
     todo = Todo.query.get_or_404(todo_id)
     project = Project.query.get(todo.project_id)
     
     if not can_edit_project(current_user, project):
+        print(f"[DEBUG] User {current_user.id} not authorized to update todo {todo_id}")  # Debug log
         return jsonify({
             'success': False,
             'message': 'Unauthorized to update project todos'
@@ -187,6 +224,7 @@ def update_project_todo(todo_id):
     
     try:
         data = request.get_json()
+        print(f"[DEBUG] Update data: {data}")  # Debug log
         changes = {}
         
         # Update description
@@ -218,6 +256,7 @@ def update_project_todo(todo_id):
                 try:
                     todo.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date()
                 except ValueError:
+                    print(f"[DEBUG] Invalid due date format: {data['due_date']}")  # Debug log
                     return jsonify({
                         'success': False,
                         'message': 'Invalid due date format. Use YYYY-MM-DD'
@@ -230,6 +269,7 @@ def update_project_todo(todo_id):
             }
         
         if changes:
+            print(f"[DEBUG] Changes to apply: {changes}")  # Debug log
             # Create history entry
             create_project_history(project, 'todo_updated', current_user.id, {
                 'todo_id': todo.id,
@@ -253,6 +293,7 @@ def update_project_todo(todo_id):
         })
         
     except Exception as e:
+        print(f"[DEBUG] Error updating todo: {str(e)}")  # Debug log
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -265,10 +306,12 @@ def update_project_todo(todo_id):
 @track_activity
 def delete_project_todo(todo_id):
     """Delete a project todo"""
+    print(f"[DEBUG] Deleting todo {todo_id}")  # Debug log
     todo = Todo.query.get_or_404(todo_id)
     project = Project.query.get(todo.project_id)
     
     if not can_edit_project(current_user, project):
+        print(f"[DEBUG] User {current_user.id} not authorized to delete todo {todo_id}")  # Debug log
         return jsonify({
             'success': False,
             'message': 'Unauthorized to delete project todos'
@@ -296,12 +339,14 @@ def delete_project_todo(todo_id):
         db.session.delete(todo)
         db.session.commit()
         
+        print(f"[DEBUG] Successfully deleted todo {todo_id}")  # Debug log
         return jsonify({
             'success': True,
             'message': 'Todo deleted successfully'
         })
         
     except Exception as e:
+        print(f"[DEBUG] Error deleting todo: {str(e)}")  # Debug log
         db.session.rollback()
         return jsonify({
             'success': False,

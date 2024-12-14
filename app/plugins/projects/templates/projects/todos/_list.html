@@ -1,3 +1,4 @@
+<!-- Debug comment to verify template inclusion -->
 <div class="table-responsive">
   <table class="table table-hover align-middle">
     <thead>
@@ -6,7 +7,7 @@
         <th>Description</th>
         <th style="width: 100px">Due</th>
         {% if not readonly %}
-        <th style="width: 50px">Actions</th>
+        <th style="width: 100px">Actions</th>
         {% endif %}
       </tr>
     </thead>
@@ -26,31 +27,23 @@
           </div>
         </td>
         <td>
-          {% if readonly %}
           <span class="todo-text {% if todo.completed %}text-muted text-decoration-line-through{% endif %}">
             {{ todo.description }}
           </span>
-          {% else %}
-          <input type="text" class="form-control form-control-sm todo-description {% if todo.completed %}text-muted text-decoration-line-through{% endif %}" 
-                 name="todos[{{ loop.index0 }}][description]"
-                 value="{{ todo.description }}" 
-                 required>
-          {% endif %}
         </td>
         <td>
-          {% if readonly %}
-          <span class="badge bg-{{ todo.badge_color }} due-date-badge">
-            <i class="far fa-clock me-1"></i>{{ todo.due_text }}
+          {% if todo.due_date %}
+          <span class="badge bg-info due-date-badge">
+            <i class="far fa-clock me-1"></i>{{ todo.due_date.strftime('%Y-%m-%d') }}
           </span>
-          {% else %}
-          <input type="date" class="form-control form-control-sm todo-due-date"
-                 name="todos[{{ loop.index0 }}][due_date]"
-                 value="{{ todo.due_date }}">
           {% endif %}
         </td>
         {% if not readonly %}
         <td class="text-center">
-          <button type="button" class="btn btn-danger btn-sm remove-todo" title="Remove Todo">
+          <button type="button" class="btn btn-primary btn-sm edit-todo me-1" onclick="todoModule.editTodo({{ todo.id }})" title="Edit Todo">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button type="button" class="btn btn-danger btn-sm remove-todo" onclick="todoModule.deleteTodo({{ todo.id }})" title="Remove Todo">
             <i class="fas fa-trash"></i>
           </button>
         </td>
@@ -64,13 +57,36 @@
         </td>
       </tr>
       {% endif %}
+      {% if not readonly %}
+      <tr id="newTodoRow" class="d-none">
+        <td class="text-center">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" disabled>
+          </div>
+        </td>
+        <td>
+          <input type="text" class="form-control form-control-sm" id="todo-description" placeholder="Enter todo description" required>
+        </td>
+        <td>
+          <input type="date" class="form-control form-control-sm" id="todo-due-date">
+        </td>
+        <td class="text-center">
+          <button type="button" class="btn btn-success btn-sm" id="saveTodoBtn" onclick="todoModule.createTodo()" title="Save Todo">
+            <i class="fas fa-check"></i>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="cancelTodoBtn" onclick="todoModule.hideNewTodoForm()" title="Cancel">
+            <i class="fas fa-times"></i>
+          </button>
+        </td>
+      </tr>
+      {% endif %}
     </tbody>
   </table>
 </div>
 
 {% if not readonly %}
 <div class="card-footer text-end bg-transparent">
-  <button type="button" class="btn btn-primary btn-sm" id="addTodoBtn">
+  <button type="button" class="btn btn-primary btn-sm" id="addTodoBtn" onclick="todoModule.showNewTodoForm()">
     <i class="fas fa-plus me-1"></i>Add Todo
   </button>
 </div>

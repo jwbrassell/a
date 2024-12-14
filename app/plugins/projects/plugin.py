@@ -1,14 +1,53 @@
 """Projects plugin initialization and configuration."""
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, current_app
 from flask_migrate import Migrate
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+from app.utils.rbac import check_route_access
+from app.models import PageRouteMapping
+from flask_login import current_user
+from app.extensions import db
 
-db = SQLAlchemy()
 migrate = Migrate()
+
+def can_edit_project(user, project):
+    """Check if a user can edit a project based on RBAC permissions.
+    
+    Args:
+        user: The user to check permissions for
+        project: The project to check access to
+        
+    Returns:
+        bool: True if user has edit access, False otherwise
+    """
+    if not user or not project:
+        return False
+        
+    # Admin users always have access
+    if any(role.name == 'admin' for role in user.roles):
+        return True
+        
+    # Get the route mapping for the edit project endpoint
+    mapping = PageRouteMapping.query.filter_by(route='projects.edit_project').first()
+    
+    if not mapping:
+        # If no mapping exists, default to requiring authentication only
+        return True
+        
+    # Get the set of role names required for this route
+    required_roles = {role.name for role in mapping.allowed_roles}
+    
+    if not required_roles:
+        # If no roles are specified, default to requiring authentication only
+        return True
+        
+    # Get the set of user's role names
+    user_roles = {role.name for role in user.roles}
+    
+    # Check if user has any of the required roles
+    return bool(required_roles & user_roles)
 
 def route_to_endpoint(route: str) -> str:
     """Convert route name to endpoint name.
@@ -59,11 +98,15 @@ def init_plugin(app: Flask) -> None:
         app.logger.setLevel(logging.INFO)
         app.logger.info('Projects plugin startup')
     
-    # Register Jinja2 filters
+    # Register Jinja2 filters and context processors
     app.jinja_env.filters['route_to_endpoint'] = route_to_endpoint
     
-    # Initialize database
-    db.init_app(app)
+    # Register context processor to make can_edit_project available in templates
+    @app.context_processor
+    def utility_processor():
+        return dict(can_edit_project=can_edit_project)
+    
+    # Initialize migrations
     migrate.init_app(app, db)
     
     # Initialize caching

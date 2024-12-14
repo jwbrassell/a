@@ -116,7 +116,9 @@
         </div>
         <div class="collapse show" id="todosCollapse">
             <div class="card-body p-0">
+                {% with readonly=false, project=project %}
                 {% include 'projects/todos/_list.html' %}
+                {% endwith %}
             </div>
         </div>
     </div>
@@ -182,6 +184,17 @@
 <!-- Toastr -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
+<!-- Debug script -->
+<script>
+// Initialize debug logging
+window.debugLog = function(msg) {
+    console.log(`[DEBUG ${new Date().toISOString()}] ${msg}`);
+};
+
+// Log initial page load
+debugLog('Page loaded');
+</script>
+
 <!-- Project variables -->
 <script>
 window.projectId = {{ project.id }};
@@ -189,6 +202,8 @@ window.currentUserId = {{ current_user.id }};
 
 // Handle collapse icon changes
 document.addEventListener('DOMContentLoaded', function() {
+    debugLog('DOMContentLoaded event fired');
+
     // Tasks collapse functionality
     const tasksCollapse = document.getElementById('tasksCollapse');
     const tasksCollapseIcon = tasksCollapse.previousElementSibling.querySelector('.collapse-icon');
@@ -221,7 +236,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Project functionality -->
 <script src="{{ url_for('projects.static', filename='js/project.js') }}"></script>
+<script>
+// Verify project.js is loaded
+debugLog('Checking projectModule...');
+debugLog('projectModule: ' + (window.projectModule ? 'LOADED' : 'NOT LOADED'));
+debugLog('projectModule functions: ' + Object.keys(window.projectModule || {}).join(', '));
+</script>
+
+<!-- Load todos.js after project.js -->
 <script src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>
 <script src="{{ url_for('projects.static', filename='js/todos.js') }}"></script>
+<script>
+// Verify todos.js is loaded
+debugLog('Checking todoModule...');
+debugLog('todoModule: ' + (window.todoModule ? 'LOADED' : 'NOT LOADED'));
+debugLog('todoModule functions: ' + Object.keys(window.todoModule || {}).join(', '));
+
+// Add direct click handler for Add Todo button
+document.addEventListener('DOMContentLoaded', function() {
+    const addTodoBtn = document.getElementById('addTodoBtn');
+    if (addTodoBtn) {
+        debugLog('Found Add Todo button');
+        addTodoBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            debugLog('Add Todo button clicked via event listener');
+            if (window.todoModule && window.todoModule.showNewTodoForm) {
+                window.todoModule.showNewTodoForm();
+            } else {
+                console.error('todoModule or showNewTodoForm not found');
+            }
+        });
+    } else {
+        debugLog('Add Todo button not found');
+    }
+});
+</script>
+
 <script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
 {% endblock %}

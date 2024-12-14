@@ -55,12 +55,13 @@ window.projectModule = (function() {
     // Get todos from table
     function getTodos() {
         const todos = [];
-        const todoRows = document.querySelectorAll('#todoList tr');
+        const todoRows = document.querySelectorAll('#todoList tr[data-todo-id]');
         todoRows.forEach((row, index) => {
-            const description = row.querySelector('.todo-description')?.value;
+            const todoId = row.dataset.todoId;
+            const description = row.querySelector('.todo-text')?.textContent.trim();
             const completed = row.querySelector('.todo-checkbox')?.checked || false;
-            const dueDate = row.querySelector('.todo-due-date')?.value;
-            const todoId = row.querySelector('.todo-id')?.value;
+            const dueDateBadge = row.querySelector('.due-date-badge');
+            const dueDate = dueDateBadge ? dueDateBadge.textContent.trim().split('\n').pop() : null;
 
             if (description) {
                 todos.push({
@@ -68,7 +69,7 @@ window.projectModule = (function() {
                     description,
                     completed,
                     due_date: dueDate || null,
-                    order: index
+                    sort_order: index
                 });
             }
         });
