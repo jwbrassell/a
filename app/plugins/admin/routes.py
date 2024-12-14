@@ -4,6 +4,7 @@ from app.utils.rbac import requires_roles
 from app.models import Role, PageRouteMapping, UserActivity, NavigationCategory, User
 from app import db
 from app.plugins.admin import bp
+from app.plugins.admin.monitoring import VaultMonitor
 from datetime import datetime, timedelta
 import logging
 import re
@@ -39,6 +40,42 @@ def index():
                          routes=routes,
                          recent_activities=recent_activities,
                          users=users)
+
+# Vault Status
+@bp.route('/vault')
+@login_required
+@requires_roles('admin')
+@track_activity
+def vault_status():
+    """View Vault server status and health."""
+    try:
+        monitor = VaultMonitor(current_app.vault)
+        summary = monitor.get_monitoring_summary()
+        return render_template('admin/vault_status.html',
+                             status=summary['status'],
+                             summary=summary)
+    except Exception as e:
+        logger.error(f"Failed to get Vault status: {e}")
+        flash('Failed to retrieve Vault status.', 'danger')
+        return redirect(url_for('admin.index'))
+
+# Monitoring
+@bp.route('/monitoring')
+@login_required
+@requires_roles('admin')
+@track_activity
+def monitoring():
+    """View system monitoring information."""
+    try:
+        monitor = VaultMonitor(current_app.vault)
+        summary = monitor.get_monitoring_summary()
+        return render_template('admin/vault_status.html',
+                             status=summary['status'],
+                             summary=summary)
+    except Exception as e:
+        logger.error(f"Failed to get monitoring status: {e}")
+        flash('Failed to retrieve monitoring status.', 'danger')
+        return redirect(url_for('admin.index'))
 
 # User Management
 @bp.route('/users')
@@ -594,7 +631,8 @@ def get_icons():
         'fa-bookmark', 'fa-print', 'fa-camera', 'fa-video', 'fa-music',
         'fa-map', 'fa-location-dot', 'fa-link', 'fa-lock', 'fa-unlock',
         'fa-key', 'fa-gear', 'fa-tools', 'fa-database', 'fa-server',
-        'fa-network-wired', 'fa-cloud', 'fa-upload', 'fa-download'
+        'fa-network-wired', 'fa-cloud', 'fa-upload', 'fa-download',
+        'fa-vault'  # Added vault icon
     ]
     return jsonify(icons)
 

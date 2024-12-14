@@ -1,11 +1,21 @@
-rollback: remove Redis in favor of SimpleCache
+feat(admin): Add vault monitoring dashboard
 
-- Removed Redis dependencies and configurations
-- Switched to SimpleCache for caching backend
-- Using SQLAlchemy for session storage instead of Redis
-- Removed Redis monitoring and health check endpoints
-- Updated configuration files to remove Redis settings
+Adds a comprehensive vault monitoring system to the admin plugin with:
 
-This rollback was necessary due to issues encountered while trying to
-set up Redis integration. We'll stick with SimpleCache for now as it's
-more straightforward and doesn't require external dependencies.
+- Real-time health monitoring with status indicators:
+  * Overall health (healthy/degraded/error)
+  * Seal status
+  * Initialization status
+  * Version tracking
+
+- Visual analytics:
+  * Health gauge showing system status (0-100%)
+  * Secret engines distribution chart
+
+- Detailed system information:
+  * Cluster details
+  * Secret engine mounts
+  * Auto-refresh every 30 seconds
+
+This enhances our admin capabilities with real-time vault health monitoring
+and visualization, making it easier to track vault status and identify issues.

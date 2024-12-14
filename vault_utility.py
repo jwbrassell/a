@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from flask import current_app, request, abort
 from datetime import datetime, timedelta
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
@@ -165,7 +166,7 @@ class PluginCredentialManager:
             raise VaultError(f"Failed to rotate credentials for {plugin_name}")
 
 class VaultUtility:
-    def __init__(self, vault_url=None, token=None, env_file_path='/etc/vault.env'):
+    def __init__(self, vault_url=None, token=None, env_file_path='.env.vault'):
         """Initialize VaultUtility with URL and token."""
         # Load environment if needed
         if not vault_url or not token:
@@ -218,13 +219,19 @@ class VaultUtility:
     def authenticate_vault(self, vault_url, token):
         """Authenticate with Vault and return the client."""
         try:
-            # Configure client with SSL verification in production
-            ssl_verify = True if os.getenv("FLASK_ENV") != "development" else False
+            # Get CA certificate path from environment
+            ca_cert = os.getenv("VAULT_CACERT")
+            if ca_cert and Path(ca_cert).exists():
+                verify = str(Path(ca_cert).resolve())
+                logger.info(f"Using CA certificate: {verify}")
+            else:
+                verify = False
+                logger.warning("CA certificate not found or not specified, disabling SSL verification")
             
             client = hvac.Client(
                 url=vault_url,
                 token=token,
-                verify=ssl_verify
+                verify=verify
             )
             
             if not client.is_authenticated():

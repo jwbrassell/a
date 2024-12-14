@@ -10,6 +10,8 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import extensions
 from app.extensions import db, login_manager, migrate, cache, csrf
+from vault_utility import VaultUtility
+from app.utils.vault_defaults import initialize_vault_structure
 
 def register_plugins(app):
     """Register plugin blueprints and routes"""
@@ -90,6 +92,24 @@ def create_app(config_name=None, skip_session=False):
     # Initialize template filters
     from app import template_filters
     template_filters.init_app(app)
+
+    # Initialize Vault
+    try:
+        # Set FLASK_ENV for development mode
+        if not os.getenv('FLASK_ENV'):
+            os.environ['FLASK_ENV'] = 'development'
+        
+        # Initialize Vault client
+        app.vault = VaultUtility(env_file_path='.env.vault')
+        
+        # Initialize default KV structure
+        with app.app_context():
+            initialize_vault_structure()
+            
+        app.logger.info("Successfully initialized Vault")
+    except Exception as e:
+        app.logger.error(f"Failed to initialize Vault: {e}")
+        app.vault = None
 
     # Make navigation manager available to templates
     @app.context_processor
