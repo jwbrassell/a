@@ -5,6 +5,7 @@ from app import db
 from app.plugins.weblinks import bp
 from app.plugins.weblinks.models import WebLink, WebLinkCategory, WebLinkTag, weblink_tag_association
 from app.plugins.weblinks.forms import WebLinkForm, CategoryForm, TagForm
+from app.utils.enhanced_rbac import requires_permission
 import csv
 from io import StringIO
 import tempfile
@@ -12,6 +13,7 @@ from datetime import datetime
 
 @bp.route('/')
 @login_required
+@requires_permission('weblinks_access', 'read')
 def index():
     """Display main web links page."""
     categories = WebLinkCategory.query.all()
@@ -22,6 +24,7 @@ def index():
 
 @bp.route('/api/links')
 @login_required
+@requires_permission('weblinks_access', 'read')
 def get_links():
     """Get all links for DataTables."""
     links = WebLink.query.all()
@@ -29,6 +32,7 @@ def get_links():
 
 @bp.route('/link/add', methods=['GET', 'POST'])
 @login_required
+@requires_permission('weblinks_manage', 'write')
 def add_link():
     """Add a new web link."""
     form = WebLinkForm()
@@ -72,6 +76,7 @@ def add_link():
 
 @bp.route('/api/stats')
 @login_required
+@requires_permission('weblinks_access', 'read')
 def get_stats():
     """Get statistics for charts."""
     try:
@@ -102,6 +107,7 @@ def get_stats():
 
 @bp.route('/category/add', methods=['POST'])
 @login_required
+@requires_permission('weblinks_manage', 'write')
 def add_category():
     """Add a new category."""
     form = CategoryForm()
@@ -131,6 +137,7 @@ def add_category():
 
 @bp.route('/tag/add', methods=['POST'])
 @login_required
+@requires_permission('weblinks_manage', 'write')
 def add_tag():
     """Add a new tag."""
     name = request.form.get('name')
@@ -171,6 +178,7 @@ def add_tag():
 
 @bp.route('/api/icons')
 @login_required
+@requires_permission('weblinks_access', 'read')
 def get_icons():
     """Get list of Font Awesome icons."""
     icons = [
@@ -185,6 +193,7 @@ def get_icons():
 
 @bp.route('/export/csv')
 @login_required
+@requires_permission('weblinks_import_export', 'read')
 def export_csv():
     """Export links to CSV."""
     try:
@@ -220,6 +229,7 @@ def export_csv():
 
 @bp.route('/import/csv', methods=['POST'])
 @login_required
+@requires_permission('weblinks_import_export', 'write')
 def import_csv():
     """Import links from CSV."""
     if 'file' not in request.files:
@@ -293,6 +303,7 @@ def import_csv():
 
 @bp.route('/search')
 @login_required
+@requires_permission('weblinks_access', 'read')
 def search():
     """Search web links."""
     query = request.args.get('q', '')

@@ -6,9 +6,11 @@ from app import db, csrf
 from app.plugins.handoffs import bp
 from app.plugins.handoffs.models import Handoff, HandoffShift
 from app.plugins.handoffs.forms import HandoffForm
+from app.utils.enhanced_rbac import requires_permission
 
 @bp.route('/')
 @login_required
+@requires_permission('handoffs_access', 'read')
 def index():
     """Display all handoffs with open ones at the top."""
     open_handoffs = Handoff.query.filter_by(status='open').order_by(Handoff.created_at.desc()).all()
@@ -19,6 +21,7 @@ def index():
 
 @bp.route('/metrics')
 @login_required
+@requires_permission('handoffs_metrics', 'read')
 def metrics():
     """Display handoff metrics and statistics."""
     # Calculate time ranges
@@ -138,6 +141,7 @@ def metrics():
 
 @bp.route('/create', methods=['GET', 'POST'])
 @login_required
+@requires_permission('handoffs_create', 'write')
 def create():
     """Create a new handoff."""
     form = HandoffForm()
@@ -186,6 +190,7 @@ def create():
 
 @bp.route('/<int:id>/close', methods=['POST'])
 @login_required
+@requires_permission('handoffs_close', 'write')
 def close_handoff(id):
     """Close a handoff."""
     try:

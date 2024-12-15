@@ -1,26 +1,7 @@
-feat(admin): Add vault monitoring dashboard
+fix: add admin plugin models to database initialization
 
-Adds a comprehensive vault monitoring system to the admin plugin with:
+- Import admin plugin models (SystemMetric, ApplicationMetric, UserMetric, FeatureUsage, ResourceMetric) in init_db.py
+- Ensure feature usage tracking tables are created during database initialization
+- Fix "no such table: feature_usage" error by properly creating required tables
 
-- Real-time health monitoring with status indicators:
-  * Overall health (healthy/degraded/error)
-  * Seal status
-  * Initialization status
-  * Version tracking
-
-- Visual analytics:
-  * Health gauge showing system status (0-100%)
-  * Secret engines distribution chart
-
-- Detailed system information:
-  * Cluster details
-  * Secret engine mounts
-  * Auto-refresh every 30 seconds
-
-Security:
-- Added .env.vault to .gitignore to prevent token exposure
-- Vault tokens and unseal keys should be managed securely
-- Development tokens should never be committed to source control
-
-This enhances our admin capabilities with real-time vault health monitoring
-and visualization, making it easier to track vault status and identify issues.
+This change ensures that all necessary tables for feature usage tracking and monitoring are properly created when initializing the database, preventing SQLite operational errors when the application attempts to track feature usage.

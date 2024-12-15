@@ -17,9 +17,11 @@ from app.plugins.documents.utils import (
     get_or_create_cache, bulk_categorize, bulk_delete
 )
 from app.models import User
+from app.utils.enhanced_rbac import requires_permission
 
 @bp.route('/')
 @login_required
+@requires_permission('documents_access', 'read')
 def index():
     """Display main documents page."""
     # Get documents user has access to
@@ -43,6 +45,7 @@ def index():
 
 @bp.route('/create', methods=['GET', 'POST'])
 @login_required
+@requires_permission('documents_create', 'write')
 def create():
     """Create a new document."""
     form = DocumentForm()
@@ -112,6 +115,7 @@ def create():
 
 @bp.route('/create-from-template', methods=['GET', 'POST'])
 @login_required
+@requires_permission('documents_create', 'write')
 def create_from_template():
     """Create a new document from a template."""
     form = DocumentFromTemplateForm()
@@ -158,6 +162,7 @@ def create_from_template():
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
+@requires_permission('documents_edit', 'write')
 def edit(id):
     """Edit an existing document."""
     document = Document.query.get_or_404(id)
@@ -240,6 +245,7 @@ def edit(id):
 
 @bp.route('/search')
 @login_required
+@requires_permission('documents_access', 'read')
 def search():
     """Search documents."""
     form = DocumentSearchForm(request.args)
@@ -299,6 +305,7 @@ def search():
 
 @bp.route('/<int:id>/share', methods=['GET', 'POST'])
 @login_required
+@requires_permission('documents_share', 'write')
 def share(id):
     """Share document with other users."""
     document = Document.query.get_or_404(id)
@@ -346,6 +353,7 @@ def share(id):
 
 @bp.route('/<int:id>/export/<format>')
 @login_required
+@requires_permission('documents_export', 'read')
 def export(id, format):
     """Export document in various formats."""
     document = Document.query.get_or_404(id)
@@ -380,6 +388,7 @@ def export(id, format):
 
 @bp.route('/bulk-action', methods=['POST'])
 @login_required
+@requires_permission('documents_edit', 'write')
 def bulk_action():
     """Handle bulk actions on documents."""
     form = BulkActionForm()
@@ -426,6 +435,7 @@ def bulk_action():
 
 @bp.route('/categories', methods=['GET', 'POST'])
 @login_required
+@requires_permission('documents_manage', 'write')
 def categories():
     """Manage document categories."""
     form = CategoryForm()
@@ -450,6 +460,7 @@ def categories():
 
 @bp.route('/tags', methods=['GET', 'POST'])
 @login_required
+@requires_permission('documents_manage', 'write')
 def tags():
     """Manage document tags."""
     form = TagForm()
@@ -471,6 +482,7 @@ def tags():
 
 @bp.route('/<int:id>/history')
 @login_required
+@requires_permission('documents_access', 'read')
 def history(id):
     """View document change history."""
     document = Document.query.get_or_404(id)

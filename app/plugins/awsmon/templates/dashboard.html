@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">AWS Monitoring Dashboard</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+                    <li class="breadcrumb-item active">AWS Monitor</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <!-- Status Cards -->
+        <div class="row">
+            <div class="col-lg-3 col-6">
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3 id="total-instances">0</h3>
+                        <p>Total Instances</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-6">
+                <div class="small-box bg-success">
+                    <div class="inner">
+                        <h3 id="running-instances">0</h3>
+                        <p>Running Instances</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-play-circle"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-6">
+                <div class="small-box bg-warning">
+                    <div class="inner">
+                        <h3 id="synthetic-tests">0</h3>
+                        <p>Active Tests</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-vial"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-6">
+                <div class="small-box bg-danger">
+                    <div class="inner">
+                        <h3 id="alerts">0</h3>
+                        <p>Active Alerts</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Instance List -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">EC2 Instances</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body table-responsive p-0">
+                        <table class="table table-hover text-nowrap" id="instances-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Instance ID</th>
+                                    <th>Type</th>
+                                    <th>Region</th>
+                                    <th>State</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Synthetic Test Status -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Test Status</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="chart-responsive">
+                            <canvas id="testStatusChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Response Time Graph -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header border-0">
+                        <h3 class="card-title">Response Times</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="responseTimeChart" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Changes -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Changes</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="timeline timeline-inverse" id="changes-timeline">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Instance Action Modal -->
+<div class="modal fade" id="instanceActionModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Instance Action</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to <span id="action-type"></span> instance <span id="instance-id"></span>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-action">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Poll for updates every minute
+const POLL_INTERVAL = 60000;
+
+// Update instance table
+function updateInstances() {
+    fetch('{{ url_for("awsmon.api_list_instances") }}')
+        .then(response => response.json())
+        .then(instances => {
+            const tbody = document.querySelector('#instances-table tbody');
+            tbody.innerHTML = '';
+            
+            instances.forEach(instance => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${instance.name || '-'}</td>
+                    <td>${instance.id}</td>
+                    <td>${instance.type}</td>
+                    <td>${instance.region}</td>
+                    <td><span class="badge badge-${getStateBadgeClass(instance.state)}">${instance.state}</span></td>
+                    <td>
+                        <div class="btn-group">
+                            ${getActionButtons(instance)}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Update summary counts
+            document.getElementById('total-instances').textContent = instances.length;
+            document.getElementById('running-instances').textContent = 
+                instances.filter(i => i.state === 'running').length;
+        });
+}
+
+function getStateBadgeClass(state) {
+    switch(state) {
+        case 'running': return 'success';
+        case 'stopped': return 'danger';
+        case 'pending': return 'warning';
+        case 'stopping': return 'warning';
+        default: return 'secondary';
+    }
+}
+
+function getActionButtons(instance) {
+    if (instance.state === 'running') {
+        return `
+            <button class="btn btn-sm btn-warning" onclick="instanceAction('${instance.id}', 'stop')">
+                <i class="fas fa-stop"></i>
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="instanceAction('${instance.id}', 'terminate')">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+    } else if (instance.state === 'stopped') {
+        return `
+            <button class="btn btn-sm btn-success" onclick="instanceAction('${instance.id}', 'start')">
+                <i class="fas fa-play"></i>
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="instanceAction('${instance.id}', 'terminate')">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+    }
+    return '';
+}
+
+function instanceAction(instanceId, action) {
+    document.getElementById('action-type').textContent = action;
+    document.getElementById('instance-id').textContent = instanceId;
+    
+    const modal = $('#instanceActionModal');
+    const confirmBtn = document.getElementById('confirm-action');
+    
+    confirmBtn.onclick = () => {
+        fetch(`{{ url_for("awsmon.instance_action", instance_id="") }}${instanceId}/action`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action: action })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                toastr.success(`Instance ${action} initiated`);
+                updateInstances();
+            } else {
+                toastr.error(data.message || 'Action failed');
+            }
+            modal.modal('hide');
+        })
+        .catch(error => {
+            toastr.error('Action failed: ' + error);
+            modal.modal('hide');
+        });
+    };
+    
+    modal.modal('show');
+}
+
+// Update synthetic test results
+function updateTestResults() {
+    fetch('{{ url_for("awsmon.test_results") }}')
+        .then(response => response.json())
+        .then(results => {
+            updateTestStatusChart(results);
+            updateResponseTimeChart(results);
+            
+            // Update test count
+            document.getElementById('synthetic-tests').textContent = 
+                new Set(results.map(r => r.test_id)).size;
+            
+            // Update alerts count
+            document.getElementById('alerts').textContent = 
+                results.filter(r => r.status === 'failure').length;
+        });
+}
+
+// Initialize charts
+let testStatusChart, responseTimeChart;
+
+function initCharts() {
+    const testCtx = document.getElementById('testStatusChart').getContext('2d');
+    testStatusChart = new Chart(testCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Success', 'Failure', 'Timeout'],
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: ['#00a65a', '#f56954', '#f39c12']
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            responsive: true
+        }
+    });
+
+    const responseCtx = document.getElementById('responseTimeChart').getContext('2d');
+    responseTimeChart = new Chart(responseCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Response Time (ms)',
+                data: [],
+                borderColor: '#3c8dbc',
+                fill: false
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            responsive: true,
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                    time: {
+                        unit: 'minute'
+                    }
+                }],
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
+}
+
+function updateTestStatusChart(results) {
+    const counts = {
+        success: results.filter(r => r.status === 'success').length,
+        failure: results.filter(r => r.status === 'failure').length,
+        timeout: results.filter(r => r.status === 'timeout').length
+    };
+    
+    testStatusChart.data.datasets[0].data = [
+        counts.success,
+        counts.failure,
+        counts.timeout
+    ];
+    testStatusChart.update();
+}
+
+function updateResponseTimeChart(results) {
+    // Group by timestamp and calculate average
+    const timeData = {};
+    results.forEach(r => {
+        if (r.response_time) {
+            const minute = new Date(r.timestamp).setSeconds(0, 0);
+            if (!timeData[minute]) {
+                timeData[minute] = { sum: 0, count: 0 };
+            }
+            timeData[minute].sum += r.response_time;
+            timeData[minute].count++;
+        }
+    });
+
+    const sortedTimes = Object.keys(timeData).sort();
+    responseTimeChart.data.labels = sortedTimes.map(t => new Date(parseInt(t)));
+    responseTimeChart.data.datasets[0].data = sortedTimes.map(t => 
+        timeData[t].sum / timeData[t].count
+    );
+    responseTimeChart.update();
+}
+
+// Update changelog
+function updateChangelog() {
+    const timeline = document.getElementById('changes-timeline');
+    fetch('/api/changelog')
+        .then(response => response.json())
+        .then(changes => {
+            timeline.innerHTML = changes.slice(0, 5).map(change => `
+                <div>
+                    <i class="fas fa-${getChangeIcon(change.action)} bg-${getChangeBadge(change.action)}"></i>
+                    <div class="timeline-item">
+                        <span class="time"><i class="fas fa-clock"></i> ${formatTime(change.created_at)}</span>
+                        <h3 class="timeline-header no-border">
+                            ${formatChangeMessage(change)}
+                        </h3>
+                    </div>
+                </div>
+            `).join('');
+        });
+}
+
+function getChangeIcon(action) {
+    switch(action) {
+        case 'create': return 'plus';
+        case 'update': return 'edit';
+        case 'delete': return 'trash';
+        case 'start': return 'play';
+        case 'stop': return 'stop';
+        default: return 'info';
+    }
+}
+
+function getChangeBadge(action) {
+    switch(action) {
+        case 'create': return 'success';
+        case 'update': return 'info';
+        case 'delete': return 'danger';
+        case 'start': return 'success';
+        case 'stop': return 'warning';
+        default: return 'secondary';
+    }
+}
+
+function formatTime(timestamp) {
+    return new Date(timestamp).toLocaleTimeString();
+}
+
+function formatChangeMessage(change) {
+    return `${change.action.charAt(0).toUpperCase() + change.action.slice(1)} ${change.resource_type} ${change.resource_id}`;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    initCharts();
+    updateInstances();
+    updateTestResults();
+    updateChangelog();
+    
+    // Set up polling
+    setInterval(() => {
+        updateInstances();
+        updateTestResults();
+        updateChangelog();
+    }, POLL_INTERVAL);
+});
+</script>
+{% endblock %}

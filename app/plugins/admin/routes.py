@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for, request, jsonify, current_app
 from flask_login import login_required, current_user
-from app.utils.rbac import requires_roles
+from app.utils.enhanced_rbac import requires_permission
 from app.models import Role, PageRouteMapping, UserActivity, NavigationCategory, User
 from app import db
 from app.plugins.admin import bp
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Dashboard
 @bp.route('/')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_dashboard_access', 'read')
 @track_activity
 def index():
     """Admin dashboard main page."""
@@ -44,7 +44,7 @@ def index():
 # Vault Status
 @bp.route('/vault')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_vault_access', 'read')
 @track_activity
 def vault_status():
     """View Vault server status and health."""
@@ -62,7 +62,7 @@ def vault_status():
 # Monitoring
 @bp.route('/monitoring')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_monitoring_access', 'read')
 @track_activity
 def monitoring():
     """View system monitoring information."""
@@ -80,7 +80,7 @@ def monitoring():
 # User Management
 @bp.route('/users')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_users_access', 'read')
 @track_activity
 def users():
     """List all users and manage their roles."""
@@ -90,7 +90,7 @@ def users():
 
 @bp.route('/users/<int:id>/roles', methods=['POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_users_access', 'write')
 @track_activity
 def update_user_roles(id):
     """Update roles for a user."""
@@ -140,7 +140,7 @@ def update_user_roles(id):
 # Role Management
 @bp.route('/roles')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_roles_access', 'read')
 @track_activity
 def roles():
     """List all roles and their permissions."""
@@ -149,7 +149,7 @@ def roles():
 
 @bp.route('/roles/new', methods=['GET', 'POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_roles_access', 'write')
 @track_activity
 def new_role():
     """Create a new role."""
@@ -189,7 +189,7 @@ def new_role():
 
 @bp.route('/roles/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_roles_access', 'update')
 @track_activity
 def edit_role(id):
     """Edit an existing role."""
@@ -230,7 +230,7 @@ def edit_role(id):
 
 @bp.route('/roles/<int:id>/delete', methods=['POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_roles_access', 'delete')
 @track_activity
 def delete_role(id):
     """Delete a role."""
@@ -257,7 +257,7 @@ def delete_role(id):
 
 @bp.route('/roles/<int:role_id>/members')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_roles_access', 'read')
 @track_activity
 def role_members(role_id):
     """View members of a role."""
@@ -268,7 +268,7 @@ def role_members(role_id):
 
 @bp.route('/roles/<int:role_id>/members/add', methods=['POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_roles_access', 'write')
 @track_activity
 def add_role_member(role_id):
     """Add a user to a role."""
@@ -298,7 +298,7 @@ def add_role_member(role_id):
 
 @bp.route('/roles/<int:role_id>/members/<int:user_id>/remove', methods=['POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_roles_access', 'delete')
 @track_activity
 def remove_role_member(role_id, user_id):
     """Remove a user from a role."""
@@ -328,7 +328,7 @@ def remove_role_member(role_id, user_id):
 # Navigation Categories Management
 @bp.route('/categories')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_categories_access', 'read')
 @track_activity
 def categories():
     """List all navigation categories."""
@@ -337,7 +337,7 @@ def categories():
 
 @bp.route('/categories/new', methods=['GET', 'POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_categories_access', 'write')
 @track_activity
 def new_category():
     """Create a new navigation category."""
@@ -379,7 +379,7 @@ def new_category():
 
 @bp.route('/categories/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_categories_access', 'update')
 @track_activity
 def edit_category(id):
     """Edit an existing navigation category."""
@@ -422,7 +422,7 @@ def edit_category(id):
 
 @bp.route('/categories/<int:id>/delete', methods=['POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_categories_access', 'delete')
 @track_activity
 def delete_category(id):
     """Delete a navigation category."""
@@ -454,7 +454,7 @@ def delete_category(id):
 # Route Management
 @bp.route('/routes')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_routes_access', 'read')
 @track_activity
 def routes():
     """List all route mappings."""
@@ -463,7 +463,7 @@ def routes():
 
 @bp.route('/routes/new', methods=['GET', 'POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_routes_access', 'write')
 @track_activity
 def new_route():
     """Create a new route mapping."""
@@ -518,7 +518,7 @@ def new_route():
 
 @bp.route('/routes/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_routes_access', 'update')
 @track_activity
 def edit_route(id):
     """Edit an existing route mapping."""
@@ -576,7 +576,7 @@ def edit_route(id):
 
 @bp.route('/routes/<int:id>/delete', methods=['POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_routes_access', 'delete')
 @track_activity
 def delete_route(id):
     """Delete a route mapping."""
@@ -604,7 +604,7 @@ def delete_route(id):
 # Activity Logs
 @bp.route('/logs')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_logs_access', 'read')
 @track_activity
 def logs():
     """View system activity logs."""
@@ -617,7 +617,7 @@ def logs():
 # Icon Management
 @bp.route('/icons')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_icons_access', 'read')
 @track_activity
 def get_icons():
     """Get list of available FontAwesome icons."""
@@ -639,7 +639,7 @@ def get_icons():
 # Route List for Select2
 @bp.route('/routes/list')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_routes_access', 'read')
 @track_activity
 def get_routes():
     """Get list of available routes for Select2."""
@@ -657,7 +657,7 @@ def get_routes():
 # Category Icon Endpoint
 @bp.route('/category/<int:id>/icon')
 @login_required
-@requires_roles('admin')
+@requires_permission('admin_categories_access', 'read')
 @track_activity
 def get_category_icon(id):
     """Get icon for a category."""

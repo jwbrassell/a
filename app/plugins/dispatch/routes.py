@@ -8,6 +8,7 @@ from app import db
 from app.logging_utils import log_info, log_error
 from app.models import UserActivity
 from app.utils.activity_tracking import track_activity
+from app.utils.enhanced_rbac import requires_permission
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
@@ -59,6 +60,7 @@ def send_dispatch_email(transaction):
 
 @bp.route('/')
 @login_required
+@requires_permission('dispatch_access', 'read')
 @track_activity
 def index():
     """Main dispatch tool page with form and transactions table"""
@@ -73,6 +75,7 @@ def index():
 
 @bp.route('/submit', methods=['POST'])
 @login_required
+@requires_permission('dispatch_access', 'write')
 @track_activity
 def submit():
     """Handle dispatch form submission"""
@@ -121,6 +124,7 @@ def submit():
 
 @bp.route('/transactions')
 @login_required
+@requires_permission('dispatch_access', 'read')
 @track_activity
 def get_transactions():
     """DataTables API endpoint for transactions"""
@@ -136,6 +140,7 @@ def get_transactions():
 
 @bp.route('/manage')
 @login_required
+@requires_permission('dispatch_manage_access', 'read')
 @track_activity
 def manage():
     """Management interface for teams and priorities"""
@@ -150,6 +155,7 @@ def manage():
 
 @bp.route('/team', methods=['POST'])
 @login_required
+@requires_permission('dispatch_manage_access', 'write')
 @track_activity
 def add_team():
     """Add or update team"""
@@ -187,6 +193,7 @@ def add_team():
 
 @bp.route('/priority', methods=['POST'])
 @login_required
+@requires_permission('dispatch_manage_access', 'write')
 @track_activity
 def add_priority():
     """Add or update priority"""

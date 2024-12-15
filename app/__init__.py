@@ -6,6 +6,7 @@ from config import config
 from datetime import datetime
 import os
 import click
+import sys
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import extensions
@@ -20,23 +21,15 @@ def register_plugins(app):
     
     # Load and register plugin blueprints within app context
     with app.app_context():
-        # First register all blueprints
+        # Register all blueprints
         blueprints = plugin_manager.load_all_plugins()
         for blueprint in blueprints:
             if blueprint:
                 app.register_blueprint(blueprint)
         
-        # Initialize projects plugin
-        from app.plugins.projects import init_app as init_projects
-        init_projects(app)
-        
         # Initialize dispatch routes
         from app.plugins.dispatch.utils.register_routes import register_dispatch_routes
         register_dispatch_routes()
-
-        # Initialize tracking plugin
-        from app.plugins.tracking import init_tracking
-        init_tracking(app)
 
 def create_app(config_name=None, skip_session=False):
     app = Flask(__name__)
@@ -81,8 +74,11 @@ def create_app(config_name=None, skip_session=False):
     from app.routes import main as main_bp
     app.register_blueprint(main_bp)
 
-    # Only load plugins if not explicitly skipped
-    if os.getenv('SKIP_PLUGIN_LOAD') != '1':
+    # Check if we're running migrations
+    is_migrating = len(sys.argv) > 1 and sys.argv[1] == 'db'
+
+    # Only load plugins if not explicitly skipped and not running migrations
+    if os.getenv('SKIP_PLUGIN_LOAD') != '1' and not is_migrating:
         register_plugins(app)
 
     # Import navigation manager and route utilities

@@ -1,7 +1,21 @@
+"""Projects plugin for Flask application."""
 from flask import Blueprint, current_app
 from sqlalchemy.exc import SQLAlchemyError
 import logging
+from app.utils.plugin_manager import PluginMetadata
 from .plugin import init_plugin
+
+# Define plugin metadata
+plugin_metadata = PluginMetadata(
+    name="Projects",
+    version="1.0.0",
+    description="Project management and tracking",
+    author="System",
+    required_roles=["admin", "user"],
+    icon="fa-project-diagram",
+    category="main",
+    weight=10
+)
 
 bp = Blueprint('projects', __name__, template_folder='templates', static_folder='static')
 logger = logging.getLogger(__name__)
@@ -76,9 +90,6 @@ def init_app(app):
             'success': False,
             'message': 'A database error occurred. Please try again later.'
         }, 500
-    
-    # Register the blueprint
-    app.register_blueprint(bp, url_prefix='/projects')
     
     # Initialize plugin
     init_plugin(app)

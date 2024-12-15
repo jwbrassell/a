@@ -2,8 +2,9 @@ from flask import Blueprint, render_template, request, jsonify, current_app, abo
 from flask_login import login_required, current_user
 from sqlalchemy import create_engine, text, inspect, or_
 from app import db
-from app.utils.rbac import requires_roles
+from app.utils.enhanced_rbac import requires_permission
 from .models import DatabaseConnection, ReportView, view_role
+from .vault_utils import vault_manager
 import json
 from decimal import Decimal
 import re
@@ -76,8 +77,29 @@ def apply_transform(value, transform_config):
         current_app.logger.error(f"Transform error: {str(e)}")
         return value
 
+def get_db_engine(db_conn):
+    """Create SQLAlchemy engine with credentials from vault."""
+    try:
+        # SQLite doesn't need credentials from vault
+        if db_conn.db_type == 'sqlite':
+            engine = create_engine(f'sqlite:///{db_conn.database}')
+            return engine
+            
+        # For other database types, get credentials from vault
+        credentials = vault_manager.get_database_credentials(db_conn.id)
+        
+        # Use mysqlclient format for MySQL/MariaDB
+        engine = create_engine(
+            f'mysql://{db_conn.username}:{credentials["password"]}@{db_conn.host}:{db_conn.port}/{db_conn.database}'
+        )
+        return engine
+    except Exception as e:
+        current_app.logger.error(f"Error creating database engine: {str(e)}")
+        raise
+
 @bp.route('/')
 @login_required
+@requires_permission('reports_access', 'read')
 def index():
     """Display the reports dashboard with available views."""
     views = db.session.query(ReportView).filter(
@@ -90,7 +112,7 @@ def index():
 
 @bp.route('/databases')
 @login_required
-@requires_roles('admin')
+@requires_permission('reports_manage_db', 'read')
 def manage_databases():
     """Display database management interface."""
     databases = DatabaseConnection.query.filter_by(is_active=True).all()
@@ -98,6 +120,7 @@ def manage_databases():
 
 @bp.route('/view/new', methods=['GET', 'POST'])
 @login_required
+@requires_permission('reports_create', 'write')
 def create_view():
     """Create a new report view."""
     if request.method == 'POST':
@@ -130,6 +153,7 @@ def create_view():
 
 @bp.route('/view/<int:view_id>/edit', methods=['GET', 'POST'])
 @login_required
+@requires_permission('reports_edit', 'write')
 def edit_view(view_id):
     """Edit an existing report view."""
     view = db.session.query(ReportView).get(view_id)
@@ -163,6 +187,7 @@ def edit_view(view_id):
 
 @bp.route('/view/<int:view_id>')
 @login_required
+@requires_permission('reports_access', 'read')
 def view_report(view_id):
     """Display a specific report view."""
     view = db.session.query(ReportView).get(view_id)
@@ -182,6 +207,7 @@ def view_report(view_id):
 
 @bp.route('/api/view/<int:view_id>', methods=['DELETE'])
 @login_required
+@requires_permission('reports_delete', 'write')
 def delete_view(view_id):
     """Delete a report view."""
     try:
@@ -208,6 +234,7 @@ def delete_view(view_id):
 
 @bp.route('/api/view/<int:view_id>/data')
 @login_required
+@requires_permission('reports_access', 'read')
 def get_view_data(view_id):
     """Get data for a specific view."""
     view = db.session.query(ReportView).get(view_id)
@@ -226,17 +253,8 @@ def get_view_data(view_id):
         return jsonify({'error': 'Database connection is inactive'}), 400
 
     try:
-        # Get database connection
-        db_conn = view.database
-        
-        # Create engine based on database type
-        if db_conn.db_type == 'sqlite':
-            engine = create_engine(f'sqlite:///{db_conn.database}')
-        else:
-            # Use mysqlclient format for MySQL/MariaDB
-            engine = create_engine(
-                f'mysql://{db_conn.username}:{db_conn.password}@{db_conn.host}:{db_conn.port}/{db_conn.database}'
-            )
+        # Get database engine with credentials from vault
+        engine = get_db_engine(view.database)
 
         # Execute query
         with engine.connect() as conn:
@@ -260,10 +278,6 @@ def get_view_data(view_id):
             view.last_run = datetime.datetime.utcnow()
             db.session.commit()
 
-            # Log the response data structure
-            current_app.logger.info(f"Column config: {json.dumps(view.column_config)}")
-            current_app.logger.info(f"Sample data: {json.dumps(data[0]) if data else 'No data'}")
-
             return jsonify({
                 'data': data,
                 'columns': view.column_config
@@ -274,7 +288,7 @@ def get_view_data(view_id):
 
 @bp.route('/api/databases')
 @login_required
-@requires_roles('admin')
+@requires_permission('reports_manage_db', 'read')
 def list_databases():
     """List all database connections."""
     databases = DatabaseConnection.query.filter_by(is_active=True).all()
@@ -287,6 +301,7 @@ def list_databases():
 
 @bp.route('/api/database/<int:db_id>/tables')
 @login_required
+@requires_permission('reports_access', 'read')
 def get_database_tables(db_id):
     """Get tables and their structure for a specific database."""
     db_conn = db.session.query(DatabaseConnection).get(db_id)
@@ -294,14 +309,8 @@ def get_database_tables(db_id):
         abort(404)
     
     try:
-        # Create engine based on database type
-        if db_conn.db_type == 'sqlite':
-            engine = create_engine(f'sqlite:///{db_conn.database}')
-        else:
-            # Use mysqlclient format for MySQL/MariaDB
-            engine = create_engine(
-                f'mysql://{db_conn.username}:{db_conn.password}@{db_conn.host}:{db_conn.port}/{db_conn.database}'
-            )
+        # Get database engine with credentials from vault
+        engine = get_db_engine(db_conn)
 
         # Get inspector
         inspector = inspect(engine)
@@ -325,11 +334,12 @@ def get_database_tables(db_id):
 
 @bp.route('/api/database', methods=['POST'])
 @login_required
-@requires_roles('admin')
+@requires_permission('reports_manage_db', 'write')
 def create_database_connection():
     """Create a new database connection."""
     data = request.json
     
+    # Create database connection without password
     connection = DatabaseConnection(
         name=data['name'],
         description=data.get('description', ''),
@@ -338,23 +348,35 @@ def create_database_connection():
         port=data.get('port'),
         database=data['database'],
         username=data.get('username'),
-        password=data.get('password'),
         created_by=current_user.id
     )
     
-    db.session.add(connection)
-    db.session.commit()
-    
-    return jsonify({
-        'id': connection.id,
-        'name': connection.name,
-        'description': connection.description,
-        'db_type': connection.db_type
-    })
+    try:
+        # Store credentials in vault only if not SQLite
+        if data['db_type'] != 'sqlite' and 'password' in data:
+            vault_manager.store_database_credentials(
+                connection.id,
+                {'password': data['password']}
+            )
+        
+        # Save database connection
+        db.session.add(connection)
+        db.session.commit()
+        
+        return jsonify({
+            'id': connection.id,
+            'name': connection.name,
+            'description': connection.description,
+            'db_type': connection.db_type
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating database connection: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/database/<int:db_id>', methods=['PUT'])
 @login_required
-@requires_roles('admin')
+@requires_permission('reports_manage_db', 'write')
 def update_database_connection(db_id):
     """Update an existing database connection."""
     connection = db.session.query(DatabaseConnection).get(db_id)
@@ -362,38 +384,62 @@ def update_database_connection(db_id):
         abort(404)
     data = request.json
     
-    connection.name = data.get('name', connection.name)
-    connection.description = data.get('description', connection.description)
-    connection.host = data.get('host', connection.host)
-    connection.port = data.get('port', connection.port)
-    connection.database = data.get('database', connection.database)
-    connection.username = data.get('username', connection.username)
-    if 'password' in data:
-        connection.password = data['password']
-    
-    db.session.commit()
-    
-    return jsonify({
-        'id': connection.id,
-        'name': connection.name,
-        'description': connection.description,
-        'db_type': connection.db_type
-    })
+    try:
+        # Update database connection
+        connection.name = data.get('name', connection.name)
+        connection.description = data.get('description', connection.description)
+        connection.host = data.get('host', connection.host)
+        connection.port = data.get('port', connection.port)
+        connection.database = data.get('database', connection.database)
+        connection.username = data.get('username', connection.username)
+        
+        # Update password in vault if provided and not SQLite
+        if connection.db_type != 'sqlite' and 'password' in data:
+            vault_manager.update_database_credentials(
+                connection.id,
+                {'password': data['password']}
+            )
+        
+        db.session.commit()
+        
+        return jsonify({
+            'id': connection.id,
+            'name': connection.name,
+            'description': connection.description,
+            'db_type': connection.db_type
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating database connection: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/database/<int:db_id>', methods=['DELETE'])
 @login_required
-@requires_roles('admin')
+@requires_permission('reports_manage_db', 'write')
 def delete_database_connection(db_id):
     """Soft delete a database connection."""
     connection = db.session.query(DatabaseConnection).get(db_id)
     if not connection:
         abort(404)
-    connection.is_active = False
-    db.session.commit()
-    return '', 204
+        
+    try:
+        # Delete credentials from vault only if not SQLite
+        if connection.db_type != 'sqlite':
+            vault_manager.delete_database_credentials(connection.id)
+        
+        # Soft delete connection
+        connection.is_active = False
+        db.session.commit()
+        
+        return '', 204
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting database connection: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/test-query', methods=['POST'])
 @login_required
+@requires_permission('reports_create', 'write')
 def test_query():
     """Test a query and return column information."""
     data = request.json
@@ -402,14 +448,8 @@ def test_query():
         abort(404)
     
     try:
-        # Create engine based on database type
-        if db_conn.db_type == 'sqlite':
-            engine = create_engine(f'sqlite:///{db_conn.database}')
-        else:
-            # Use mysqlclient format for MySQL/MariaDB
-            engine = create_engine(
-                f'mysql://{db_conn.username}:{db_conn.password}@{db_conn.host}:{db_conn.port}/{db_conn.database}'
-            )
+        # Get database engine with credentials from vault
+        engine = get_db_engine(db_conn)
 
         # Execute query
         with engine.connect() as conn:

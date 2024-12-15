@@ -1,5 +1,6 @@
 from app import create_app, db
 from app.models import User, Role
+from app.plugins.admin.models import SystemMetric, ApplicationMetric, UserMetric, FeatureUsage, ResourceMetric
 from datetime import datetime
 
 def init_db():
@@ -15,8 +16,7 @@ def init_db():
         if not admin_role:
             admin_role = Role(
                 name='admin',
-                notes='Administrator role with full access',
-                icon='fa-user-shield',
+                description='Administrator role with full access',
                 created_by='system',
                 created_at=datetime.utcnow()
             )
@@ -26,8 +26,7 @@ def init_db():
         if not user_role:
             user_role = Role(
                 name='user',
-                notes='Standard user role',
-                icon='fa-user',
+                description='Standard user role',
                 created_by='system',
                 created_at=datetime.utcnow()
             )
@@ -42,9 +41,9 @@ def init_db():
                 name='Administrator',
                 email='admin@example.com',
                 vzid='ADMIN',
-                roles=[admin_role, user_role],
-                password='admin'  # This will be hashed by the model
+                roles=[admin_role, user_role]
             )
+            admin_user.set_password('admin')  # Set password using the proper method
             db.session.add(admin_user)
         
         # Commit the changes

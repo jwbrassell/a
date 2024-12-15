@@ -1,5 +1,5 @@
 from datetime import datetime
-from app import db
+from app.extensions import db
 from app.models import User, Role
 
 # Association table for view permissions
@@ -19,7 +19,7 @@ class DatabaseConnection(db.Model):
     port = db.Column(db.Integer)
     database = db.Column(db.String(128))
     username = db.Column(db.String(128))
-    password = db.Column(db.String(256))  # Should be encrypted in production
+    # password field removed - now stored in vault
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

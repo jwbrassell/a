@@ -1,3 +1,6 @@
+"""
+Role-Based Access Control (RBAC) system for Flask application.
+"""
 from functools import wraps
 from flask import current_app, request, render_template, flash
 from flask_login import current_user

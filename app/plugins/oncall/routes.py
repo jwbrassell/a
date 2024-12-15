@@ -11,19 +11,11 @@ from io import StringIO
 from . import bp
 from .models import OnCallRotation, Team, db
 from sqlalchemy.exc import OperationalError
-from app.utils.rbac import requires_roles
-
-def admin_required(f):
-    """Decorator to require admin role for a route."""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.has_role('admin'):
-            return jsonify({'error': 'Admin privileges required'}), 403
-        return f(*args, **kwargs)
-    return decorated_function
+from app.utils.enhanced_rbac import requires_permission
 
 @bp.route('/')
 @login_required
+@requires_permission('oncall_access', 'read')
 def index():
     # Try to get teams, but handle case where table doesn't exist yet
     try:
@@ -37,7 +29,7 @@ def index():
 
 @bp.route('/api/teams', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@requires_permission('oncall_manage', 'read', 'write')
 def manage_teams():
     if request.method == 'POST':
         try:
@@ -76,7 +68,7 @@ def manage_teams():
 
 @bp.route('/api/teams/<int:team_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
-@admin_required
+@requires_permission('oncall_manage', 'read', 'write')
 def manage_team(team_id):
     team = Team.query.get_or_404(team_id)
     
@@ -114,7 +106,7 @@ def manage_team(team_id):
 
 @bp.route('/api/upload', methods=['POST'])
 @login_required
-@admin_required
+@requires_permission('oncall_manage', 'write')
 def upload_oncall():
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -207,6 +199,7 @@ def upload_oncall():
 
 @bp.route('/api/events')
 @login_required
+@requires_permission('oncall_access', 'read')
 def get_events():
     try:
         start = request.args.get('start')
@@ -269,6 +262,7 @@ def get_events():
 
 @bp.route('/api/current')
 @login_required
+@requires_permission('oncall_access', 'read')
 def get_current_oncall():
     try:
         team_id = request.args.get('team')  # Optional team filter
