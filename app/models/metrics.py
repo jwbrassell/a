@@ -3,7 +3,7 @@
 from app.extensions import db
 from datetime import datetime
 from sqlalchemy.dialects.mysql import JSON
-from sqlalchemy import Index, func
+from sqlalchemy import Index, func, event
 from typing import Dict, Any, List
 import json
 
@@ -146,12 +146,9 @@ class MetricDashboard(db.Model):
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     layout = db.Column(JSON, nullable=False)  # Dashboard widget layout
-    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_by_id = db.Column(db.Integer, nullable=False)  # Remove ForeignKey temporarily
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    created_by = db.relationship('User', backref=db.backref('dashboards', lazy='dynamic'))
     
     def __repr__(self):
         return f'<MetricDashboard {self.name}>'
@@ -163,10 +160,25 @@ class MetricDashboard(db.Model):
             'name': self.name,
             'description': self.description,
             'layout': json.loads(self.layout) if isinstance(self.layout, str) else self.layout,
-            'created_by': self.created_by.username,
+            'created_by_id': self.created_by_id,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
+
+# Add foreign key after users table is created
+@event.listens_for(db.metadata, 'after_create')
+def create_foreign_keys(target, connection, **kw):
+    """Create foreign keys after all tables are created."""
+    if not connection.dialect.has_table(connection, 'users'):
+        return
+        
+    # Add foreign key to users table
+    connection.execute('''
+        ALTER TABLE metric_dashboards 
+        ADD CONSTRAINT fk_metric_dashboards_user 
+        FOREIGN KEY (created_by_id) 
+        REFERENCES users (id)
+    ''')
 
 def init_metrics_models():
     """Initialize metrics models."""

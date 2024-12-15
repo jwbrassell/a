@@ -4,7 +4,7 @@ from app.utils.enhanced_rbac import requires_permission
 from app.models import Role, PageRouteMapping, UserActivity, NavigationCategory, User
 from app import db
 from app.plugins.admin import bp
-from app.plugins.admin.monitoring import VaultMonitor
+from app.utils.vault_security_monitor import VaultMonitor
 from datetime import datetime, timedelta
 import logging
 import re

@@ -1,63 +1,30 @@
-feat: Implement Enhanced RBAC and Business Intelligence Features
+refactor: migrate plugins to core modules
 
-This commit introduces a comprehensive RBAC system enhancement and adds business intelligence capabilities to the admin interface.
+This commit completes the migration of plugins to core modules:
 
-RBAC Enhancements:
-- Add enhanced Role model with hierarchy support and permission relationships
-- Implement Permission model for granular access control
-- Add system role flag to prevent deletion of critical roles
-- Create role-permission association tables
-- Add role management interface with visual hierarchy
-- Implement RBAC migration scripts
+1. Migrated admin, profile, and documents plugins to core modules:
+   - Moved routes to app/routes/{admin,profile,documents}/
+   - Moved models to app/models/
+   - Updated imports and dependencies
 
-Business Intelligence Features:
-- Add analytics models for tracking:
-  * Feature usage patterns
-  * Document access analytics
-  * Project performance metrics
-  * Team productivity
-  * Resource utilization
+2. Reorganized analytics:
+   - Created app/models/analytics.py for all analytics models
+   - Renamed metadata column to context_data to avoid SQLAlchemy conflicts
+   - Updated activity tracking to use new analytics models
 
-- Create analytics service with:
-  * Data collection methods
-  * Report generation
-  * Performance metrics
-  * Cost analysis
-  * Multi-level caching
+3. Fixed circular imports:
+   - Restructured route initialization
+   - Moved route registration to __init__.py files
+   - Added proper blueprint initialization
 
-- Add interactive analytics dashboard with:
-  * Real-time metrics visualization
-  * Highcharts integration
-  * Filtering capabilities
-  * Data export functionality
-  * Custom date ranges
+4. Added core functionality:
+   - Profile avatar and preferences management
+   - Admin monitoring and analytics
+   - Document management with templates
 
-Database Changes:
-- Add new tables:
-  * feature_usage
-  * document_analytics
-  * project_metrics
-  * team_productivity
-  * resource_utilization
-- Add necessary indexes for performance
-- Create migration scripts
+5. Updated documentation:
+   - Added route documentation
+   - Updated setup instructions
+   - Fixed admin password references
 
-Technical Improvements:
-- Implement multi-level caching strategy
-- Add comprehensive error handling
-- Enhance logging system
-- Add performance monitoring
-- Implement data export capabilities
-
-This enhancement provides administrators with powerful tools for:
-- Managing user roles and permissions
-- Monitoring system usage
-- Tracking resource utilization
-- Analyzing team performance
-- Making data-driven decisions
-
-Migration Instructions:
-1. Run database migrations
-2. Initialize default permissions
-3. Update existing roles
-4. Verify RBAC configuration
+The application now runs with all core functionality integrated directly into the main app structure, improving maintainability and reducing plugin overhead.

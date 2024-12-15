@@ -22,15 +22,25 @@ def register_plugins(app):
     
     # Load and register plugin blueprints within app context
     with app.app_context():
+        # Ensure static directories exist for all plugins
+        plugins_dir = os.path.join(app.root_path, 'plugins')
+        for plugin_name in os.listdir(plugins_dir):
+            plugin_static = os.path.join(plugins_dir, plugin_name, 'static')
+            if not os.path.exists(plugin_static):
+                os.makedirs(plugin_static, exist_ok=True)
+        
         # Register all blueprints
         blueprints = plugin_manager.load_all_plugins()
         for blueprint in blueprints:
             if blueprint:
                 app.register_blueprint(blueprint)
         
-        # Initialize dispatch routes
-        from app.plugins.dispatch.utils.register_routes import register_dispatch_routes
-        register_dispatch_routes()
+        # Initialize dispatch routes after blueprints are registered
+        try:
+            from app.plugins.dispatch.utils.register_routes import register_dispatch_routes
+            register_dispatch_routes()
+        except ImportError as e:
+            app.logger.warning(f"Could not register dispatch routes: {e}")
 
 def create_app(config_name=None, skip_session=False):
     app = Flask(__name__)
@@ -41,26 +51,15 @@ def create_app(config_name=None, skip_session=False):
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)  # Initialize app-specific config
 
-    # Configure cache settings
-    app.config.update({
-        'CACHE_TYPE': 'simple',
-        'CACHE_DEFAULT_TIMEOUT': 300,
-        'CACHE_THRESHOLD': 1000,
-        'CACHE_KEY_PREFIX': 'flask_cache_',
-        'CACHE_DIR': os.path.join(app.instance_path, 'cache'),
-        'CACHE_OPTIONS': {
-            'mode': 0o600
-        }
-    })
+    # Configure cache directory
+    app.config['CACHE_DIR'] = os.path.join(app.instance_path, 'cache')
+    os.makedirs(app.config['CACHE_DIR'], exist_ok=True)
 
     # Initialize extensions with app
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)  # Initialize CSRF protection
     cache_manager.init_app(app)  # Initialize our enhanced caching system
-
-    # Create cache directory if it doesn't exist
-    os.makedirs(app.config['CACHE_DIR'], exist_ok=True)
 
     # Initialize Flask-Session only if not skipped
     if not skip_session:
@@ -87,8 +86,18 @@ def create_app(config_name=None, skip_session=False):
     login_manager.login_message_category = 'info'
 
     # Import and register blueprints
-    from app.routes import main as main_bp
-    app.register_blueprint(main_bp)
+    from app.routes import init_routes
+    init_routes(app)
+
+    # Register core modules (previously plugins)
+    from app.routes.admin import init_admin
+    init_admin(app)
+
+    from app.routes.profile import init_profile
+    init_profile(app)
+
+    from app.routes.documents import init_documents
+    init_documents(app)
 
     # Check if we're running migrations
     is_migrating = len(sys.argv) > 1 and sys.argv[1] == 'db'

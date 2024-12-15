@@ -17,12 +17,14 @@ def init_database(app, config: SetupConfig):
     """Initialize database and core data"""
     from app import db, create_app
     # Import all models to ensure they're registered with SQLAlchemy
-    from app.plugins.projects.models import ProjectStatus, ProjectPriority, Project, Task, Todo, Comment, History
-    from app.plugins.reports.models import DatabaseConnection, ReportView
-    from app.plugins.awsmon.models import (
-        AWSRegion, EC2Instance, JumpServerTemplate, 
-        SyntheticTest, TestResult, AWSCredential, ChangeLog
-    )
+    from app.models.documents import Document, Category, Tag, DocumentHistory
+    from app.models.analytics import SystemMetric, ApplicationMetric, UserMetric, FeatureUsage, ResourceMetric
+    from app.models.user import User
+    from app.models.role import Role
+    from app.models.permission import Permission
+    from app.models.metrics import SystemMetric, ApplicationMetric, UserMetric
+    from app.models.activity import Activity
+    from app.models.navigation import NavigationItem
     
     with app.app_context():
         try:
@@ -117,7 +119,7 @@ def setup():
     print("  gunicorn -c gunicorn.conf.py wsgi:app")
     print("\nDefault admin credentials:")
     print("Username: admin")
-    print("Password: test123")
+    print("Password: admin")
 
 if __name__ == "__main__":
     setup()

@@ -1,6 +1,8 @@
+import os
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
 from app.utils.cache_manager import CacheManager
 
 # Initialize extensions
@@ -8,6 +10,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 cache_manager = CacheManager()
+csrf = CSRFProtect()
 
 def init_extensions(app):
     """Initialize Flask extensions."""
@@ -15,6 +18,7 @@ def init_extensions(app):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     cache_manager.init_app(app)
+    csrf.init_app(app)
     
     # Configure login
     login_manager.login_view = 'main.login'
@@ -37,8 +41,5 @@ def init_extensions(app):
         'CACHE_TYPE': 'simple',  # For memory cache
         'CACHE_DEFAULT_TIMEOUT': 300,
         'CACHE_THRESHOLD': 1000,  # Maximum number of items in cache
-        'CACHE_KEY_PREFIX': 'flask_cache_',
-        'CACHE_OPTIONS': {
-            'mode': 0o600  # File permissions for cache files
-        }
+        'CACHE_KEY_PREFIX': 'flask_cache_'
     })

@@ -4,6 +4,7 @@ from flask import request, current_app
 from flask_login import current_user
 from app import db
 from app.models import UserActivity
+from app.models.analytics import FeatureUsage, ResourceUtilization
 from app.logging_utils import log_error
 
 def track_activity(f):
@@ -13,9 +14,6 @@ def track_activity(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Import models here to avoid circular imports
-        from app.plugins.admin.models import FeatureUsage, ResourceMetric
-        
         start_time = datetime.utcnow()
         feature_usage = None
         
@@ -34,10 +32,10 @@ def track_activity(f):
                 if '.' in request.endpoint:
                     plugin, feature = request.endpoint.split('.', 1)
                     feature_usage = FeatureUsage(
-                        timestamp=start_time,
-                        feature=feature,
-                        plugin=plugin,
+                        feature_name=feature,
                         user_id=current_user.id,
+                        timestamp=start_time,
+                        action='access',
                         success=True
                     )
                     db.session.add(feature_usage)
@@ -51,15 +49,20 @@ def track_activity(f):
             if current_user.is_authenticated and feature_usage is not None:
                 try:
                     duration = (datetime.utcnow() - start_time).total_seconds()
-                    feature_usage.duration = int(duration)
+                    feature_usage.duration = duration
                     
                     # Track resource metrics
-                    resource_metric = ResourceMetric(
-                        timestamp=datetime.utcnow(),
+                    resource_metric = ResourceUtilization(
+                        resource_id=1,  # Default resource ID for time tracking
                         resource_type='time',
-                        category=request.endpoint,
-                        value=duration,
-                        unit='seconds'
+                        user_id=current_user.id,
+                        utilization=duration,
+                        start_time=start_time,
+                        end_time=datetime.utcnow(),
+                        metadata={
+                            'endpoint': request.endpoint,
+                            'unit': 'seconds'
+                        }
                     )
                     db.session.add(resource_metric)
                     
@@ -68,12 +71,17 @@ def track_activity(f):
                         import psutil
                         process = psutil.Process()
                         memory_usage = process.memory_info().rss / 1024 / 1024  # Convert to MB
-                        memory_metric = ResourceMetric(
-                            timestamp=datetime.utcnow(),
+                        memory_metric = ResourceUtilization(
+                            resource_id=2,  # Default resource ID for memory tracking
                             resource_type='memory',
-                            category=request.endpoint,
-                            value=memory_usage,
-                            unit='MB'
+                            user_id=current_user.id,
+                            utilization=memory_usage,
+                            start_time=datetime.utcnow(),
+                            end_time=datetime.utcnow(),
+                            metadata={
+                                'endpoint': request.endpoint,
+                                'unit': 'MB'
+                            }
                         )
                         db.session.add(memory_metric)
                     except:
@@ -95,12 +103,12 @@ def track_activity(f):
                 try:
                     duration = (datetime.utcnow() - start_time).total_seconds()
                     error_feature = FeatureUsage(
-                        timestamp=datetime.utcnow(),
-                        feature=request.endpoint.split('.', 1)[1],
-                        plugin=request.endpoint.split('.', 1)[0],
+                        feature_name=request.endpoint.split('.', 1)[1],
                         user_id=current_user.id,
-                        success=False,
-                        duration=int(duration)
+                        timestamp=datetime.utcnow(),
+                        action='access',
+                        duration=duration,
+                        success=False
                     )
                     db.session.add(error_feature)
                     db.session.commit()
@@ -124,13 +132,17 @@ def track_resource_usage(resource_type, category, value, unit):
     """
     try:
         if current_user.is_authenticated:
-            from app.plugins.admin.models import ResourceMetric
-            metric = ResourceMetric(
-                timestamp=datetime.utcnow(),
+            metric = ResourceUtilization(
+                resource_id=1,  # Default resource ID
                 resource_type=resource_type,
-                category=category,
-                value=value,
-                unit=unit
+                user_id=current_user.id,
+                utilization=value,
+                start_time=datetime.utcnow(),
+                end_time=datetime.utcnow(),
+                metadata={
+                    'category': category,
+                    'unit': unit
+                }
             )
             db.session.add(metric)
             db.session.commit()
@@ -150,14 +162,14 @@ def track_feature_usage(feature, plugin, duration=None, success=True):
     """
     try:
         if current_user.is_authenticated:
-            from app.plugins.admin.models import FeatureUsage
             usage = FeatureUsage(
-                timestamp=datetime.utcnow(),
-                feature=feature,
-                plugin=plugin,
+                feature_name=feature,
                 user_id=current_user.id,
+                timestamp=datetime.utcnow(),
+                action='manual',
                 duration=duration,
-                success=success
+                success=success,
+                metadata={'plugin': plugin}
             )
             db.session.add(usage)
             db.session.commit()

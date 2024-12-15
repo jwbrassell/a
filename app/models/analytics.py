@@ -1,10 +1,11 @@
 """Analytics models for business intelligence features."""
 
 from app.extensions import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy import func, and_
+from collections import defaultdict
 
 class FeatureUsage(db.Model):
     """Track feature usage statistics."""
@@ -18,7 +19,7 @@ class FeatureUsage(db.Model):
     duration = db.Column(db.Float)  # Duration in seconds
     action = db.Column(db.String(64))  # e.g., 'view', 'edit', 'delete'
     success = db.Column(db.Boolean, default=True)
-    metadata = db.Column(JSON)  # Additional context
+    context_data = db.Column(JSON)  # Additional context (renamed from metadata)
     
     # Relationships
     user = db.relationship('User', backref=db.backref('feature_usage', lazy='dynamic'))
@@ -34,7 +35,7 @@ class FeatureUsage(db.Model):
             action=action,
             duration=duration,
             success=success,
-            metadata=metadata
+            context_data=metadata
         )
         db.session.add(usage)
         db.session.commit()
@@ -69,7 +70,7 @@ class DocumentAnalytics(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     action = db.Column(db.String(64))  # e.g., 'view', 'download', 'edit'
     duration = db.Column(db.Float)  # Time spent viewing/editing
-    metadata = db.Column(JSON)  # Additional context
+    context_data = db.Column(JSON)  # Additional context (renamed from metadata)
     
     # Relationships
     user = db.relationship('User', backref=db.backref('document_access', lazy='dynamic'))
@@ -85,7 +86,7 @@ class DocumentAnalytics(db.Model):
             user_id=user_id,
             action=action,
             duration=duration,
-            metadata=metadata
+            context_data=metadata
         )
         db.session.add(access)
         db.session.commit()
@@ -118,7 +119,7 @@ class ProjectMetrics(db.Model):
     metric_name = db.Column(db.String(64), nullable=False)  # e.g., 'completion_rate', 'time_spent'
     value = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    metadata = db.Column(JSON)  # Additional context
+    context_data = db.Column(JSON)  # Additional context (renamed from metadata)
     
     @staticmethod
     def record_metric(project_id: int, metric_name: str, value: float,
@@ -128,7 +129,7 @@ class ProjectMetrics(db.Model):
             project_id=project_id,
             metric_name=metric_name,
             value=value,
-            metadata=metadata
+            context_data=metadata
         )
         db.session.add(metric)
         db.session.commit()
@@ -143,7 +144,7 @@ class ProjectMetrics(db.Model):
             performance[metric.metric_name].append({
                 'value': metric.value,
                 'timestamp': metric.timestamp,
-                'metadata': metric.metadata
+                'context_data': metric.context_data
             })
         return dict(performance)
 
@@ -158,7 +159,7 @@ class TeamProductivity(db.Model):
     metric_name = db.Column(db.String(64), nullable=False)  # e.g., 'tasks_completed', 'hours_logged'
     value = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    metadata = db.Column(JSON)  # Additional context
+    context_data = db.Column(JSON)  # Additional context (renamed from metadata)
     
     # Relationships
     user = db.relationship('User', backref=db.backref('productivity_metrics', lazy='dynamic'))
@@ -172,7 +173,7 @@ class TeamProductivity(db.Model):
             user_id=user_id,
             metric_name=metric_name,
             value=value,
-            metadata=metadata
+            context_data=metadata
         )
         db.session.add(metric)
         db.session.commit()
@@ -221,7 +222,7 @@ class ResourceUtilization(db.Model):
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime)
     cost = db.Column(db.Float)  # Cost associated with usage
-    metadata = db.Column(JSON)  # Additional context
+    context_data = db.Column(JSON)  # Additional context (renamed from metadata)
     
     # Relationships
     user = db.relationship('User', backref=db.backref('resource_usage', lazy='dynamic'))
@@ -242,7 +243,7 @@ class ResourceUtilization(db.Model):
             start_time=start_time,
             end_time=end_time,
             cost=cost,
-            metadata=metadata
+            context_data=metadata
         )
         db.session.add(usage)
         db.session.commit()

@@ -4,7 +4,8 @@ from flask import current_app, request, render_template, abort
 from flask_login import current_user
 import logging
 from app.extensions import db
-from app.models.permissions import Permission, Action, RoutePermission
+from app.models.permission import Permission
+from app.models.permissions import Action, RoutePermission
 from app.utils.route_manager import route_to_endpoint
 
 logger = logging.getLogger(__name__)

@@ -9,12 +9,51 @@ from datetime import datetime, timedelta
 import logging
 from typing import Dict, Any
 import json
+from utils.vault_security_monitor import VaultSecurityMonitor
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Create blueprint
 bp = Blueprint('monitoring', __name__, url_prefix='/monitoring')
+
+class VaultMonitor:
+    """Wrapper class for VaultSecurityMonitor with additional monitoring features."""
+    
+    def __init__(self, vault_utility):
+        """Initialize with VaultUtility instance."""
+        self.security_monitor = VaultSecurityMonitor(vault_utility)
+        
+    def get_monitoring_summary(self):
+        """Get comprehensive monitoring summary."""
+        try:
+            # Get security report
+            security_report = self.security_monitor.generate_security_report()
+            
+            # Get system metrics
+            metrics = Metric.query.filter(
+                Metric.tags.contains('"type":"system"'),
+                Metric.timestamp >= datetime.utcnow() - timedelta(hours=1)
+            ).all()
+            
+            # Get active alerts
+            alerts = MetricAlert.query.filter_by(enabled=True).all()
+            
+            return {
+                'status': security_report['overall_status'],
+                'security': security_report,
+                'metrics': [m.to_dict() for m in metrics],
+                'alerts': [a.to_dict() for a in alerts],
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get monitoring summary: {e}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'timestamp': datetime.utcnow().isoformat()
+            }
 
 @bp.route('/')
 @login_required

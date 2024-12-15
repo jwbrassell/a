@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, Callable
 from flask import current_app, request
 from flask_caching import Cache
-from werkzeug.contrib.cache import FileSystemCache
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

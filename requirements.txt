@@ -6,6 +6,8 @@ Flask-Caching
 Flask-Login
 Flask-Migrate
 Flask-SQLAlchemy
+Flask-Session
+Flask-WTF
 greenlet
 gunicorn
 itsdangerous

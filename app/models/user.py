@@ -2,7 +2,7 @@
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.extensions import db, cache
+from app.extensions import db, cache_manager
 
 # Association table for user roles
 user_roles = db.Table('user_roles',
@@ -64,7 +64,7 @@ class User(UserMixin, db.Model):
         self.avatar_data = image_data
         self.avatar_mimetype = mimetype
         # Clear the cached avatar
-        cache.delete(f'avatar_{self.id}')
+        cache_manager.memory_cache.delete(f'avatar_{self.id}')
 
     def get_avatar_url(self):
         """Get URL for avatar image."""
@@ -80,12 +80,12 @@ class User(UserMixin, db.Model):
             return None, None
 
         # Try to get from cache first
-        cached_data = cache.get(f'avatar_{self.id}')
+        cached_data = cache_manager.memory_cache.get(f'avatar_{self.id}')
         if cached_data:
             return cached_data, self.avatar_mimetype
 
         # If not in cache, get from database and cache it
-        cache.set(f'avatar_{self.id}', self.avatar_data, timeout=3600)  # Cache for 1 hour
+        cache_manager.memory_cache.set(f'avatar_{self.id}', self.avatar_data, timeout=3600)  # Cache for 1 hour
         return self.avatar_data, self.avatar_mimetype
 
     def __repr__(self):

@@ -17,7 +17,7 @@
    ```
 5. Login with:
    - Username: admin
-   - Password: test123
+   - Password: admin
 
 That's it! The setup script automatically:
 - Creates the .env file with secure defaults

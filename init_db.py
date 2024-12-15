@@ -1,6 +1,6 @@
 from app import create_app, db
 from app.models import User, Role
-from app.plugins.admin.models import SystemMetric, ApplicationMetric, UserMetric, FeatureUsage, ResourceMetric
+from app.models.metrics import SystemMetric, ApplicationMetric, UserMetric, FeatureUsage, ResourceMetric
 from datetime import datetime
 
 def init_db():

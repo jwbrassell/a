@@ -125,11 +125,6 @@ class PluginBase:
     def init_app(self, app):
         """Initialize plugin with Flask application."""
         try:
-            # Register blueprint if not already registered
-            if self.blueprint and self.blueprint.name not in app.blueprints:
-                app.register_blueprint(self.blueprint)
-                self.logger.info(f"Registered blueprint for plugin: {self.metadata.name}")
-
             # Initialize plugin-specific logging
             if not app.debug:
                 handler = logging.FileHandler(

@@ -1,7 +1,7 @@
 """Enhance RBAC system with permissions and role improvements.
 
 Revision ID: enhance_rbac_system
-Revises: # Leave this empty, alembic will fill it
+Revises: add_plugin_permissions
 Create Date: 2024-01-01 12:00:00.000000
 """
 from alembic import op
@@ -10,7 +10,7 @@ from datetime import datetime
 
 # revision identifiers, used by Alembic
 revision = 'enhance_rbac_system'
-down_revision = None
+down_revision = 'add_plugin_permissions'
 branch_labels = None
 depends_on = None
 
@@ -22,30 +22,9 @@ def upgrade():
     op.add_column('role', sa.Column('weight', sa.Integer(), nullable=False, server_default='0'))
     op.add_column('role', sa.Column('updated_by', sa.String(64), nullable=True))
 
-    # Create permission table
-    op.create_table(
-        'permission',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(128), nullable=False),
-        sa.Column('description', sa.String(256), nullable=True),
-        sa.Column('category', sa.String(64), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False, default=datetime.utcnow),
-        sa.Column('created_by', sa.String(64), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=True),
-        sa.Column('updated_by', sa.String(64), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('name')
-    )
-
-    # Create role_permissions association table
-    op.create_table(
-        'role_permissions',
-        sa.Column('role_id', sa.Integer(), nullable=False),
-        sa.Column('permission_id', sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(['role_id'], ['role.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['permission_id'], ['permission.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('role_id', 'permission_id')
-    )
+    # Add new columns to permission table
+    op.add_column('permission', sa.Column('category', sa.String(64), nullable=True))
+    op.add_column('permission', sa.Column('updated_by', sa.String(64), nullable=True))
 
     # Create indexes
     op.create_index('ix_permission_category', 'permission', ['category'])
@@ -82,19 +61,28 @@ def upgrade():
     ]
     
     for name, description, category in default_permissions:
-        connection.execute(
-            sa.text(
-                'INSERT INTO permission (name, description, category, created_at, created_by) '
-                'VALUES (:name, :description, :category, :created_at, :created_by)'
-            ),
-            {
-                'name': name,
-                'description': description,
-                'category': category,
-                'created_at': datetime.utcnow(),
-                'created_by': 'system'
-            }
-        )
+        # Check if permission already exists
+        result = connection.execute(
+            sa.text('SELECT id FROM permission WHERE name = :name'),
+            {'name': name}
+        ).fetchone()
+        
+        if not result:
+            now = datetime.utcnow()
+            connection.execute(
+                sa.text(
+                    'INSERT INTO permission (name, description, category, created_at, created_by, updated_at) '
+                    'VALUES (:name, :description, :category, :created_at, :created_by, :updated_at)'
+                ),
+                {
+                    'name': name,
+                    'description': description,
+                    'category': category,
+                    'created_at': now,
+                    'created_by': 'system',
+                    'updated_at': now
+                }
+            )
 
     # Update existing admin role to be a system role
     connection.execute(
@@ -109,12 +97,13 @@ def upgrade():
         }
     )
 
-    # Add all permissions to admin role
+    # Add all permissions to admin role if not already added
     connection.execute(
         sa.text(
             'INSERT INTO role_permissions (role_id, permission_id) '
             'SELECT r.id, p.id FROM role r, permission p '
-            'WHERE r.name = :role_name'
+            'WHERE r.name = :role_name '
+            'AND NOT EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id)'
         ),
         {'role_name': 'admin'}
     )
@@ -126,9 +115,9 @@ def downgrade():
     op.drop_index('ix_permission_name')
     op.drop_index('ix_permission_category')
 
-    # Drop tables
-    op.drop_table('role_permissions')
-    op.drop_table('permission')
+    # Remove columns from permission table
+    op.drop_column('permission', 'updated_by')
+    op.drop_column('permission', 'category')
 
     # Remove columns from role table
     op.drop_column('role', 'updated_by')

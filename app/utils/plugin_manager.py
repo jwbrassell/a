@@ -146,7 +146,7 @@ class PluginManager:
         # Load each plugin
         for plugin_dir in plugin_dirs:
             plugin = self.load_plugin(plugin_dir.name)
-            if plugin and plugin.blueprint:
+            if plugin and plugin.blueprint and plugin.blueprint.name not in self.app.blueprints:
                 loaded_blueprints.append(plugin.blueprint)
         
         return loaded_blueprints

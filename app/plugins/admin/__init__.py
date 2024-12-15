@@ -1,12 +1,14 @@
 """Admin plugin for system management."""
 
-from flask import Blueprint
+from flask import Blueprint, render_template
 from app.utils.plugin_base import PluginBase, PluginMetadata
-from app.utils.enhanced_rbac import requires_permission
 import logging
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Create blueprint first so it can be imported by routes
+bp = Blueprint('admin', __name__)
 
 class AdminPlugin(PluginBase):
     """Admin plugin implementation."""
@@ -24,14 +26,12 @@ class AdminPlugin(PluginBase):
         )
         super().__init__(metadata)
         
-        # Initialize blueprint with standard configuration
-        self.init_blueprint(
-            template_folder='templates',
-            static_folder='static'
-        )
+        # Use existing blueprint
+        self.blueprint = bp
         
-        # Register routes and APIs
-        self.register_routes()
+        # Set standard configuration
+        self.blueprint.template_folder = 'templates'
+        self.blueprint.static_folder = 'static'
 
     def register_routes(self):
         """Register admin routes and APIs."""
@@ -70,6 +70,9 @@ class AdminPlugin(PluginBase):
         app.config.setdefault('ADMIN_USER_ID', 1)
         app.config.setdefault('ADMIN_ITEMS_PER_PAGE', 25)
         
+        # Register routes after app initialization
+        self.register_routes()
+        
         # Register error handlers that use main app templates
         self.register_error_handlers(app)
         
@@ -78,17 +81,14 @@ class AdminPlugin(PluginBase):
     def register_error_handlers(self, app):
         """Register error handlers that use main app templates."""
         @app.errorhandler(403)
-        @requires_permission('admin_error_access', 'read')
         def forbidden_error(error):
             return render_template('403.html'), 403
 
         @app.errorhandler(404)
-        @requires_permission('admin_error_access', 'read')
         def not_found_error(error):
             return render_template('404.html'), 404
 
         @app.errorhandler(500)
-        @requires_permission('admin_error_access', 'read')
         def internal_error(error):
             return render_template('500.html'), 500
 

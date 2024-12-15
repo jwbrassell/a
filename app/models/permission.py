@@ -3,6 +3,7 @@
 from app.extensions import db
 from datetime import datetime
 from typing import Dict, Any, List
+from app.models.permissions import role_permissions
 
 class Permission(db.Model):
     """Permission model defining granular access controls."""
@@ -18,7 +19,8 @@ class Permission(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = db.Column(db.String(64))
     
-    # Relationships are defined in Role model via role_permissions table
+    # Relationships
+    roles = db.relationship('Role', secondary=role_permissions, lazy='dynamic')
     
     def __repr__(self):
         return f'<Permission {self.name}>'
@@ -34,7 +36,7 @@ class Permission(db.Model):
             'created_by': self.created_by,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'updated_by': self.updated_by,
-            'role_count': len(self.roles)
+            'role_count': self.roles.count()
         }
     
     @staticmethod

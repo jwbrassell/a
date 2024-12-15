@@ -19,7 +19,7 @@ class TemplateModel(db.Model):
     status = db.Column(db.String(20), default='active', index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     # Relationships
     created_by = db.relationship('User', backref=db.backref('template_items', lazy='dynamic'))
