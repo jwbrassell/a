@@ -16,17 +16,7 @@ class CacheManager:
     
     def __init__(self, app=None):
         """Initialize cache manager with optional Flask app."""
-        self.memory_cache = Cache(config={
-            'CACHE_TYPE': 'simple',
-            'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes
-        })
-        
-        self.filesystem_cache = Cache(config={
-            'CACHE_TYPE': 'filesystem',
-            'CACHE_DIR': 'instance/cache',
-            'CACHE_DEFAULT_TIMEOUT': 3600,  # 1 hour
-            'CACHE_THRESHOLD': 1000  # Maximum number of items
-        })
+        self.memory_cache = Cache()
         
         if app is not None:
             self.init_app(app)
@@ -34,7 +24,6 @@ class CacheManager:
     def init_app(self, app):
         """Initialize cache with Flask application."""
         self.memory_cache.init_app(app)
-        self.filesystem_cache.init_app(app)
         
         # Register cache management commands
         @app.cli.group()
@@ -74,7 +63,7 @@ class CacheManager:
         return hashlib.sha256(key_string.encode()).hexdigest()
 
     def cached(self, timeout=300, key_prefix='', unless=None):
-        """Multi-level caching decorator."""
+        """Caching decorator."""
         def decorator(f):
             @wraps(f)
             def decorated_function(*args, **kwargs):
@@ -83,26 +72,17 @@ class CacheManager:
 
                 cache_key = f"{key_prefix}:{self.generate_cache_key(*args, **kwargs)}"
                 
-                # Try memory cache first
+                # Try cache
                 result = self.memory_cache.get(cache_key)
                 if result is not None:
-                    logger.debug(f"Cache hit (memory): {cache_key}")
-                    return result
-                
-                # Try filesystem cache
-                result = self.filesystem_cache.get(cache_key)
-                if result is not None:
-                    logger.debug(f"Cache hit (filesystem): {cache_key}")
-                    # Store in memory for faster subsequent access
-                    self.memory_cache.set(cache_key, result, timeout=timeout)
+                    logger.debug(f"Cache hit: {cache_key}")
                     return result
                 
                 # Cache miss - execute function
                 result = f(*args, **kwargs)
                 
-                # Store in both caches
+                # Store in cache
                 self.memory_cache.set(cache_key, result, timeout=timeout)
-                self.filesystem_cache.set(cache_key, result, timeout=timeout)
                 logger.debug(f"Cache miss: {cache_key}")
                 
                 return result
@@ -116,7 +96,7 @@ class CacheManager:
             def decorated_function(instance, *args, **kwargs):
                 cache_key = f"memo:{instance.__class__.__name__}:{f.__name__}:{self.generate_cache_key(*args, **kwargs)}"
                 
-                # Try memory cache
+                # Try cache
                 result = self.memory_cache.get(cache_key)
                 if result is not None:
                     return result
@@ -139,7 +119,7 @@ class CacheManager:
 
                 cache_key = f"view:{key_prefix}:{request.path}:{request.query_string.decode()}"
                 
-                # Try memory cache
+                # Try cache
                 response = self.memory_cache.get(cache_key)
                 if response is not None:
                     return response
@@ -175,7 +155,6 @@ class CacheManager:
     def clear_all(self):
         """Clear all caches."""
         self.memory_cache.clear()
-        self.filesystem_cache.clear()
 
     def clear_pattern(self, pattern: str):
         """Clear all cache entries matching a pattern."""
@@ -186,14 +165,9 @@ class CacheManager:
         """Get cache statistics."""
         return {
             'memory_cache': {
-                'size': len(self.memory_cache.cache._cache),
+                'size': len(getattr(self.memory_cache.cache, '_cache', {})),
                 'hits': getattr(self.memory_cache.cache, '_hits', 0),
                 'misses': getattr(self.memory_cache.cache, '_misses', 0)
-            },
-            'filesystem_cache': {
-                'size': len(self.filesystem_cache.cache._cache),
-                'hits': getattr(self.filesystem_cache.cache, '_hits', 0),
-                'misses': getattr(self.filesystem_cache.cache, '_misses', 0)
             }
         }
 
@@ -231,7 +205,8 @@ class CacheManager:
             return self.memory_cache.get(metrics_key) or {}
         
         all_metrics = {}
-        for key in self.memory_cache.cache._cache:
+        cache_dict = getattr(self.memory_cache.cache, '_cache', {})
+        for key in cache_dict:
             if key.startswith('metrics:'):
                 endpoint = key.split(':', 1)[1]
                 all_metrics[endpoint] = self.memory_cache.get(key) or {}
@@ -242,7 +217,7 @@ cache_manager = CacheManager()
 
 # Convenience decorators
 def cached(timeout=300, key_prefix='', unless=None):
-    """Convenience decorator for multi-level caching."""
+    """Convenience decorator for caching."""
     return cache_manager.cached(timeout=timeout, key_prefix=key_prefix, unless=unless)
 
 def memoize(timeout=300):

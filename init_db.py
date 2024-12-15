@@ -2,10 +2,15 @@ from app import create_app, db
 from app.models import User, Role
 from app.models.permission import Permission
 from datetime import datetime
+import os
 
 def init_db():
     """Initialize the database with default admin user and roles."""
-    app = create_app()
+    # Set environment variable to skip plugin loading during init
+    os.environ['SKIP_PLUGIN_LOAD'] = '1'
+    
+    # Create app with session handling disabled initially
+    app = create_app(skip_session=True)
     
     with app.app_context():
         # Create database tables

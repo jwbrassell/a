@@ -28,21 +28,20 @@ class OnCallPlugin(PluginBase):
             static_folder='static'
         )
         
-        # Import routes after blueprint creation to avoid circular imports
-        from app.plugins.oncall import routes, models
-        
         # Register error handlers and other configurations
         self._register_error_handlers()
         
     def register_models(self):
         """Register models for the plugin."""
+        # Import models here to avoid circular imports
         from app.plugins.oncall.models import Team, OnCallRotation
         logger.info(f"Registered models for {self.metadata.name} plugin")
         
     def register_routes(self):
         """Register routes for the plugin."""
-        # Routes are automatically registered via blueprint
-        # Additional route registration if needed can be done here
+        # Import and register routes here to avoid circular imports
+        from app.plugins.oncall import routes
+        routes.register_routes(self.blueprint)
         logger.info(f"Registered routes for {self.metadata.name} plugin")
         
     def register_template_filters(self):
@@ -91,5 +90,7 @@ class OnCallPlugin(PluginBase):
 # Create plugin instance
 plugin = OnCallPlugin()
 
-# Create blueprint reference for compatibility
-bp = plugin.blueprint
+# Make the blueprint available for import
+def get_blueprint():
+    """Get the plugin's blueprint."""
+    return plugin.blueprint

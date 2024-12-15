@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, render_template
 from typing import Optional, Dict, Any, List
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from sqlalchemy.exc import SQLAlchemyError
 from functools import wraps
 import os
@@ -22,6 +22,7 @@ class PluginMetadata:
     icon: str
     category: str
     weight: int = 0
+    permissions: List[str] = field(default_factory=list)  # Optional permissions list
 
 class PluginError(Exception):
     """Base exception for plugin-related errors."""
@@ -127,9 +128,10 @@ class PluginBase:
         try:
             # Initialize plugin-specific logging
             if not app.debug:
+                log_dir = app.config.get('LOG_DIR', 'logs')
+                os.makedirs(log_dir, exist_ok=True)
                 handler = logging.FileHandler(
-                    filename=os.path.join(app.config['LOG_DIR'], 
-                                        f'plugin_{self.metadata.name}.log')
+                    filename=os.path.join(log_dir, f'plugin_{self.metadata.name}.log')
                 )
                 handler.setFormatter(logging.Formatter(
                     '%(asctime)s %(levelname)s: %(message)s '

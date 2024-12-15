@@ -30,18 +30,12 @@ class ProjectsPlugin(PluginBase):
             static_folder='static'
         )
         
-        # Import routes after blueprint creation to avoid circular imports
-        from app.plugins.projects import (
-            main_routes, project_routes, task_routes,
-            subtask_routes, comment_routes, management_routes,
-            priority_routes, status_routes
-        )
-        
         # Register error handlers and other configurations
         self._register_error_handlers()
         
     def register_models(self):
         """Register models for the plugin."""
+        # Import models here to avoid circular imports
         from app.plugins.projects.models import (
             Project, Task, Todo, Comment, History,
             ProjectStatus, ProjectPriority
@@ -50,18 +44,28 @@ class ProjectsPlugin(PluginBase):
         
     def register_routes(self):
         """Register routes for the plugin."""
-        # Routes are automatically registered via blueprint
-        # Additional route registration if needed can be done here
+        # Import routes here to avoid circular imports
+        from app.plugins.projects import (
+            main_routes, project_routes, task_routes,
+            subtask_routes, comment_routes, management_routes,
+            priority_routes, status_routes
+        )
+        
+        # Register route modules with blueprint
+        main_routes.register_routes(self.blueprint)
+        project_routes.register_routes(self.blueprint)
+        task_routes.register_routes(self.blueprint)
+        subtask_routes.register_routes(self.blueprint)
+        comment_routes.register_routes(self.blueprint)
+        management_routes.register_routes(self.blueprint)
+        priority_routes.register_routes(self.blueprint)
+        status_routes.register_routes(self.blueprint)
+        
         logger.info(f"Registered routes for {self.metadata.name} plugin")
         
     def register_template_filters(self):
         """Register template filters for the plugin."""
-        from .plugin import route_to_endpoint
-        
-        @self.blueprint.app_template_filter('route_to_endpoint')
-        def _route_to_endpoint(route):
-            """Convert route name to endpoint name."""
-            return route_to_endpoint(route)
+        from app.plugins.projects.models import ProjectStatus, ProjectPriority
         
         @self.blueprint.app_template_filter('format_status')
         def format_status(status):
@@ -81,7 +85,7 @@ class ProjectsPlugin(PluginBase):
         
     def register_context_processors(self):
         """Register context processors for the plugin."""
-        from .plugin import can_edit_project
+        from app.plugins.projects.utils import can_edit_project
         
         @self.blueprint.context_processor
         def utility_processor():
@@ -124,21 +128,21 @@ class ProjectsPlugin(PluginBase):
         # Initialize default configurations
         if not app.testing:
             with app.app_context():
-                from .plugin import init_default_configurations
+                from app.plugins.projects.utils import init_default_configurations
                 init_default_configurations(app)
         
         # Initialize caching
         if app.config.get('ENABLE_CACHING'):
-            from .utils.caching import init_cache
+            from app.plugins.projects.utils.caching import init_cache
             init_cache(app)
         
         # Initialize monitoring if enabled
         if app.config.get('ENABLE_QUERY_TRACKING'):
-            from .utils.monitoring import init_monitoring
+            from app.plugins.projects.utils.monitoring import init_monitoring
             init_monitoring(app)
         
         # Register CLI commands
-        from .plugin import register_commands
+        from app.plugins.projects.utils import register_commands
         register_commands(app)
         
         # Log successful initialization
@@ -147,8 +151,7 @@ class ProjectsPlugin(PluginBase):
 # Create plugin instance
 plugin = ProjectsPlugin()
 
-# Create blueprint reference for compatibility
-bp = plugin.blueprint
-
-# Import models after plugin creation to avoid circular imports
-from . import models
+# Make the blueprint available for import
+def get_blueprint():
+    """Get the plugin's blueprint."""
+    return plugin.blueprint

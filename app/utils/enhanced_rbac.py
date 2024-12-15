@@ -10,6 +10,57 @@ from app.utils.route_manager import route_to_endpoint
 
 logger = logging.getLogger(__name__)
 
+def register_permission(name, description=None, actions=None, roles=None):
+    """
+    Register a new permission with optional actions and roles.
+    
+    Args:
+        name: Name of the permission
+        description: Optional description of the permission
+        actions: Optional list of action names to associate
+        roles: Optional list of role names to grant permission to
+    
+    Returns:
+        Permission object if successful, None if failed
+    """
+    try:
+        # Check if permission already exists
+        permission = Permission.query.filter_by(name=name).first()
+        if not permission:
+            permission = Permission(
+                name=name,
+                description=description or f"Permission for {name}",
+                created_by='system'
+            )
+            db.session.add(permission)
+            
+            # Add actions if specified
+            if actions:
+                for action_name in actions:
+                    action = Action.query.filter_by(name=action_name).first()
+                    if action and action not in permission.actions:
+                        permission.actions.append(action)
+            
+            # Add roles if specified
+            if roles:
+                from app.models import Role
+                for role_name in roles:
+                    role = Role.query.filter_by(name=role_name).first()
+                    if role and permission not in role.permissions:
+                        role.permissions.append(permission)
+            
+            db.session.commit()
+            logger.info(f"Successfully registered permission: {name}")
+            return permission
+        else:
+            logger.info(f"Permission already exists: {name}")
+            return permission
+            
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error registering permission: {str(e)}")
+        return None
+
 def init_default_actions():
     """Initialize default actions if they don't exist."""
     default_actions = [

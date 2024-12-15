@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}AWS Monitor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4">AWS Monitor Dashboard</h1>
+
+    <div class="row">
+        <!-- Instance Overview -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Instance Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Region</th>
+                                    <th>Running</th>
+                                    <th>Stopped</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for region in regions %}
+                                <tr>
+                                    <td>{{ region.code }}</td>
+                                    <td>{{ region.instances|selectattr('state', 'equalto', 'running')|list|length }}</td>
+                                    <td>{{ region.instances|selectattr('state', 'equalto', 'stopped')|list|length }}</td>
+                                    <td>{{ region.instances|length }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for instance in instances|sort(attribute='updated_at', reverse=true)[:5] %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ instance.name }}</h6>
+                                <small>{{ instance.updated_at|timeago }}</small>
+                            </div>
+                            <p class="mb-1">
+                                Status: <span class="badge bg-{{ instance.state|instance_status_class }}">{{ instance.state }}</span>
+                            </p>
+                            <small>{{ instance.region.code }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh dashboard every 60 seconds
+    setInterval(function() {
+        fetch('/api/poll')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                }
+            })
+            .catch(error => console.error('Error polling:', error));
+    }, 60000);
+});
+</script>
+{% endblock %}

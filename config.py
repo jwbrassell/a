@@ -24,6 +24,12 @@ class Config:
     # SQLite configuration
     SQLITE_PATH = os.getenv('SQLITE_PATH', 'instance/app.db')
     
+    # Flask-Caching configuration
+    CACHE_TYPE = 'simple'  # Use simple cache for development
+    CACHE_DEFAULT_TIMEOUT = 300
+    CACHE_THRESHOLD = 1000
+    CACHE_KEY_PREFIX = 'flask_cache_'
+    
     # Session configuration
     SESSION_TYPE = 'sqlalchemy'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=2)
@@ -63,6 +69,11 @@ class Config:
         
         # Ensure proper permissions on instance directory
         os.chmod(instance_path, 0o755)
+        
+        # Create cache directory if using filesystem cache
+        cache_dir = os.path.join(instance_path, 'cache')
+        os.makedirs(cache_dir, exist_ok=True)
+        os.chmod(cache_dir, 0o755)
         
         # Set database URI based on configuration
         if app.config['DB_TYPE'] == 'mariadb':
@@ -135,6 +146,7 @@ class Config:
 class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
+    CACHE_TYPE = 'simple'  # Use simple cache for development
     
     @classmethod
     def init_app(cls, app):
@@ -150,6 +162,7 @@ class TestingConfig(Config):
     TESTING = True
     WTF_CSRF_ENABLED = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    CACHE_TYPE = 'null'  # Disable caching in testing
     
     @classmethod
     def init_app(cls, app):
@@ -163,6 +176,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
+    CACHE_TYPE = 'filesystem'  # Use filesystem cache in production
     
     @classmethod
     def init_app(cls, app):

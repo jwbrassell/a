@@ -28,21 +28,20 @@ class HandoffsPlugin(PluginBase):
             static_folder='static'
         )
         
-        # Import routes after blueprint creation to avoid circular imports
-        from app.plugins.handoffs import routes
-        
         # Register error handlers and other configurations
         self._register_error_handlers()
         
     def register_models(self):
         """Register models for the plugin."""
+        # Import models here to avoid circular imports
         from app.plugins.handoffs.models import Handoff, HandoffShift
         logger.info(f"Registered models for {self.metadata.name} plugin")
         
     def register_routes(self):
         """Register routes for the plugin."""
-        # Routes are automatically registered via blueprint
-        # Additional route registration if needed can be done here
+        # Import and register routes here to avoid circular imports
+        from app.plugins.handoffs import routes
+        routes.register_routes(self.blueprint)
         logger.info(f"Registered routes for {self.metadata.name} plugin")
         
     def register_template_filters(self):
@@ -89,11 +88,29 @@ class HandoffsPlugin(PluginBase):
         # Register context processors
         self.register_context_processors()
         
+        # Initialize plugin
+        with app.app_context():
+            # Register permissions
+            from app.utils.enhanced_rbac import register_permission
+            permissions = [
+                'handoffs_view',
+                'handoffs_create',
+                'handoffs_edit',
+                'handoffs_delete'
+            ]
+            for permission in permissions:
+                register_permission(
+                    permission,
+                    f"Permission for {permission}"
+                )
+        
         # Log successful initialization
         logger.info(f"Initialized {self.metadata.name} plugin v{self.metadata.version}")
 
 # Create plugin instance
 plugin = HandoffsPlugin()
 
-# Create blueprint reference for compatibility
-bp = plugin.blueprint
+# Make the blueprint available for import
+def get_blueprint():
+    """Get the plugin's blueprint."""
+    return plugin.blueprint

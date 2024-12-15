@@ -10,6 +10,7 @@ import subprocess
 import logging
 import re
 import time
+import shutil
 from pathlib import Path
 from utils.generate_dev_certs import CertificateGenerator
 from utils.install_vault import VaultInstaller
@@ -39,6 +40,13 @@ class VaultDevSetup:
             installer.install()
         return True
 
+    def clean_vault_data(self):
+        """Clean up existing Vault data."""
+        if self.vault_data_dir.exists():
+            shutil.rmtree(self.vault_data_dir)
+        if Path('.env.vault').exists():
+            Path('.env.vault').unlink()
+
     def setup_directories(self):
         """Create necessary directories."""
         self.vault_data_dir.mkdir(exist_ok=True)
@@ -46,7 +54,18 @@ class VaultDevSetup:
 
     def generate_certificates(self):
         """Generate SSL certificates."""
-        self.cert_generator.generate()
+        self.cert_generator.setup_certificates()
+
+    def kill_existing_vault(self):
+        """Kill any existing Vault processes."""
+        try:
+            if sys.platform == "win32":
+                subprocess.run(['taskkill', '/F', '/IM', 'vault.exe'], capture_output=True)
+            else:
+                subprocess.run(['pkill', 'vault'], capture_output=True)
+            time.sleep(2)  # Wait for process to fully terminate
+        except Exception:
+            pass
 
     def wait_for_vault(self, env, max_attempts=30):
         """Wait for Vault to be ready"""
@@ -98,7 +117,7 @@ class VaultDevSetup:
             lines.extend([
                 '',
                 '# Vault Configuration',
-                'VAULT_ADDR=https://127.0.0.1:8200',
+                'VAULT_ADDR=http://127.0.0.1:8201',  # Updated port
                 f'VAULT_TOKEN={token}',
                 'VAULT_SKIP_VERIFY=true'
             ])
@@ -147,10 +166,13 @@ class VaultDevSetup:
     def initialize_vault(self):
         """Initialize and start Vault server."""
         try:
+            # Kill any existing Vault process
+            self.kill_existing_vault()
+            
             # Setup environment
             env = os.environ.copy()
             env["PATH"] = str(self.bin_dir) + os.pathsep + env["PATH"]
-            env["VAULT_ADDR"] = "https://127.0.0.1:8200"
+            env["VAULT_ADDR"] = "http://127.0.0.1:8201"  # Updated port
             env["VAULT_SKIP_VERIFY"] = "true"
             
             # Start the Vault server
@@ -164,37 +186,6 @@ class VaultDevSetup:
             # Wait for Vault to be ready
             if not self.wait_for_vault(env):
                 raise Exception("Vault failed to start")
-
-            # Check if Vault is already initialized
-            initialized, sealed = self.check_vault_status(env)
-            
-            if initialized:
-                logger.info("Vault is already initialized")
-                env_vault_path = Path('.env.vault')
-                if env_vault_path.exists():
-                    env_content = env_vault_path.read_text()
-                    token_match = re.search(r'VAULT_TOKEN=(.+)', env_content)
-                    
-                    if sealed:
-                        logger.info("Vault is sealed. Attempting to unseal...")
-                        unseal_key_match = re.search(r'VAULT_UNSEAL_KEY=(.+)', env_content)
-                        if unseal_key_match:
-                            unseal_key = unseal_key_match.group(1).strip()
-                            subprocess.run([
-                                str(self.vault_binary),
-                                'operator',
-                                'unseal',
-                                '-tls-skip-verify',
-                                unseal_key
-                            ], check=True, env=env)
-                            logger.info("Successfully unsealed Vault")
-                    
-                    if token_match:
-                        token = token_match.group(1).strip()
-                        env["VAULT_TOKEN"] = token
-                        self.update_env_file(token)
-                        self.setup_kvv2_engine(env)
-                return
 
             # Initialize Vault
             logger.info("Initializing new Vault instance...")
@@ -264,6 +255,9 @@ class VaultDevSetup:
             
             # Ensure Vault is installed
             self.ensure_vault_installed()
+            
+            # Clean up existing Vault data
+            self.clean_vault_data()
             
             self.setup_directories()
             self.generate_certificates()

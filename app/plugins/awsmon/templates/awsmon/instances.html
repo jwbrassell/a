@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}EC2 Instances{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">EC2 Instances</h1>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            <button type="button" class="btn btn-success" onclick="refreshInstances()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="instances-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Instance ID</th>
+                            <th>Type</th>
+                            <th>State</th>
+                            <th>Region</th>
+                            <th>Public IP</th>
+                            <th>Private IP</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for instance in instances %}
+                        <tr>
+                            <td>{{ instance.name }}</td>
+                            <td>{{ instance.instance_id }}</td>
+                            <td>{{ instance.instance_type }}</td>
+                            <td>
+                                <span class="badge bg-{{ instance.state|instance_status_class }}">
+                                    {{ instance.state }}
+                                </span>
+                            </td>
+                            <td>{{ instance.region.code }}</td>
+                            <td>{{ instance.public_ip or 'N/A' }}</td>
+                            <td>{{ instance.private_ip or 'N/A' }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    {% if instance.state == 'stopped' %}
+                                    <button type="button" class="btn btn-sm btn-success" 
+                                            onclick="instanceAction('{{ instance.instance_id }}', 'start')">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if instance.state == 'running' %}
+                                    <button type="button" class="btn btn-sm btn-warning"
+                                            onclick="instanceAction('{{ instance.instance_id }}', 'stop')">
+                                        <i class="fas fa-stop"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-danger"
+                                            onclick="confirmTerminate('{{ instance.instance_id }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Filter Instances</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="filterForm">
+                    <div class="mb-3">
+                        <label class="form-label">Region</label>
+                        <select class="form-select" name="region">
+                            <option value="">All Regions</option>
+                            {% for region in regions %}
+                            <option value="{{ region.code }}">{{ region.code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">State</label>
+                        <select class="form-select" name="state">
+                            <option value="">All States</option>
+                            <option value="running">Running</option>
+                            <option value="stopped">Stopped</option>
+                            <option value="pending">Pending</option>
+                            <option value="stopping">Stopping</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terminate Confirmation Modal -->
+<div class="modal fade" id="terminateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Termination</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to terminate this instance? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmTerminateBtn">Terminate</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let terminateInstanceId = null;
+
+function refreshInstances() {
+    fetch('/api/poll')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error polling:', error));
+}
+
+function instanceAction(instanceId, action) {
+    fetch(`/api/instances/${instanceId}/action`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action: action })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Refresh after a short delay to allow the action to take effect
+            setTimeout(refreshInstances, 2000);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function confirmTerminate(instanceId) {
+    terminateInstanceId = instanceId;
+    new bootstrap.Modal(document.getElementById('terminateModal')).show();
+}
+
+document.getElementById('confirmTerminateBtn').addEventListener('click', function() {
+    if (terminateInstanceId) {
+        instanceAction(terminateInstanceId, 'terminate');
+        terminateInstanceId = null;
+        bootstrap.Modal.getInstance(document.getElementById('terminateModal')).hide();
+    }
+});
+
+function applyFilters() {
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+    
+    for (let [key, value] of formData.entries()) {
+        if (value) {
+            params.append(key, value);
+        }
+    }
+    
+    window.location.search = params.toString();
+}
+
+// Initialize DataTables
+document.addEventListener('DOMContentLoaded', function() {
+    $('#instances-table').DataTable({
+        pageLength: 25,
+        order: [[0, 'asc']],
+        columnDefs: [
+            { orderable: false, targets: -1 } // Disable sorting on actions column
+        ]
+    });
+});
+
+// Auto-refresh every 60 seconds
+setInterval(refreshInstances, 60000);
+</script>
+{% endblock %}

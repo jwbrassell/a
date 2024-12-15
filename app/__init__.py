@@ -34,13 +34,6 @@ def register_plugins(app):
         for blueprint in blueprints:
             if blueprint:
                 app.register_blueprint(blueprint)
-        
-        # Initialize dispatch routes after blueprints are registered
-        try:
-            from app.plugins.dispatch.utils.register_routes import register_dispatch_routes
-            register_dispatch_routes()
-        except ImportError as e:
-            app.logger.warning(f"Could not register dispatch routes: {e}")
 
 def create_app(config_name=None, skip_session=False):
     app = Flask(__name__)
@@ -99,6 +92,10 @@ def create_app(config_name=None, skip_session=False):
     from app.routes.documents import init_documents
     init_documents(app)
 
+    # Initialize request tracking middleware
+    from app.utils.request_tracking import init_request_tracking
+    init_request_tracking(app)
+
     # Check if we're running migrations
     is_migrating = len(sys.argv) > 1 and sys.argv[1] == 'db'
 
@@ -114,23 +111,24 @@ def create_app(config_name=None, skip_session=False):
     from app import template_filters
     template_filters.init_app(app)
 
-    # Initialize Vault
-    try:
-        # Set FLASK_ENV for development mode
-        if not os.getenv('FLASK_ENV'):
-            os.environ['FLASK_ENV'] = 'development'
-        
-        # Initialize Vault client
-        app.vault = VaultUtility(env_file_path='.env.vault')
-        
-        # Initialize default KV structure
-        with app.app_context():
-            initialize_vault_structure()
+    # Initialize Vault if not skipped
+    if os.getenv('SKIP_VAULT') != '1':
+        try:
+            # Set FLASK_ENV for development mode
+            if not os.getenv('FLASK_ENV'):
+                os.environ['FLASK_ENV'] = 'development'
             
-        app.logger.info("Successfully initialized Vault")
-    except Exception as e:
-        app.logger.error(f"Failed to initialize Vault: {e}")
-        app.vault = None
+            # Initialize Vault client
+            app.vault = VaultUtility(env_file_path='.env.vault')
+            
+            # Initialize default KV structure
+            with app.app_context():
+                initialize_vault_structure()
+                
+            app.logger.info("Successfully initialized Vault")
+        except Exception as e:
+            app.logger.error(f"Failed to initialize Vault: {e}")
+            app.vault = None
 
     # Make navigation manager available to templates
     @app.context_processor

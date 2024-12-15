@@ -21,3 +21,8 @@ python-dotenv
 SQLAlchemy
 typing_extensions
 Werkzeug
+pdfkit
+hvac
+cryptography
+python-dateutil
+requests
