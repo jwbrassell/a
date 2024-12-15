@@ -2,125 +2,113 @@
 
 ## Overview
 
-The Handoffs Plugin provides a comprehensive system for managing shift handovers between teams. It enables tracking of shift transitions, task assignments, and handover metrics with support for priority levels, due dates, and bridge calls. The system is designed to ensure smooth operational continuity across different shifts.
+The Handoffs Plugin provides a comprehensive system for managing shift handovers between teams. It enables tracking of handoff tasks, metrics collection, and shift management with a focus on operational continuity.
 
 ## Features
 
 - Handoff Management
-  - Create and track shift handovers
-  - Priority levels (high, medium, low)
-  - Due date tracking
-  - Bridge call integration
+  - Create and track handoff tasks
+  - Priority-based organization (high, medium, low)
+  - Shift assignment (1st, 2nd, 3rd)
   - Status tracking (open/closed)
-  
-- Shift Organization
-  - Multiple shift support (1st, 2nd, 3rd)
-  - Shift assignment tracking
-  - Shift-based metrics
+  - Bridge call integration
   
 - Metrics and Analytics
-  - Completion rates
-  - Priority distribution
-  - Average resolution time
-  - Trend analysis
-  - Shift-based statistics
+  - Real-time metrics dashboard
+  - Completion rate tracking
+  - Priority distribution analysis
+  - Time-to-close statistics
+  - Shift workload distribution
   
-- Additional Features
-  - Ticket tracking
-  - Hostname tracking
-  - KIRKE reference support
-  - Detailed descriptions
-  - Historical data
+- Shift Management
+  - Configurable shift definitions
+  - Shift-based assignment
+  - Workload tracking per shift
 
 ## Installation
 
 1. Prerequisites
    - Flask application with SQLAlchemy
-   - Flask-WTF for forms
-   - Database with user model
+   - Flask-WTF for form handling
+   - Required database tables (see Database Schema)
 
 2. Installation Steps
    ```python
-   # Register the blueprint in your Flask application
-   from app.plugins.handoffs import bp as handoffs_bp
-   app.register_blueprint(handoffs_bp)
+   # In your Flask application
+   from app.plugins.handoffs import plugin
+   
+   def init_app(app):
+       plugin.init_app(app)
    ```
 
-3. Configuration Requirements
+3. Configuration
    ```python
-   # Required database tables
-   from app.plugins.handoffs.models import (
-       Handoff,
-       HandoffShift
-   )
+   # Required configuration in config.py
+   PLUGIN_HANDOFFS_ENABLED = True
+   PLUGIN_HANDOFFS_CONFIG = {
+       'default_shift': '1st',
+       'metrics_retention_days': 30
+   }
    ```
 
 ## Usage
 
-### Basic Usage
+### Creating a Handoff
 
 ```python
-# Create a new handoff
 from app.plugins.handoffs.models import Handoff
 
 handoff = Handoff(
     reporter_id=current_user.id,
-    assigned_to="1st",
-    priority="high",
-    description="Critical system update required",
-    ticket="TICKET-123"
+    assigned_to='1st',
+    priority='high',
+    description='Critical system maintenance required',
+    ticket='TICKET-123',
+    hostname='prod-server-01',
+    kirke='KIRKE-456'
 )
 db.session.add(handoff)
 db.session.commit()
 ```
 
-### Common Tasks
+### Form Validation
 
-1. Creating a Handoff
-   - Navigate to Handoffs > Create New
-   - Select shift assignment
-   - Set priority level
-   - Enter ticket/hostname/KIRKE info
-   - Set due date if applicable
-   - Add bridge call details if needed
-   - Provide description
-   - Submit handoff
+The plugin includes comprehensive form validation:
 
-2. Viewing Metrics
-   - Access metrics dashboard
-   - View completion rates
-   - Analyze priority distribution
-   - Track average resolution times
-   - Monitor shift performance
+```python
+from app.plugins.handoffs.forms import HandoffForm
 
-## Configuration
+form = HandoffForm()
+if form.validate_on_submit():
+    # All fields validated successfully
+    handoff = Handoff(
+        assigned_to=form.assigned_to.data,
+        priority=form.priority.data,
+        description=form.description.data,
+        # ... other fields
+    )
+```
 
-### Settings
-
-| Setting Name | Type | Default | Description |
-|-------------|------|---------|-------------|
-| url_prefix | str | /handoffs | URL prefix for handoff routes |
-| required_roles | list | ["user"] | Roles allowed to use handoffs |
-| category | str | "Operations" | Navigation category |
-| weight | int | 100 | Navigation menu weight |
-
-### Environment Variables
-
-| Variable Name | Required | Description |
-|--------------|----------|-------------|
-| TIMEZONE | No | Default timezone for dates |
-| MAX_DESCRIPTION_LENGTH | No | Maximum description length |
+Validation rules:
+- Required fields: assigned_to, priority, description
+- Length limits:
+  - Description: 300 characters
+  - Ticket: 100 characters
+  - Hostname: 100 characters
+  - KIRKE: 100 characters
+- URL validation for bridge links
+- Date format validation for due dates
 
 ## Database Schema
 
 ```mermaid
 erDiagram
+    Handoff ||--o{ User : "reported by"
     Handoff ||--o{ HandoffShift : "assigned to"
-    User ||--o{ Handoff : "creates"
     
     Handoff {
-        int id
-        int reporter_id
+        int id PK
+        int reporter_id FK
         string assigned_to
         string priority
         string ticket
@@ -134,8 +122,9 @@ erDiagram
         datetime created_at
         datetime closed_at
     }
+    
     HandoffShift {
-        int id
+        int id PK
         string name
         string description
         datetime created_at
@@ -144,99 +133,129 @@ erDiagram
 
 ## API Reference
 
-### Endpoints
+### Routes
 
 #### GET /handoffs/
-Main handoffs listing page
+Main handoff interface showing open and closed handoffs
+
+**Response:** HTML page with handoff listings
+
+#### GET /handoffs/metrics
+Metrics dashboard
+
+**Response:** HTML page with metrics and statistics
 
 #### POST /handoffs/create
 Create new handoff
 
 **Parameters:**
-- assigned_to (str): Shift assignment
-- priority (str): Priority level
-- ticket (str, optional): Ticket number
-- hostname (str, optional): System hostname
-- kirke (str, optional): KIRKE reference
-- due_date (datetime, optional): Due date
-- has_bridge (bool): Bridge call flag
-- bridge_link (str, optional): Bridge call URL
-- description (str): Handoff details
+- assigned_to (required): Shift assignment
+- priority (required): high, medium, low
+- description (required): Task description
+- ticket (optional): Ticket reference
+- hostname (optional): System hostname
+- kirke (optional): KIRKE reference
+- due_date (optional): Task due date
+- has_bridge (optional): Bridge call flag
+- bridge_link (optional): Bridge URL
 
-#### GET /handoffs/metrics
-View handoff metrics
+**Validation:**
+- Description must not exceed 300 characters
+- Ticket, hostname, and KIRKE must not exceed 100 characters
+- Bridge link must be a valid URL
+- Due date must be in valid datetime format
+
+#### POST /handoffs/<id>/close
+Close a handoff
+
+**Parameters:**
+- id (required): Handoff ID
 
 **Response:**
 ```json
 {
-    "total_handoffs": 100,
-    "open_handoffs": 25,
-    "avg_time_to_close": 4.5,
-    "completion_rate": 75,
-    "priority_distribution": {
-        "high": 30,
-        "medium": 45,
-        "low": 25
+    "status": "success",
+    "message": "Handoff closed successfully",
+    "handoff_id": 123
+}
+```
+
+## Error Handling
+
+The plugin uses standardized error handling through PluginBase:
+
+1. Database Errors
+   - Automatic rollback
+   - Error logging
+   - User-friendly error messages
+
+2. Validation Errors
+   - Form-level validation
+   - Field-specific error messages
+   - Client-side validation support
+
+3. Permission Errors
+   - Role-based access control
+   - Permission checking per route
+   - Appropriate error responses
+
+## Logging
+
+The plugin implements comprehensive logging:
+
+```python
+# Log format
+{
+    'plugin': 'handoffs',
+    'version': '1.0.0',
+    'action': 'create_handoff',
+    'details': {
+        'handoff_id': 123,
+        'assigned_to': '1st',
+        'priority': 'high'
     }
 }
 ```
 
-## Integration
+## Testing
 
-### With Other Plugins
+Run the test suite:
 
-```mermaid
-graph TD
-    A[Handoffs Plugin] --> B[User Management]
-    A --> C[Metrics System]
-    A --> D[Activity Tracking]
-    B --> E[Authentication]
-    C --> F[Analytics]
-    D --> G[Logging System]
+```bash
+python -m pytest tests/test_handoffs_plugin.py
 ```
 
-### Event Hooks
+Test coverage includes:
+- Plugin initialization
+- Route functionality
+- Form validation
+- Model operations
+- Error handling
+- Metrics calculation
 
-| Event Name | Description | Parameters |
-|------------|-------------|------------|
-| handoff_created | New handoff created | handoff_id |
-| handoff_closed | Handoff marked complete | handoff_id, duration |
-| metrics_updated | Metrics recalculated | timestamp |
-
-## Troubleshooting
-
-### Common Issues
-
-1. Due Date Handling
-   - Symptoms: Invalid date format
-   - Cause: Browser timezone mismatch
-   - Solution: Use datetime picker
-
-2. Metrics Loading
-   - Symptoms: Slow metrics page
-   - Cause: Large dataset
-   - Solution: Implement caching
-
-## Security Considerations
+## Security
 
 - Authentication required for all routes
-- Input validation for all fields
-- URL validation for bridge links
-- XSS prevention in descriptions
-- CSRF protection on forms
-- Activity logging for audit trails
+- Role-based access control:
+  - handoffs_access: Basic access
+  - handoffs_create: Create handoffs
+  - handoffs_close: Close handoffs
+  - handoffs_metrics: View metrics
+- Input validation and sanitization
+- CSRF protection
+- Activity logging
 
-## Performance Tips
+## Performance Considerations
 
-1. Metrics Calculation
-   - Cache frequently accessed metrics
-   - Use database aggregation
-   - Implement periodic updates
+1. Database Optimization
+   - Indexed fields: status, created_at, closed_at
+   - Regular cleanup of old records
+   - Efficient query patterns
 
-2. Database Optimization
-   - Index status and date fields
-   - Archive old handoffs
-   - Optimize metric queries
+2. Metrics Calculation
+   - Cached calculations for expensive metrics
+   - Optimized date range queries
+   - Background task processing for statistics
 
 ## Changelog
 
@@ -246,21 +265,15 @@ graph TD
 |---------|------|---------|
 | 1.0.0 | Initial | Core handoff functionality |
 | 1.1.0 | Update | Added metrics dashboard |
-| 1.2.0 | Update | Added bridge call support |
-
-## Support
-
-- Report issues through the issue tracker
-- Review metrics for system health
-- Contact system administrators for assistance
+| 1.2.0 | Update | Implemented PluginBase |
 
 ## Contributing
 
-- Follow Flask blueprint conventions
-- Maintain consistent code style
-- Add tests for new features
-- Update documentation
-- Submit pull requests for review
+1. Follow Flask blueprint conventions
+2. Maintain test coverage
+3. Update documentation
+4. Follow error handling patterns
+5. Use standardized logging
 
 ## License
 
@@ -268,4 +281,4 @@ This plugin is part of the core system and follows the main project's license te
 
 ---
 
-Note: This documentation assumes basic familiarity with Flask and shift management concepts. For detailed implementation examples, refer to the code comments and inline documentation.
+Note: This documentation assumes familiarity with Flask and SQLAlchemy. For detailed implementation examples, refer to the code comments and inline documentation.

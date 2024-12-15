@@ -20,7 +20,12 @@ class Permission(db.Model):
     updated_by = db.Column(db.String(64))
     
     # Relationships
-    roles = db.relationship('Role', secondary=role_permissions, lazy='dynamic')
+    roles = db.relationship(
+        'Role',
+        secondary=role_permissions,
+        back_populates='permissions',
+        overlaps="permissions"
+    )
     
     def __repr__(self):
         return f'<Permission {self.name}>'

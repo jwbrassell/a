@@ -1,30 +1,34 @@
-refactor: migrate plugins to core modules
+Standardize AWS Monitor Plugin
 
-This commit completes the migration of plugins to core modules:
+Standardized the AWS Monitor plugin to follow established patterns:
 
-1. Migrated admin, profile, and documents plugins to core modules:
-   - Moved routes to app/routes/{admin,profile,documents}/
-   - Moved models to app/models/
-   - Updated imports and dependencies
+- Split routes into logical modules:
+  - instance_routes.py: EC2 instance management
+  - synthetic_routes.py: Synthetic testing functionality
+  - template_routes.py: Jump server template management
 
-2. Reorganized analytics:
-   - Created app/models/analytics.py for all analytics models
-   - Renamed metadata column to context_data to avoid SQLAlchemy conflicts
-   - Updated activity tracking to use new analytics models
+- Enhanced models with standardized fields:
+  - Added user tracking (created_by, updated_by)
+  - Added timestamps (created_at, updated_at)
+  - Added soft delete support (deleted_at)
+  - Created migration script
 
-3. Fixed circular imports:
-   - Restructured route initialization
-   - Moved route registration to __init__.py files
-   - Added proper blueprint initialization
+- Implemented PluginBase:
+  - Converted to use PluginBase class
+  - Enhanced plugin metadata
+  - Added explicit permissions list
+  - Standardized initialization
 
-4. Added core functionality:
-   - Profile avatar and preferences management
-   - Admin monitoring and analytics
-   - Document management with templates
+- Added comprehensive testing:
+  - Unit tests for all functionality
+  - Integration tests with core
+  - Permission verification
+  - Route accessibility tests
+  - Template rendering tests
 
-5. Updated documentation:
-   - Added route documentation
-   - Updated setup instructions
-   - Fixed admin password references
+- Updated documentation:
+  - Added plugin-specific documentation
+  - Updated migration plan
+  - Documented API endpoints and models
 
-The application now runs with all core functionality integrated directly into the main app structure, improving maintainability and reducing plugin overhead.
+Part of the plugin standardization initiative.

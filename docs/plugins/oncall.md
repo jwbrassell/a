@@ -1,112 +1,114 @@
-# On-Call Rotation Plugin Documentation
+# On-Call Plugin Documentation
 
 ## Overview
 
-The On-Call Rotation Plugin provides a comprehensive system for managing team on-call schedules. It enables organizations to track who is on-call across different teams, with support for weekly rotations, calendar visualization, and CSV-based schedule imports. The system is designed with a focus on timezone awareness (Central Time) and provides both current and future on-call information.
+The On-Call Plugin provides a comprehensive system for managing team rotation schedules. It enables teams to maintain and track on-call rotations with timezone-aware scheduling, CSV-based schedule imports, and a visual calendar interface.
 
 ## Features
 
-- Schedule Management
-  - Weekly rotation scheduling
-  - Multiple team support
-  - CSV-based schedule import
-  - Calendar visualization
+- Team Management
+  - Create and manage on-call teams
+  - Customizable team colors
+  - Team-specific rotation schedules
   
-- Team Organization
-  - Team color coding
-  - Team-based filtering
-  - Custom team creation
+- Rotation Management
+  - Weekly rotation schedules
+  - Timezone-aware scheduling (Central Time)
+  - CSV-based schedule imports
+  - Current on-call status tracking
   
-- Current Status
-  - Real-time on-call display
-  - Phone number tracking
-  - Shift timing information
+- Calendar Interface
+  - Visual schedule display
+  - Color-coded team events
+  - Week/month views
+  - Current rotation highlighting
   
-- Export Capabilities
-  - JSON export
-  - CSV export
-  - Schedule downloads
+- Additional Features
+  - Contact information tracking
+  - Schedule export (JSON/CSV)
+  - Timezone conversion
+  - Error handling and validation
 
 ## Installation
 
 1. Prerequisites
    - Flask application with SQLAlchemy
-   - Flask-Login for authentication
-   - Timezone support (pytz or zoneinfo)
+   - Flask-WTF for form handling
+   - Required database tables (see Database Schema)
 
 2. Installation Steps
    ```python
-   # Register the blueprint in your Flask application
-   from app.plugins.oncall import bp as oncall_bp
-   app.register_blueprint(oncall_bp)
+   # In your Flask application
+   from app.plugins.oncall import plugin
+   
+   def init_app(app):
+       plugin.init_app(app)
    ```
 
-3. Configuration Requirements
+3. Configuration
    ```python
-   # Required database tables
-   from app.plugins.oncall.models import (
-       Team,
-       OnCallRotation
-   )
+   # Required configuration in config.py
+   PLUGIN_ONCALL_ENABLED = True
+   PLUGIN_ONCALL_CONFIG = {
+       'timezone': 'America/Chicago',
+       'rotation_start_day': 'Friday',
+       'rotation_start_time': '17:00'
+   }
    ```
 
 ## Usage
 
-### Basic Usage
+### Managing Teams
 
 ```python
-# Create a new on-call team
-from app.plugins.oncall.models import Team, OnCallRotation
+from app.plugins.oncall.models import Team
 
-team = Team(name="Operations", color="primary")
+# Create a new team
+team = Team(
+    name='Operations Team',
+    color='primary'  # Bootstrap color class
+)
 db.session.add(team)
 db.session.commit()
+```
 
-# Add rotation entry
+### Creating Rotations
+
+```python
+from app.plugins.oncall.models import OnCallRotation
+from datetime import datetime, timedelta
+import zoneinfo
+
+# Create a rotation
+central_tz = zoneinfo.ZoneInfo('America/Chicago')
+start_time = datetime.now(central_tz)
+end_time = start_time + timedelta(days=7)
+
 rotation = OnCallRotation(
     week_number=1,
     year=2024,
-    person_name="John Doe",
-    phone_number="555-0123",
-    team_id=team.id,
-    start_time=start_datetime,
-    end_time=end_datetime
+    person_name='John Doe',
+    phone_number='123-456-7890',
+    team_id=1,
+    start_time=start_time,
+    end_time=end_time
 )
 db.session.add(rotation)
 db.session.commit()
 ```
 
-### Common Tasks
+### CSV Import Format
 
-1. Creating Teams
-   - Access team management interface
-   - Enter team name
-   - Select team color
-   - Save team details
+```csv
+week,name,phone
+1,John Doe,123-456-7890
+2,Jane Smith,098-765-4321
+```
 
-2. Importing Schedules
-   - Prepare CSV with required columns (week, name, phone)
-   - Select target team
-   - Upload CSV file
-   - Verify import results
-
-## Configuration
-
-### Settings
-
-| Setting Name | Type | Default | Description |
-|-------------|------|---------|-------------|
-| url_prefix | str | /oncall | URL prefix for oncall routes |
-| required_roles | list | ["admin", "demo"] | Roles allowed to manage oncall |
-| category | str | "Operations" | Navigation category |
-| weight | int | 100 | Navigation menu weight |
-
-### Environment Variables
-
-| Variable Name | Required | Description |
-|--------------|----------|-------------|
-| TIMEZONE | Yes | Default timezone (America/Chicago) |
-| CALENDAR_FIRST_DAY | No | First day of calendar week |
+Required columns:
+- week: Week number (1-53)
+- name: Person's name
+- phone: Contact phone number
 
 ## Database Schema
 
@@ -115,19 +117,20 @@ erDiagram
     Team ||--o{ OnCallRotation : "has"
     
     Team {
-        int id
+        int id PK
         string name
         string color
         datetime created_at
         datetime updated_at
     }
+    
     OnCallRotation {
-        int id
+        int id PK
         int week_number
         int year
         string person_name
         string phone_number
-        int team_id
+        int team_id FK
         datetime start_time
         datetime end_time
         datetime created_at
@@ -137,37 +140,64 @@ erDiagram
 
 ## API Reference
 
-### Endpoints
+### Routes
+
+#### GET /oncall/
+Main on-call interface showing calendar and current rotation
+
+**Response:** HTML page with calendar view
 
 #### GET /oncall/api/teams
-List all teams
+Get list of teams
 
 **Response:**
 ```json
 [
     {
         "id": 1,
-        "name": "Operations",
+        "name": "Operations Team",
         "color": "primary"
     }
 ]
 ```
 
-#### POST /oncall/api/upload
-Upload schedule CSV
+#### POST /oncall/api/teams
+Create new team
 
 **Parameters:**
-- file: CSV file with columns (week, name, phone)
-- team: Team ID
-- year: Schedule year
+- name (required): Team name
+- color (optional): Bootstrap color class (default: primary)
+
+#### PUT /oncall/api/teams/<id>
+Update team
+
+**Parameters:**
+- name (optional): New team name
+- color (optional): New color class
+
+#### DELETE /oncall/api/teams/<id>
+Delete team
+
+#### POST /oncall/api/upload
+Upload rotation schedule
+
+**Parameters:**
+- file (required): CSV file
+- team (required): Team ID
+- year (optional): Schedule year (default: current year)
+
+**CSV Format:**
+- Required columns: week, name, phone
+- Week numbers must be 1-53
+- All fields must be non-empty
 
 #### GET /oncall/api/events
 Get calendar events
 
 **Parameters:**
-- start: Start date
-- end: End date
-- team: (optional) Team ID filter
+- start (required): Start date (ISO format)
+- end (required): End date (ISO format)
+- team (optional): Team ID filter
 
 **Response:**
 ```json
@@ -177,73 +207,112 @@ Get calendar events
         "title": "John Doe",
         "start": "2024-01-05T17:00:00-06:00",
         "end": "2024-01-12T17:00:00-06:00",
-        "description": "Phone: 555-0123",
+        "description": "Phone: 123-456-7890",
         "classNames": ["bg-primary"],
         "extendedProps": {
             "week_number": 1,
-            "phone": "555-0123",
-            "team": "Operations"
+            "phone": "123-456-7890",
+            "team": "Operations Team",
+            "team_id": 1
         }
     }
 ]
 ```
 
-## Integration
+#### GET /oncall/api/current
+Get current on-call rotation
 
-### With Other Plugins
+**Parameters:**
+- team (optional): Team ID filter
 
-```mermaid
-graph TD
-    A[On-Call Plugin] --> B[User Management]
-    A --> C[Calendar System]
-    A --> D[Team Management]
-    B --> E[Authentication]
-    C --> F[Schedule Display]
-    D --> G[Access Control]
+**Response:**
+```json
+{
+    "name": "John Doe",
+    "phone": "123-456-7890",
+    "team": "Operations Team",
+    "color": "primary",
+    "start": "2024-01-05T17:00:00-06:00",
+    "end": "2024-01-12T17:00:00-06:00"
+}
 ```
 
-### Event Hooks
+## Error Handling
 
-| Event Name | Description | Parameters |
-|------------|-------------|------------|
-| schedule_imported | New schedule imported | team_id, year |
-| team_created | New team created | team_id |
-| rotation_updated | Schedule updated | rotation_id |
+The plugin uses standardized error handling through PluginBase:
 
-## Troubleshooting
+1. Database Errors
+   - Automatic rollback
+   - Error logging
+   - User-friendly error messages
 
-### Common Issues
+2. CSV Validation Errors
+   - Format validation
+   - Data integrity checks
+   - Detailed error messages
 
-1. CSV Import Errors
-   - Symptoms: Import failure message
-   - Cause: Invalid CSV format or data
-   - Solution: Verify CSV structure and data
+3. Permission Errors
+   - Role-based access control
+   - Permission checking per route
+   - Appropriate error responses
 
-2. Timezone Issues
-   - Symptoms: Incorrect shift times
-   - Cause: Timezone conversion errors
-   - Solution: Verify system timezone settings
+## Logging
 
-## Security Considerations
+The plugin implements comprehensive logging:
 
-- Role-based access control
-- Admin privileges for management
-- CSV validation and sanitization
-- Input validation for all fields
-- Secure file upload handling
-- CSRF protection on forms
+```python
+# Log format
+{
+    'plugin': 'oncall',
+    'version': '1.0.0',
+    'action': 'upload_schedule',
+    'details': {
+        'team_id': 1,
+        'team_name': 'Operations Team',
+        'year': 2024,
+        'rotation_count': 52
+    }
+}
+```
 
-## Performance Tips
+## Testing
 
-1. Schedule Management
-   - Batch process CSV imports
-   - Cache current on-call data
-   - Index date-based queries
+Run the test suite:
 
-2. Calendar Optimization
-   - Limit date range queries
-   - Cache team color schemes
-   - Optimize event retrieval
+```bash
+python -m pytest tests/test_oncall_plugin.py
+```
+
+Test coverage includes:
+- Plugin initialization
+- Team management
+- Rotation management
+- Calendar events
+- CSV upload functionality
+- Timezone handling
+- Error handling
+
+## Security
+
+- Authentication required for all routes
+- Role-based access control:
+  - oncall_access: Basic access
+  - oncall_manage: Team management
+- Input validation and sanitization
+- CSRF protection
+- Activity logging
+
+## Performance Considerations
+
+1. Database Optimization
+   - Indexed fields: start_time, end_time, team_id
+   - Efficient date range queries
+   - Timezone conversion caching
+
+2. Calendar Performance
+   - Event pagination
+   - Lazy loading for large date ranges
+   - Client-side caching
 
 ## Changelog
 
@@ -252,22 +321,16 @@ graph TD
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0.0 | Initial | Core on-call functionality |
-| 1.1.0 | Update | Added team management |
-| 1.2.0 | Update | Added calendar integration |
-
-## Support
-
-- Report issues through the issue tracker
-- Review CSV format documentation
-- Contact system administrators for assistance
+| 1.1.0 | Update | Added CSV import |
+| 1.2.0 | Update | Implemented PluginBase |
 
 ## Contributing
 
-- Follow Flask blueprint conventions
-- Maintain consistent code style
-- Add tests for new features
-- Update documentation
-- Submit pull requests for review
+1. Follow Flask blueprint conventions
+2. Maintain test coverage
+3. Update documentation
+4. Follow error handling patterns
+5. Use standardized logging
 
 ## License
 
@@ -275,4 +338,4 @@ This plugin is part of the core system and follows the main project's license te
 
 ---
 
-Note: This documentation assumes basic familiarity with Flask and on-call rotation concepts. For detailed implementation examples, refer to the code comments and inline documentation.
+Note: This documentation assumes familiarity with Flask and timezone handling. For detailed implementation examples, refer to the code comments and inline documentation.

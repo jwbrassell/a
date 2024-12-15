@@ -1,105 +1,154 @@
-"""Projects plugin for Flask application."""
-from flask import Blueprint, current_app
-from sqlalchemy.exc import SQLAlchemyError
+"""Projects plugin for managing project workflows."""
+
+from flask import Blueprint
+from app.utils.plugin_base import PluginBase, PluginMetadata
 import logging
-from app.utils.plugin_manager import PluginMetadata
-from .plugin import init_plugin
+from logging.handlers import RotatingFileHandler
+import os
 
-# Define plugin metadata
-plugin_metadata = PluginMetadata(
-    name="Projects",
-    version="1.0.0",
-    description="Project management and tracking",
-    author="System",
-    required_roles=["admin", "user"],
-    icon="fa-project-diagram",
-    category="main",
-    weight=10
-)
-
-bp = Blueprint('projects', __name__, template_folder='templates', static_folder='static')
 logger = logging.getLogger(__name__)
 
-def init_default_configurations(app):
-    """Initialize default project configurations if they don't exist"""
-    from .models import ProjectStatus, ProjectPriority
-    from app.extensions import db
+class ProjectsPlugin(PluginBase):
+    """Plugin for project management and tracking."""
     
-    try:
-        # Check for project statuses
-        if not ProjectStatus.query.first():
-            logger.info("No project statuses found. Creating defaults...")
-            default_statuses = [
-                ('Not Started', '#dc3545'),
-                ('In Progress', '#ffc107'),
-                ('On Hold', '#6c757d'),
-                ('Completed', '#28a745'),
-                ('Cancelled', '#343a40')
-            ]
-            for name, color in default_statuses:
-                status = ProjectStatus(
-                    name=name,
-                    color=color,
-                    created_by='system'
-                )
-                db.session.add(status)
-                logger.debug(f"Created status: {name}")
+    def __init__(self):
+        metadata = PluginMetadata(
+            name="projects",
+            version="1.0.0",
+            description="Project management and tracking",
+            author="System",
+            required_roles=["admin", "user"],
+            icon="fa-project-diagram",
+            category="main",
+            weight=10
+        )
+        super().__init__(metadata)
         
-        # Check for project priorities
-        if not ProjectPriority.query.first():
-            logger.info("No project priorities found. Creating defaults...")
-            default_priorities = [
-                ('Low', '#28a745'),
-                ('Medium', '#ffc107'),
-                ('High', '#dc3545'),
-                ('Critical', '#9c27b0')
-            ]
-            for name, color in default_priorities:
-                priority = ProjectPriority(
-                    name=name,
-                    color=color,
-                    created_by='system'
-                )
-                db.session.add(priority)
-                logger.debug(f"Created priority: {name}")
+        # Initialize blueprint with standardized configuration
+        self.blueprint = self.init_blueprint(
+            template_folder='templates',
+            static_folder='static'
+        )
         
-        db.session.commit()
-        logger.info("Project configurations initialized successfully")
+        # Import routes after blueprint creation to avoid circular imports
+        from app.plugins.projects import (
+            main_routes, project_routes, task_routes,
+            subtask_routes, comment_routes, management_routes,
+            priority_routes, status_routes
+        )
         
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        logger.error(f"Database error initializing project configurations: {str(e)}")
-        # Re-raise if in debug mode
-        if app.debug:
-            raise
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error initializing project configurations: {str(e)}")
-        if app.debug:
-            raise
+        # Register error handlers and other configurations
+        self._register_error_handlers()
+        
+    def register_models(self):
+        """Register models for the plugin."""
+        from app.plugins.projects.models import (
+            Project, Task, Todo, Comment, History,
+            ProjectStatus, ProjectPriority
+        )
+        logger.info(f"Registered models for {self.metadata.name} plugin")
+        
+    def register_routes(self):
+        """Register routes for the plugin."""
+        # Routes are automatically registered via blueprint
+        # Additional route registration if needed can be done here
+        logger.info(f"Registered routes for {self.metadata.name} plugin")
+        
+    def register_template_filters(self):
+        """Register template filters for the plugin."""
+        from .plugin import route_to_endpoint
+        
+        @self.blueprint.app_template_filter('route_to_endpoint')
+        def _route_to_endpoint(route):
+            """Convert route name to endpoint name."""
+            return route_to_endpoint(route)
+        
+        @self.blueprint.app_template_filter('format_status')
+        def format_status(status):
+            """Format status with appropriate color class."""
+            if not status:
+                return 'secondary'
+            status_obj = ProjectStatus.query.filter_by(name=status).first()
+            return status_obj.color if status_obj else 'secondary'
+        
+        @self.blueprint.app_template_filter('format_priority')
+        def format_priority(priority):
+            """Format priority with appropriate color class."""
+            if not priority:
+                return 'secondary'
+            priority_obj = ProjectPriority.query.filter_by(name=priority).first()
+            return priority_obj.color if priority_obj else 'secondary'
+        
+    def register_context_processors(self):
+        """Register context processors for the plugin."""
+        from .plugin import can_edit_project
+        
+        @self.blueprint.context_processor
+        def utility_processor():
+            """Add utility functions to template context."""
+            return dict(can_edit_project=can_edit_project)
 
-def init_app(app):
-    """Initialize the projects plugin"""
-    from . import routes  # Import routes after Blueprint creation
-    
-    # Register error handlers
-    @bp.errorhandler(SQLAlchemyError)
-    def handle_db_error(error):
-        logger.error(f"Database error in projects plugin: {str(error)}")
-        return {
-            'success': False,
-            'message': 'A database error occurred. Please try again later.'
-        }, 500
-    
-    # Initialize plugin
-    init_plugin(app)
-    
-    # Initialize configurations immediately if not in testing mode
-    if not app.testing:
-        with app.app_context():
-            init_default_configurations(app)
-    
-    return bp
+    def init_app(self, app):
+        """Initialize plugin with Flask application."""
+        super().init_app(app)
+        
+        # Setup logging
+        if not app.debug and not app.testing:
+            if not os.path.exists('logs'):
+                os.mkdir('logs')
+            
+            file_handler = RotatingFileHandler(
+                'logs/projects.log',
+                maxBytes=1024 * 1024,
+                backupCount=10
+            )
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+            ))
+            file_handler.setLevel(logging.INFO)
+            logger.addHandler(file_handler)
+            logger.setLevel(logging.INFO)
+        
+        # Register models
+        self.register_models()
+        
+        # Register routes
+        self.register_routes()
+        
+        # Register template filters
+        self.register_template_filters()
+        
+        # Register context processors
+        self.register_context_processors()
+        
+        # Initialize default configurations
+        if not app.testing:
+            with app.app_context():
+                from .plugin import init_default_configurations
+                init_default_configurations(app)
+        
+        # Initialize caching
+        if app.config.get('ENABLE_CACHING'):
+            from .utils.caching import init_cache
+            init_cache(app)
+        
+        # Initialize monitoring if enabled
+        if app.config.get('ENABLE_QUERY_TRACKING'):
+            from .utils.monitoring import init_monitoring
+            init_monitoring(app)
+        
+        # Register CLI commands
+        from .plugin import register_commands
+        register_commands(app)
+        
+        # Log successful initialization
+        logger.info(f"Initialized {self.metadata.name} plugin v{self.metadata.version}")
 
-# Import views after Blueprint creation to avoid circular imports
-from . import routes
+# Create plugin instance
+plugin = ProjectsPlugin()
+
+# Create blueprint reference for compatibility
+bp = plugin.blueprint
+
+# Import models after plugin creation to avoid circular imports
+from . import models

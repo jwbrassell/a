@@ -4,66 +4,21 @@ from flask import render_template, flash, redirect, url_for, request, jsonify, c
 from flask_login import login_required, current_user
 from app.plugins.dispatch import bp
 from app.plugins.dispatch.models import DispatchTeam, DispatchPriority, DispatchTransaction
+from app.plugins.dispatch.utils.email_service import send_dispatch_email
 from app import db
-from app.logging_utils import log_info, log_error
 from app.models import UserActivity
 from app.utils.activity_tracking import track_activity
 from app.utils.enhanced_rbac import requires_permission
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import smtplib
 import logging
 
 logger = logging.getLogger(__name__)
-
-def send_dispatch_email(transaction):
-    """Send email notification for dispatch transaction"""
-    try:
-        # Build email body
-        rma_section = f'<tr><td><b>RMA Information</b></td><td>{transaction.rma_info}</td></tr>' if transaction.is_rma else ''
-        bridge_section = f'<tr><td><b>Bridge Link</b></td><td><a href="{transaction.bridge_link}">{transaction.bridge_link}</a></td></tr>' if transaction.is_bridge else ''
-        
-        body = f'''
-        <table border="1" cellpadding="5">
-            <tr><td><b>Team</b></td><td>{transaction.team.name}</td></tr>
-            <tr><td><b>Priority</b></td><td>{transaction.priority.name}</td></tr>
-            <tr><td><b>Description</b></td><td>{transaction.description}</td></tr>
-            <tr><td><b>Requestor</b></td><td>{transaction.created_by_name}</td></tr>
-            {rma_section}
-            {bridge_section}
-        </table>
-        '''
-
-        # Create message
-        msg = MIMEMultipart('alternative')
-        msg['From'] = current_app.config['MAIL_DEFAULT_SENDER']
-        msg['To'] = transaction.team.email
-        msg['Subject'] = f'Dispatch Request - {transaction.team.name}'
-        msg.attach(MIMEText(body, 'html'))
-
-        # Send email
-        with smtplib.SMTP(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT']) as server:
-            if current_app.config['MAIL_USE_TLS']:
-                server.starttls()
-            if current_app.config['MAIL_USERNAME'] and current_app.config['MAIL_PASSWORD']:
-                server.login(current_app.config['MAIL_USERNAME'], current_app.config['MAIL_PASSWORD'])
-            
-            server.send_message(msg)
-            
-        logger.info(f"Email sent successfully for dispatch request {transaction.id}")
-        return True, "Email sent successfully"
-        
-    except Exception as e:
-        error_msg = f"Error sending email: {str(e)}"
-        logger.error(error_msg)
-        return False, error_msg
 
 @bp.route('/')
 @login_required
 @requires_permission('dispatch_access', 'read')
 @track_activity
 def index():
-    """Main dispatch tool page with form and transactions table"""
+    """Main dispatch tool page with form and transactions table."""
     try:
         teams = DispatchTeam.query.all()
         priorities = DispatchPriority.query.all()
@@ -78,7 +33,7 @@ def index():
 @requires_permission('dispatch_access', 'write')
 @track_activity
 def submit():
-    """Handle dispatch form submission"""
+    """Handle dispatch form submission."""
     try:
         # Create new transaction
         transaction = DispatchTransaction(
@@ -127,7 +82,7 @@ def submit():
 @requires_permission('dispatch_access', 'read')
 @track_activity
 def get_transactions():
-    """DataTables API endpoint for transactions"""
+    """DataTables API endpoint for transactions."""
     try:
         # Get all transactions
         transactions = DispatchTransaction.query.order_by(DispatchTransaction.created_at.desc()).all()
@@ -143,7 +98,7 @@ def get_transactions():
 @requires_permission('dispatch_manage_access', 'read')
 @track_activity
 def manage():
-    """Management interface for teams and priorities"""
+    """Management interface for teams and priorities."""
     try:
         teams = DispatchTeam.query.all()
         priorities = DispatchPriority.query.all()
@@ -158,7 +113,7 @@ def manage():
 @requires_permission('dispatch_manage_access', 'write')
 @track_activity
 def add_team():
-    """Add or update team"""
+    """Add or update team."""
     try:
         team_id = request.form.get('id')
         if team_id:
@@ -196,7 +151,7 @@ def add_team():
 @requires_permission('dispatch_manage_access', 'write')
 @track_activity
 def add_priority():
-    """Add or update priority"""
+    """Add or update priority."""
     try:
         priority_id = request.form.get('id')
         if priority_id:

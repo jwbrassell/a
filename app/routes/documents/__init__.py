@@ -25,6 +25,9 @@ def init_documents(app):
     # Register context processors
     register_context_processors()
     
+    # Register error handlers
+    register_error_handlers(app)
+    
     # Register blueprint
     app.register_blueprint(documents_bp)
     
@@ -36,5 +39,12 @@ def register_context_processors():
     def inject_documents_data():
         """Inject documents-specific data into templates."""
         return {
-            'documents_version': '2.0.0'  # Hardcoded since we're no longer a plugin
+            'documents_version': '2.0.0'  # Core version
         }
+
+def register_error_handlers(app):
+    """Register documents-specific error handlers."""
+    @app.errorhandler(413)
+    def request_entity_too_large(error):
+        """Handle file size exceeded error."""
+        return 'File too large. Maximum size is 16MB.', 413

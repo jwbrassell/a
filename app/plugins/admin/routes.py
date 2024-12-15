@@ -4,7 +4,7 @@ from app.utils.enhanced_rbac import requires_permission
 from app.models import Role, PageRouteMapping, UserActivity, NavigationCategory, User
 from app import db
 from app.plugins.admin import bp
-from app.utils.vault_security_monitor import VaultMonitor
+from app.utils.vault_security_monitor import VaultSecurityMonitor
 from datetime import datetime, timedelta
 import logging
 import re
@@ -59,10 +59,10 @@ def analytics():
 def vault_status():
     """View Vault server status and health."""
     try:
-        monitor = VaultMonitor(current_app.vault)
-        summary = monitor.get_monitoring_summary()
+        monitor = VaultSecurityMonitor(current_app.vault)
+        summary = monitor.generate_security_report()
         return render_template('admin/vault_status.html',
-                             status=summary['status'],
+                             status=summary['overall_status'],
                              summary=summary)
     except Exception as e:
         logger.error(f"Failed to get Vault status: {e}")
@@ -77,10 +77,10 @@ def vault_status():
 def monitoring():
     """View system monitoring information."""
     try:
-        monitor = VaultMonitor(current_app.vault)
-        summary = monitor.get_monitoring_summary()
+        monitor = VaultSecurityMonitor(current_app.vault)
+        summary = monitor.generate_security_report()
         return render_template('admin/monitoring.html',
-                             status=summary['status'],
+                             status=summary['overall_status'],
                              summary=summary)
     except Exception as e:
         logger.error(f"Failed to get monitoring status: {e}")

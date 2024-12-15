@@ -1,20 +1,32 @@
+"""Route handlers for the handoffs plugin."""
+
 from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from app import db, csrf
-from app.plugins.handoffs import bp
+from app.plugins.handoffs import bp, plugin
 from app.plugins.handoffs.models import Handoff, HandoffShift
 from app.plugins.handoffs.forms import HandoffForm
 from app.utils.enhanced_rbac import requires_permission
+from app.utils.plugin_base import plugin_error_handler
+
+logger = plugin.logger
 
 @bp.route('/')
 @login_required
 @requires_permission('handoffs_access', 'read')
+@plugin_error_handler
 def index():
     """Display all handoffs with open ones at the top."""
     open_handoffs = Handoff.query.filter_by(status='open').order_by(Handoff.created_at.desc()).all()
     closed_handoffs = Handoff.query.filter_by(status='closed').order_by(Handoff.created_at.desc()).all()
+    
+    plugin.log_action('view_handoffs', {
+        'open_count': len(open_handoffs),
+        'closed_count': len(closed_handoffs)
+    })
+    
     return render_template('handoffs/index.html', 
                          open_handoffs=open_handoffs,
                          closed_handoffs=closed_handoffs)
@@ -22,6 +34,7 @@ def index():
 @bp.route('/metrics')
 @login_required
 @requires_permission('handoffs_metrics', 'read')
+@plugin_error_handler
 def metrics():
     """Display handoff metrics and statistics."""
     # Calculate time ranges
@@ -126,6 +139,13 @@ def metrics():
         'month': get_stats_for_period(month_ago),
         'all_time': get_stats_for_period(datetime.min)
     }
+    
+    plugin.log_action('view_metrics', {
+        'total_handoffs': total_handoffs,
+        'open_handoffs': open_handoffs,
+        'avg_time_to_close': avg_time_to_close,
+        'completion_rate': completion_rate
+    })
 
     return render_template('handoffs/metrics.html',
                          total_handoffs=total_handoffs,
@@ -142,6 +162,7 @@ def metrics():
 @bp.route('/create', methods=['GET', 'POST'])
 @login_required
 @requires_permission('handoffs_create', 'write')
+@plugin_error_handler
 def create():
     """Create a new handoff."""
     form = HandoffForm()
@@ -158,28 +179,30 @@ def create():
                 return render_template('handoffs/create.html', form=form)
     
     if form.validate_on_submit():
-        try:
-            handoff = Handoff(
-                reporter_id=current_user.id,
-                assigned_to=form.assigned_to.data,
-                priority=form.priority.data,
-                ticket=form.ticket.data,
-                hostname=form.hostname.data,
-                kirke=form.kirke.data,
-                due_date=form.due_date.data,
-                has_bridge=form.has_bridge.data,
-                bridge_link=form.bridge_link.data if form.has_bridge.data else None,
-                description=form.description.data,
-                status='open'
-            )
-            db.session.add(handoff)
-            db.session.commit()
-            flash('Handoff created successfully.', 'success')
-            return redirect(url_for('handoffs.index'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating handoff: {str(e)}', 'error')
-            return render_template('handoffs/create.html', form=form)
+        handoff = Handoff(
+            reporter_id=current_user.id,
+            assigned_to=form.assigned_to.data,
+            priority=form.priority.data,
+            ticket=form.ticket.data,
+            hostname=form.hostname.data,
+            kirke=form.kirke.data,
+            due_date=form.due_date.data,
+            has_bridge=form.has_bridge.data,
+            bridge_link=form.bridge_link.data if form.has_bridge.data else None,
+            description=form.description.data,
+            status='open'
+        )
+        db.session.add(handoff)
+        db.session.commit()
+        
+        plugin.log_action('create_handoff', {
+            'handoff_id': handoff.id,
+            'assigned_to': handoff.assigned_to,
+            'priority': handoff.priority
+        })
+        
+        flash('Handoff created successfully.', 'success')
+        return redirect(url_for('handoffs.index'))
     
     if form.errors:
         for field, errors in form.errors.items():
@@ -191,27 +214,27 @@ def create():
 @bp.route('/<int:id>/close', methods=['POST'])
 @login_required
 @requires_permission('handoffs_close', 'write')
+@plugin_error_handler
 def close_handoff(id):
     """Close a handoff."""
-    try:
-        handoff = Handoff.query.get_or_404(id)
-        if handoff.status == 'open':
-            handoff.status = 'closed'
-            handoff.closed_at = datetime.utcnow()
-            db.session.commit()
-            return jsonify({
-                'status': 'success',
-                'message': 'Handoff closed successfully',
-                'handoff_id': handoff.id
-            })
+    handoff = Handoff.query.get_or_404(id)
+    if handoff.status == 'open':
+        handoff.status = 'closed'
+        handoff.closed_at = datetime.utcnow()
+        db.session.commit()
+        
+        plugin.log_action('close_handoff', {
+            'handoff_id': handoff.id,
+            'time_to_close': (handoff.closed_at - handoff.created_at).total_seconds() / 3600
+        })
+        
         return jsonify({
-            'status': 'error',
-            'message': 'Handoff is already closed'
-        }), 400
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'status': 'error',
-            'message': f'Error closing handoff: {str(e)}'
-        }), 500
+            'status': 'success',
+            'message': 'Handoff closed successfully',
+            'handoff_id': handoff.id
+        })
+        
+    return jsonify({
+        'status': 'error',
+        'message': 'Handoff is already closed'
+    }), 400
