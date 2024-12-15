@@ -2,6 +2,7 @@ alembic
 blinker
 click
 Flask
+Flask-Caching
 Flask-Login
 Flask-Migrate
 Flask-SQLAlchemy

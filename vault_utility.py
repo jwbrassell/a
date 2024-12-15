@@ -6,7 +6,7 @@ import hvac
 from functools import wraps
 from urllib.parse import urlparse
 from dotenv import load_dotenv
-from flask import current_app, request, abort
+from flask import current_app, request, abort, Response, session
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -37,6 +37,52 @@ class VaultError(Exception):
     """Custom exception for Vault-related errors."""
     pass
 
+class SecurityHeaders:
+    """Security headers management."""
+    
+    @staticmethod
+    def generate_nonce():
+        """Generate a nonce for CSP."""
+        return secrets.token_urlsafe(16)
+    
+    @staticmethod
+    def apply_security_headers(response):
+        """Apply security headers to response."""
+        if not isinstance(response, Response):
+            return response
+            
+        # Generate nonce for CSP
+        nonce = SecurityHeaders.generate_nonce()
+        if hasattr(current_app, 'csp_nonce'):
+            current_app.csp_nonce = nonce
+            
+        # Enhanced Content Security Policy
+        csp_directives = [
+            "default-src 'self'",
+            f"script-src 'self' 'nonce-{nonce}'",
+            "style-src 'self' 'unsafe-inline'",  # Needed for some UI frameworks
+            "img-src 'self' data: https:",  # Allow HTTPS images
+            "font-src 'self'",
+            "frame-ancestors 'none'",
+            "form-action 'self'",
+            "base-uri 'self'",
+            "object-src 'none'",
+            "upgrade-insecure-requests",
+            "block-all-mixed-content"
+        ]
+        
+        response.headers['Content-Security-Policy'] = "; ".join(csp_directives)
+        
+        # Other security headers
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+        
+        return response
+
 class CSRFProtection:
     """CSRF token management using Vault for storage."""
     
@@ -51,12 +97,18 @@ class CSRFProtection:
         expiry = datetime.utcnow() + timedelta(hours=24)
         
         try:
+            # Include session ID to prevent token reuse across sessions
+            session_id = session.get('id', secrets.token_urlsafe(16))
+            session['id'] = session_id
+            
             self.client.secrets.kv.v2.create_or_update_secret(
                 mount_point=self.mount_point,
                 path=f"{self.csrf_path}/{token}",
                 secret=dict(
                     expiry=expiry.isoformat(),
-                    created=datetime.utcnow().isoformat()
+                    created=datetime.utcnow().isoformat(),
+                    session_id=session_id,
+                    used=False
                 )
             )
             return token
@@ -75,9 +127,26 @@ class CSRFProtection:
             data = result["data"]["data"]
             expiry = datetime.fromisoformat(data["expiry"])
             
+            # Check expiration
             if datetime.utcnow() > expiry:
                 self.delete_token(token)
                 return False
+            
+            # Check session ID
+            if data.get("session_id") != session.get("id"):
+                return False
+            
+            # Check if token has been used
+            if data.get("used", False):
+                return False
+            
+            # Mark token as used
+            data["used"] = True
+            self.client.secrets.kv.v2.create_or_update_secret(
+                mount_point=self.mount_point,
+                path=f"{self.csrf_path}/{token}",
+                secret=data
+            )
                 
             return True
         except hvac.exceptions.InvalidPath:
@@ -104,7 +173,8 @@ def csrf_protected(f):
             token = request.headers.get("X-CSRF-Token")
             if not token or not current_app.csrf.validate_token(token):
                 abort(403)
-        return f(*args, **kwargs)
+        response = f(*args, **kwargs)
+        return SecurityHeaders.apply_security_headers(response)
     return decorated_function
 
 class PluginCredentialManager:
@@ -182,13 +252,12 @@ class VaultUtility:
             raise VaultError("VAULT_ADDR environment variable not set")
         
         # Enforce HTTPS in production
+        parsed_url = urlparse(self.vault_url)
         if not os.getenv("FLASK_ENV") == "development":
-            parsed_url = urlparse(self.vault_url)
             if parsed_url.scheme != "https":
                 raise VaultError("HTTPS is required for Vault communication in production")
         
         # Validate URL is localhost
-        parsed_url = urlparse(self.vault_url)
         if parsed_url.hostname not in ["localhost", "127.0.0.1"]:
             raise VaultError("Vault must be accessed via localhost only")
         
@@ -197,9 +266,18 @@ class VaultUtility:
         if not self.token:
             raise VaultError("VAULT_TOKEN environment variable not set")
 
+        # Get certificate paths
+        self.ca_cert = os.getenv("VAULT_CACERT")
+        self.client_cert = os.getenv("VAULT_CLIENT_CERT")
+        self.client_key = os.getenv("VAULT_CLIENT_KEY")
+
+        # Verify certificate files exist
+        if not os.getenv("FLASK_ENV") == "development":
+            self._verify_certificates()
+
         # Initialize Vault client
         try:
-            self.client = self.authenticate_vault(self.vault_url, self.token)
+            self.client = self.authenticate_vault()
             self.kv_v2_mount_point = self.get_kv_v2_mount_point()
             
             # Initialize CSRF protection
@@ -216,22 +294,48 @@ class VaultUtility:
             logger.error(f"Failed to initialize Vault client: {e}")
             raise
 
-    def authenticate_vault(self, vault_url, token):
+    def _verify_certificates(self):
+        """Verify SSL certificates exist and have correct permissions."""
+        cert_files = {
+            "CA Certificate": self.ca_cert,
+            "Client Certificate": self.client_cert,
+            "Client Key": self.client_key
+        }
+        
+        for name, path in cert_files.items():
+            if not path:
+                raise VaultError(f"{name} path not set")
+            
+            cert_path = Path(path)
+            if not cert_path.exists():
+                raise VaultError(f"{name} not found at {path}")
+            
+            try:
+                # Check permissions (should be 600)
+                stat = os.stat(cert_path)
+                if stat.st_mode & 0o777 != 0o600:
+                    logger.warning(f"Incorrect permissions on {name}. Setting to 600.")
+                    os.chmod(cert_path, 0o600)
+                
+                # Basic certificate validation
+                with open(cert_path, 'r') as f:
+                    content = f.read()
+                    if not content.startswith('-----BEGIN'):
+                        raise VaultError(f"{name} appears to be invalid")
+            except (IOError, OSError) as e:
+                raise VaultError(f"Error accessing {name}: {str(e)}")
+
+    def authenticate_vault(self):
         """Authenticate with Vault and return the client."""
         try:
-            # Get CA certificate path from environment
-            ca_cert = os.getenv("VAULT_CACERT")
-            if ca_cert and Path(ca_cert).exists():
-                verify = str(Path(ca_cert).resolve())
-                logger.info(f"Using CA certificate: {verify}")
-            else:
-                verify = False
-                logger.warning("CA certificate not found or not specified, disabling SSL verification")
+            verify = str(Path(self.ca_cert).resolve()) if self.ca_cert else False
+            cert = (str(Path(self.client_cert).resolve()), str(Path(self.client_key).resolve())) if self.client_cert and self.client_key else None
             
             client = hvac.Client(
-                url=vault_url,
-                token=token,
-                verify=verify
+                url=self.vault_url,
+                token=self.token,
+                verify=verify,
+                cert=cert
             )
             
             if not client.is_authenticated():

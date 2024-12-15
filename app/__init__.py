@@ -10,9 +10,10 @@ import sys
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import extensions
-from app.extensions import db, login_manager, migrate, cache, csrf
+from app.extensions import db, login_manager, migrate, cache_manager, csrf
 from vault_utility import VaultUtility
 from app.utils.vault_defaults import initialize_vault_structure
+from app.utils.cache_manager import cached
 
 def register_plugins(app):
     """Register plugin blueprints and routes"""
@@ -40,11 +41,26 @@ def create_app(config_name=None, skip_session=False):
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)  # Initialize app-specific config
 
+    # Configure cache settings
+    app.config.update({
+        'CACHE_TYPE': 'simple',
+        'CACHE_DEFAULT_TIMEOUT': 300,
+        'CACHE_THRESHOLD': 1000,
+        'CACHE_KEY_PREFIX': 'flask_cache_',
+        'CACHE_DIR': os.path.join(app.instance_path, 'cache'),
+        'CACHE_OPTIONS': {
+            'mode': 0o600
+        }
+    })
+
     # Initialize extensions with app
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)  # Initialize CSRF protection
-    cache.init_app(app)  # Initialize cache with SimpleCache backend
+    cache_manager.init_app(app)  # Initialize our enhanced caching system
+
+    # Create cache directory if it doesn't exist
+    os.makedirs(app.config['CACHE_DIR'], exist_ok=True)
 
     # Initialize Flask-Session only if not skipped
     if not skip_session:
@@ -125,29 +141,58 @@ def create_app(config_name=None, skip_session=False):
                 flash('Your session has expired. Please log in again.', 'info')
                 return redirect(url_for('main.login'))
 
-    # Register error handlers with caching
+    # Register error handlers with enhanced caching
     @app.errorhandler(404)
-    @cache.cached(timeout=300, key_prefix='error_404')
+    @cached(timeout=300, key_prefix='error_404')
     def not_found_error(error):
         return render_template('404.html'), 404
 
     @app.errorhandler(500)
-    @cache.cached(timeout=300, key_prefix='error_500')
+    @cached(timeout=300, key_prefix='error_500')
     def internal_error(error):
         db.session.rollback()
         return render_template('500.html'), 500
 
     @app.errorhandler(403)
-    @cache.cached(timeout=300, key_prefix='error_403')
+    @cached(timeout=300, key_prefix='error_403')
     def forbidden_error(error):
         return render_template('403.html'), 403
 
     @app.errorhandler(400)
-    @cache.cached(timeout=300, key_prefix='error_400')
+    @cached(timeout=300, key_prefix='error_400')
     def bad_request_error(error):
         return render_template('400.html'), 400
 
     # Add WSGI middleware
     app.wsgi_app = ProxyFix(app.wsgi_app)  # Handle proxy headers
+
+    # Register cache CLI commands
+    @app.cli.group()
+    def cache():
+        """Cache management commands."""
+        pass
+
+    @cache.command()
+    def clear():
+        """Clear all caches."""
+        cache_manager.clear_all()
+        click.echo("All caches cleared.")
+
+    @cache.command()
+    def warm():
+        """Warm up the cache with frequently accessed data."""
+        cache_manager.warm_cache()
+        click.echo("Cache warming completed.")
+
+    @cache.command()
+    def stats():
+        """Show cache statistics."""
+        stats = cache_manager.get_cache_stats()
+        click.echo("\nCache Statistics:")
+        click.echo("-" * 50)
+        for cache_type, cache_stats in stats.items():
+            click.echo(f"\n{cache_type}:")
+            for stat, value in cache_stats.items():
+                click.echo(f"  {stat}: {value}")
 
     return app

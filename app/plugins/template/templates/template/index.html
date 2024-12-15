@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}{{ plugin_name|title }} Plugin{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('template.static', filename='css/template.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="{{ plugin.metadata.icon }}"></i> {{ plugin_name|title }} Plugin
+                    </h3>
+                    <div class="card-tools">
+                        <span class="badge badge-info">v{{ plugin_version }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info">
+                                    <i class="fas fa-info"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Plugin Information</span>
+                                    <span class="info-box-number">Author: {{ plugin_author }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Status</span>
+                                    <span class="info-box-number">Active</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h3 class="card-title">Features</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group">
+                                <li class="list-group-item">
+                                    <i class="fas fa-check text-success"></i> Standard Plugin Structure
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check text-success"></i> Error Handling
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check text-success"></i> Logging Integration
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check text-success"></i> Role-Based Access Control
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check text-success"></i> Database Models
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h3 class="card-title">API Example</h3>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-primary" id="getData">
+                                <i class="fas fa-sync"></i> Get Data
+                            </button>
+                            <div class="mt-3">
+                                <pre id="apiResult" class="bg-light p-3 rounded"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('template.static', filename='js/template.js') }}"></script>
+<script>
+document.getElementById('getData').addEventListener('click', function() {
+    fetch('{{ url_for("template.get_data") }}')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('apiResult').textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+            document.getElementById('apiResult').textContent = 'Error: ' + error.message;
+        });
+});
+</script>
+{% endblock %}

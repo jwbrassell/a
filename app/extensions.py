@@ -1,24 +1,44 @@
-import pymysql
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
-from flask_caching import Cache
-from flask_wtf.csrf import CSRFProtect
-
-# Register PyMySQL as the MySQL driver
-pymysql.install_as_MySQLdb()
+from app.utils.cache_manager import CacheManager
 
 # Initialize extensions
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
-login_manager.login_view = 'main.login'
+cache_manager = CacheManager()
 
-# Initialize cache with simple backend
-cache = Cache(config={
-    'CACHE_TYPE': 'SimpleCache',
-    'CACHE_DEFAULT_TIMEOUT': 300  # Default timeout in seconds (5 minutes)
-})
+def init_extensions(app):
+    """Initialize Flask extensions."""
+    db.init_app(app)
+    migrate.init_app(app, db)
+    login_manager.init_app(app)
+    cache_manager.init_app(app)
+    
+    # Configure login
+    login_manager.login_view = 'main.login'
+    login_manager.login_message_category = 'info'
+    
+    # Set up login manager loader
+    from app.models.user import User
+    
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
 
-# Initialize CSRF protection
-csrf = CSRFProtect()
+    # Configure cache directory
+    if not app.config.get('CACHE_DIR'):
+        app.config['CACHE_DIR'] = app.instance_path + '/cache'
+        os.makedirs(app.config['CACHE_DIR'], exist_ok=True)
+    
+    # Configure cache settings
+    app.config.update({
+        'CACHE_TYPE': 'simple',  # For memory cache
+        'CACHE_DEFAULT_TIMEOUT': 300,
+        'CACHE_THRESHOLD': 1000,  # Maximum number of items in cache
+        'CACHE_KEY_PREFIX': 'flask_cache_',
+        'CACHE_OPTIONS': {
+            'mode': 0o600  # File permissions for cache files
+        }
+    })
