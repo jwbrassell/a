@@ -10,7 +10,7 @@ import sys
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import extensions
-from app.extensions import db, login_manager, migrate, cache_manager, csrf
+from app.extensions import init_extensions, db, csrf
 from vault_utility import VaultUtility
 from app.utils.vault_defaults import initialize_vault_structure
 from app.utils.cache_manager import cached
@@ -44,24 +44,24 @@ def create_app(config_name=None, skip_session=False):
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)  # Initialize app-specific config
 
-    # Configure cache directory and settings
+    # Configure cache directory
     app.config['CACHE_DIR'] = os.path.join(app.instance_path, 'cache')
     os.makedirs(app.config['CACHE_DIR'], exist_ok=True)
     
     # Set cache configuration
-    app.config['CACHE_CONFIG'] = {
-        'CACHE_TYPE': app.config.get('CACHE_TYPE', 'simple'),
-        'CACHE_DEFAULT_TIMEOUT': app.config.get('CACHE_DEFAULT_TIMEOUT', 300),
-        'CACHE_THRESHOLD': app.config.get('CACHE_THRESHOLD', 1000),
-        'CACHE_KEY_PREFIX': app.config.get('CACHE_KEY_PREFIX', 'flask_cache_'),
-        'CACHE_DIR': app.config['CACHE_DIR']  # For filesystem cache
-    }
+    app.config.update(
+        CACHE_TYPE=app.config.get('CACHE_TYPE', 'simple'),
+        CACHE_DEFAULT_TIMEOUT=app.config.get('CACHE_DEFAULT_TIMEOUT', 300),
+        CACHE_THRESHOLD=app.config.get('CACHE_THRESHOLD', 1000),
+        CACHE_KEY_PREFIX=app.config.get('CACHE_KEY_PREFIX', 'flask_cache_'),
+        CACHE_DIR=app.config['CACHE_DIR']  # For filesystem cache
+    )
 
-    # Initialize extensions with app
-    db.init_app(app)
-    login_manager.init_app(app)
-    csrf.init_app(app)  # Initialize CSRF protection
-    cache_manager.init_app(app)  # Initialize our enhanced caching system
+    # Initialize all extensions
+    init_extensions(app)
+
+    # Initialize CSRF protection
+    csrf.init_app(app)
 
     # Initialize Flask-Session only if not skipped
     if not skip_session:
@@ -75,17 +75,9 @@ def create_app(config_name=None, skip_session=False):
     from app.logging_utils import init_app as init_logging
     init_logging(app)
 
-    # Skip migrations if requested
-    if os.getenv('SKIP_MIGRATIONS') != '1':
-        migrate.init_app(app, db)
-
     # Initialize image registry
     from app.utils.image_registry import ImageRegistry
     ImageRegistry.init_app(app)
-
-    # Configure login
-    login_manager.login_view = 'main.login'
-    login_manager.login_message_category = 'info'
 
     # Import and register blueprints
     from app.routes import init_routes
@@ -191,18 +183,21 @@ def create_app(config_name=None, skip_session=False):
     @cache.command()
     def clear():
         """Clear all caches."""
+        from app.extensions import cache_manager
         cache_manager.clear_all()
         click.echo("All caches cleared.")
 
     @cache.command()
     def warm():
         """Warm up the cache with frequently accessed data."""
+        from app.extensions import cache_manager
         cache_manager.warm_cache()
         click.echo("Cache warming completed.")
 
     @cache.command()
     def stats():
         """Show cache statistics."""
+        from app.extensions import cache_manager
         stats = cache_manager.get_cache_stats()
         click.echo("\nCache Statistics:")
         click.echo("-" * 50)

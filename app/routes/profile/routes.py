@@ -6,7 +6,7 @@ from app.routes.profile import profile_bp as bp, allowed_file, DEFAULT_AVATARS
 from app import db
 from app.utils.activity_tracking import track_activity
 from app.models import UserActivity, User
-from app.extensions import cache_manager
+from app.utils.cache_manager import cached, cache
 from sqlalchemy import desc
 from io import BytesIO
 import os
@@ -50,7 +50,7 @@ def index():
                 # Clear any existing custom avatar
                 current_user.avatar_data = None
                 current_user.avatar_mimetype = None
-                cache_manager.memory_cache.delete(f'avatar_{current_user.id}')
+                cache.delete(f'avatar_{current_user.id}')
                 db.session.commit()
                 flash('Avatar updated successfully', 'success')
             return redirect(url_for('profile.index'))
@@ -89,7 +89,7 @@ def get_avatar(user_id):
 
 @bp.route('/activities/data')
 @login_required
-@cache_manager.cached(timeout=60)  # Cache for 1 minute
+@cached(timeout=60)  # Cache for 1 minute
 def get_activities_data():
     """Server-side processing endpoint for activities DataTable"""
     # Get request parameters
