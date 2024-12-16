@@ -25,12 +25,13 @@ class CacheManager:
         """Initialize cache with Flask application."""
         if not hasattr(app, 'extensions'):
             app.extensions = {}
+
+        # Initialize the cache with the app's config
+        cache_config = app.config.get('CACHE_CONFIG', {'CACHE_TYPE': 'simple'})
+        self.memory_cache.init_app(app, config=cache_config)
         
-        if 'cache' not in app.extensions:
-            app.extensions['cache'] = {}
-            
-        app.extensions['cache'][self.memory_cache] = self.memory_cache
-        self.memory_cache.init_app(app)
+        # Store the cache instance directly in app.extensions
+        app.extensions['cache'] = self.memory_cache
         
         # Register cache management commands
         @app.cli.group()

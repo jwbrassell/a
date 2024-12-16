@@ -44,9 +44,18 @@ def create_app(config_name=None, skip_session=False):
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)  # Initialize app-specific config
 
-    # Configure cache directory
+    # Configure cache directory and settings
     app.config['CACHE_DIR'] = os.path.join(app.instance_path, 'cache')
     os.makedirs(app.config['CACHE_DIR'], exist_ok=True)
+    
+    # Set cache configuration
+    app.config['CACHE_CONFIG'] = {
+        'CACHE_TYPE': app.config.get('CACHE_TYPE', 'simple'),
+        'CACHE_DEFAULT_TIMEOUT': app.config.get('CACHE_DEFAULT_TIMEOUT', 300),
+        'CACHE_THRESHOLD': app.config.get('CACHE_THRESHOLD', 1000),
+        'CACHE_KEY_PREFIX': app.config.get('CACHE_KEY_PREFIX', 'flask_cache_'),
+        'CACHE_DIR': app.config['CACHE_DIR']  # For filesystem cache
+    }
 
     # Initialize extensions with app
     db.init_app(app)
