@@ -18,6 +18,11 @@ class Role(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = db.Column(db.String(64))
     
+    # LDAP Integration
+    ldap_groups = db.Column(db.JSON, default=list)  # List of LDAP group DNs
+    auto_sync = db.Column(db.Boolean, default=False)  # Whether to auto-sync with LDAP
+    last_sync_at = db.Column(db.DateTime)  # Last LDAP sync timestamp
+    
     # Role hierarchy
     parent_id = db.Column(db.Integer, db.ForeignKey('role.id'))
     parent = db.relationship('Role', remote_side=[id], backref='children')
@@ -51,7 +56,10 @@ class Role(db.Model):
             'parent_id': self.parent_id,
             'user_count': len(self.users),
             'permission_count': len(self.permissions),
-            'children': [child.id for child in self.children]
+            'children': [child.id for child in self.children],
+            'ldap_groups': self.ldap_groups or [],
+            'auto_sync': self.auto_sync,
+            'last_sync_at': self.last_sync_at.isoformat() if self.last_sync_at else None
         }
     
     def get_permissions(self, include_parent=True) -> List['Permission']:
@@ -186,3 +194,63 @@ class Role(db.Model):
     def get_effective_permissions(self) -> List['Permission']:
         """Get all effective permissions including inherited ones."""
         return self.get_permissions(include_parent=True)
+
+    def sync_ldap_groups(self) -> Dict[str, int]:
+        """Synchronize role members with LDAP groups."""
+        from app.mock_ldap import MockLDAP
+        from app.models import User
+        
+        if not self.ldap_groups:
+            return {'added': 0, 'removed': 0}
+        
+        try:
+            ldap = MockLDAP()
+            # Get all users from configured LDAP groups
+            ldap_users = set()
+            for group in self.ldap_groups:
+                ldap_users.update(ldap.get_group_members(group))
+            
+            # Update role members based on LDAP
+            current_users = set(self.users)
+            users_to_add = [User.query.filter_by(username=username).first()
+                           for username in ldap_users if username not in {u.username for u in current_users}]
+            users_to_remove = [u for u in current_users if u.username not in ldap_users]
+            
+            # Apply changes
+            for user in users_to_add:
+                if user and self not in user.roles:
+                    user.roles.append(self)
+            
+            for user in users_to_remove:
+                if self in user.roles:
+                    user.roles.remove(self)
+            
+            # Update sync timestamp
+            self.last_sync_at = datetime.utcnow()
+            db.session.commit()
+            
+            return {
+                'added': len([u for u in users_to_add if u is not None]),
+                'removed': len(users_to_remove)
+            }
+            
+        except Exception as e:
+            db.session.rollback()
+            raise e
+
+    def get_ldap_sync_status(self) -> Dict[str, Any]:
+        """Get LDAP synchronization status for this role."""
+        if not self.ldap_groups:
+            return {
+                'enabled': False,
+                'status': 'disabled',
+                'message': 'LDAP integration not configured'
+            }
+        
+        return {
+            'enabled': True,
+            'status': 'active' if self.auto_sync else 'manual',
+            'last_sync': self.last_sync_at,
+            'groups': self.ldap_groups,
+            'auto_sync': self.auto_sync
+        }

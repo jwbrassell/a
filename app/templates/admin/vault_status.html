@@ -1,5 +1,13 @@
 {% extends 'base.html' %}
 
+{% block title %}Vault Status{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Vault Status</li>
+{% endblock %}
+
 {% block page_content %}
 <div class="container-fluid">
     <!-- Status Overview -->
@@ -162,6 +170,7 @@
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
     // Auto-refresh the page every 30 seconds
     setTimeout(function() {

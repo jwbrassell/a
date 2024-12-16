@@ -1,6 +1,51 @@
 {% extends "base.html" %}
 
-{% block title %}Role Members: {{ role.name }}{% endblock %}
+{% block title %}{{ role.name }} - Members{% endblock %}
+
+{% block styles %}
+<style>
+.member-card {
+    transition: all 0.2s;
+}
+.member-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.activity-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+.activity-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+.activity-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+.activity-item::before {
+    content: '';
+    position: absolute;
+    left: -2rem;
+    top: 0.25rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #007bff;
+}
+.ldap-sync-status {
+    position: relative;
+    padding: 1rem;
+    border-left: 4px solid #ffc107;
+}
+</style>
+{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
@@ -10,73 +55,181 @@
 {% endblock %}
 
 {% block page_content %}
-<div class="card">
-    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h3 class="card-title">
-            <i class="fas fa-users mr-2"></i>Members of {{ role.name }}
-        </h3>
-        <a href="{{ url_for('admin.roles') }}" class="btn btn-secondary btn-sm">
-            <i class="fas fa-arrow-left"></i> Back to Roles
-        </a>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered" id="membersTable" width="100%" cellspacing="0">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Employee Number</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
+<div class="row">
+    <!-- Members List -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">
+                        <i class="fas {{ role.icon }} mr-2"></i>{{ role.name }} - Members
+                    </h3>
+                    <div class="btn-group">
+                        {% if role.ldap_groups %}
+                        <a href="{{ url_for('admin.sync_role_ldap', role_id=role.id) }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-sync mr-1"></i>Sync LDAP
+                        </a>
+                        {% endif %}
+                        <button type="button" class="btn btn-primary" data-toggle="modal" 
+                                data-target="#addMemberModal">
+                            <i class="fas fa-user-plus mr-1"></i>Add Member
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- LDAP Sync Status -->
+                {% if role.ldap_groups %}
+                <div class="ldap-sync-status mb-4">
+                    <h5><i class="fas fa-users-cog mr-2"></i>LDAP Integration</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">Mapped Groups:</p>
+                            {% for group in role.ldap_groups %}
+                            <span class="badge badge-info mr-2">{{ group }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">Auto-sync: 
+                                {% if role.auto_sync %}
+                                <span class="badge badge-success">Enabled</span>
+                                {% else %}
+                                <span class="badge badge-warning">Disabled</span>
+                                {% endif %}
+                            </p>
+                            <small class="text-muted">Last sync: 2 hours ago</small>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Search and Filters -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </div>
+                            <input type="text" class="form-control" id="member-search" 
+                                   placeholder="Search members...">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="btn-group float-right">
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" 
+                                    data-toggle="dropdown">
+                                <i class="fas fa-filter mr-1"></i>Filter
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="#" data-filter="all">All Members</a>
+                                <a class="dropdown-item" href="#" data-filter="ldap">LDAP Users</a>
+                                <a class="dropdown-item" href="#" data-filter="manual">Manually Added</a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#" data-filter="active">Active Users</a>
+                                <a class="dropdown-item" href="#" data-filter="inactive">Inactive Users</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Members Grid -->
+                <div class="row" id="members-grid">
                     {% for user in role.users %}
-                    <tr>
-                        <td>{{ user.username }}</td>
-                        <td>{{ user.name }}</td>
-                        <td>{{ user.email }}</td>
-                        <td>{{ user.employee_number }}</td>
-                        <td>
-                            <form action="{{ url_for('admin.remove_role_member', role_id=role.id, user_id=user.id) }}" method="POST" style="display: inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to remove this user from the role?')">
-                                    <i class="fas fa-user-minus"></i> Remove
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
+                    <div class="col-md-6 mb-3 member-item">
+                        <div class="member-card card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ user.avatar_url or url_for('static', filename='images/default-avatar.png') }}" 
+                                             class="rounded-circle mr-3" width="48" height="48" 
+                                             alt="{{ user.username }}">
+                                        <div>
+                                            <h5 class="mb-1">{{ user.username }}</h5>
+                                            <p class="text-muted mb-0">{{ user.email }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-member"
+                                                data-user-id="{{ user.id }}" data-username="{{ user.username }}">
+                                            <i class="fas fa-user-minus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <small class="text-muted">Added: {{ user.created_at.strftime('%Y-%m-%d') }}</small>
+                                    {% if role.ldap_groups and user.username in role.ldap_groups|join(' ') %}
+                                    <span class="badge badge-info ml-2">
+                                        <i class="fas fa-users-cog mr-1"></i>LDAP
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Timeline -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-history mr-2"></i>Activity Timeline
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="activity-timeline">
+                    {% for activity in activities %}
+                    <div class="activity-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ activity.user.username }}</strong>
+                            <small class="text-muted">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <p class="mb-0">{{ activity.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Add Member Card -->
-<div class="card mt-4">
-    <div class="card-header">
-        <h3 class="card-title">
-            <i class="fas fa-user-plus mr-2"></i>Add Member
-        </h3>
-    </div>
-    <div class="card-body">
-        <form action="{{ url_for('admin.add_role_member', role_id=role.id) }}" method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="form-group">
-                <label for="user_id">Select User</label>
-                <select class="form-control select2" id="user_id" name="user_id" required>
-                    <option value="">Select a user...</option>
-                    {% for user in available_users %}
-                    <option value="{{ user.id }}">{{ user.username }} ({{ user.name }})</option>
-                    {% endfor %}
-                </select>
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Member to {{ role.name }}</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
             </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-user-plus"></i> Add to Role
-            </button>
-        </form>
+            <div class="modal-body">
+                <form id="add-member-form">
+                    <div class="form-group">
+                        <label for="user-select">Select User</label>
+                        <select class="form-control select2" id="user-select" name="user_id" required>
+                            <option value="">Select a user...</option>
+                            {% for user in available_users %}
+                            <option value="{{ user.id }}">{{ user.username }} ({{ user.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="add-member-submit">
+                    <i class="fas fa-user-plus mr-1"></i>Add Member
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -84,18 +237,96 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    $('#membersTable').DataTable({
-        "pageLength": 10,
-        "order": [[0, "asc"]],
-        "language": {
-            "search": "Search members:"
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4'
+    });
+
+    // Member search
+    $('#member-search').on('input', function() {
+        const search = $(this).val().toLowerCase();
+        $('.member-item').each(function() {
+            const text = $(this).text().toLowerCase();
+            $(this).toggle(text.includes(search));
+        });
+    });
+
+    // Member filtering
+    $('[data-filter]').click(function(e) {
+        e.preventDefault();
+        const filter = $(this).data('filter');
+        
+        $('.member-item').show();
+        
+        switch(filter) {
+            case 'ldap':
+                $('.member-item:not(:has(.badge-info))').hide();
+                break;
+            case 'manual':
+                $('.member-item:has(.badge-info)').hide();
+                break;
+            case 'active':
+                // Add logic for active users
+                break;
+            case 'inactive':
+                // Add logic for inactive users
+                break;
         }
     });
 
-    $('.select2').select2({
-        theme: 'bootstrap4',
-        placeholder: 'Select a user...',
-        width: '100%'
+    // Add member
+    $('#add-member-submit').click(function() {
+        const userId = $('#user-select').val();
+        if (!userId) {
+            return;
+        }
+
+        $.post("{{ url_for('admin.add_role_member', role_id=role.id) }}", {
+            user_id: userId,
+            csrf_token: "{{ csrf_token() }}"
+        })
+        .done(function() {
+            location.reload();
+        })
+        .fail(function(xhr) {
+            Swal.fire({
+                title: 'Error',
+                text: xhr.responseJSON?.message || 'Failed to add member',
+                icon: 'error'
+            });
+        });
+    });
+
+    // Remove member
+    $('.remove-member').click(function() {
+        const userId = $(this).data('user-id');
+        const username = $(this).data('username');
+
+        Swal.fire({
+            title: 'Remove Member?',
+            text: `Are you sure you want to remove ${username} from this role?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Remove'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post("{{ url_for('admin.remove_role_member', role_id=role.id) }}", {
+                    user_id: userId,
+                    csrf_token: "{{ csrf_token() }}"
+                })
+                .done(function() {
+                    location.reload();
+                })
+                .fail(function(xhr) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: xhr.responseJSON?.message || 'Failed to remove member',
+                        icon: 'error'
+                    });
+                });
+            }
+        });
     });
 });
 </script>

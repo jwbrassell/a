@@ -20,30 +20,21 @@
         <form method="POST" id="category-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="name">Category Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="name" name="name" 
-                               value="{{ category.name if category else '' }}" required>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="weight">Weight</label>
-                        <input type="number" class="form-control" id="weight" name="weight" 
-                               value="{{ category.weight if category else 0 }}">
-                        <small class="form-text text-muted">
-                            Lower numbers appear first in navigation
-                        </small>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label for="name">Category Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="name" name="name" 
+                       value="{{ category.name if category else '' }}" required>
+                <small class="form-text text-muted">
+                    Name displayed in navigation menu
+                </small>
             </div>
 
             <div class="form-group">
                 <label for="description">Description</label>
                 <textarea class="form-control" id="description" name="description" rows="3">{{ category.description if category else '' }}</textarea>
+                <small class="form-text text-muted">
+                    Brief description of what this category contains
+                </small>
             </div>
 
             <div class="form-group">
@@ -64,31 +55,14 @@
                 </div>
             </div>
 
-            {% if category and category.routes %}
             <div class="form-group">
-                <label>Associated Routes</label>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Page Name</th>
-                                <th>Route</th>
-                                <th>Weight</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for route in category.routes|sort(attribute='weight') %}
-                            <tr>
-                                <td>{{ route.page_name }}</td>
-                                <td>{{ route.route }}</td>
-                                <td>{{ route.weight }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                <label for="weight">Weight</label>
+                <input type="number" class="form-control" id="weight" name="weight" 
+                       value="{{ category.weight if category else 0 }}">
+                <small class="form-text text-muted">
+                    Lower numbers appear first in navigation
+                </small>
             </div>
-            {% endif %}
 
             <div class="form-group mt-4">
                 <button type="submit" class="btn btn-primary">
@@ -168,6 +142,7 @@ $(document).ready(function() {
     // Form validation
     $('#category-form').submit(function(e) {
         const name = $('#name').val().trim();
+        
         if (!name) {
             e.preventDefault();
             Swal.fire({

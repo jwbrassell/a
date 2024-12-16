@@ -39,3 +39,13 @@ def init_extensions(app):
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
+
+    # Add navigation_manager to template context
+    from app.utils.navigation_manager import NavigationManager
+    navigation_manager = NavigationManager()
+    
+    @app.context_processor
+    def inject_navigation():
+        return {
+            'navigation_manager': navigation_manager
+        }

@@ -80,7 +80,7 @@ def get_avatar(user_id):
     
     if not avatar_data:
         # Return default avatar
-        return redirect(url_for('static', filename='images/user_1.jpg'))
+        return redirect(url_for('static', filename='images/8bitsq.jpg'))
     
     return send_file(
         BytesIO(avatar_data),

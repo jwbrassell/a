@@ -1,5 +1,4 @@
 """Models package initialization."""
-from app.extensions import login_manager
 from app.models.permission import Permission
 from app.models.permissions import Action, RoutePermission
 from app.models.role import Role
@@ -37,8 +36,3 @@ __all__ = [
     'DocumentCache',
     'document_tag_association'
 ]
-
-@login_manager.user_loader
-def load_user(id):
-    """Load user by ID."""
-    return User.query.get(int(id))

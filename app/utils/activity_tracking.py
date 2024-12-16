@@ -6,6 +6,7 @@ from app import db
 from app.models import UserActivity
 from app.models.analytics import FeatureUsage, ResourceUtilization
 from app.logging_utils import log_error
+import json
 
 def track_activity(f):
     """
@@ -36,7 +37,12 @@ def track_activity(f):
                         user_id=current_user.id,
                         timestamp=start_time,
                         action='access',
-                        success=True
+                        success=True,
+                        context_data=json.dumps({
+                            'endpoint': request.endpoint,
+                            'method': request.method,
+                            'args': dict(request.args)
+                        })
                     )
                     db.session.add(feature_usage)
                 
@@ -59,10 +65,10 @@ def track_activity(f):
                         utilization=duration,
                         start_time=start_time,
                         end_time=datetime.utcnow(),
-                        metadata={
+                        context_data=json.dumps({
                             'endpoint': request.endpoint,
                             'unit': 'seconds'
-                        }
+                        })
                     )
                     db.session.add(resource_metric)
                     
@@ -78,10 +84,10 @@ def track_activity(f):
                             utilization=memory_usage,
                             start_time=datetime.utcnow(),
                             end_time=datetime.utcnow(),
-                            metadata={
+                            context_data=json.dumps({
                                 'endpoint': request.endpoint,
                                 'unit': 'MB'
-                            }
+                            })
                         )
                         db.session.add(memory_metric)
                     except:
@@ -108,7 +114,11 @@ def track_activity(f):
                         timestamp=datetime.utcnow(),
                         action='access',
                         duration=duration,
-                        success=False
+                        success=False,
+                        context_data=json.dumps({
+                            'error': str(e),
+                            'endpoint': request.endpoint
+                        })
                     )
                     db.session.add(error_feature)
                     db.session.commit()
@@ -139,10 +149,10 @@ def track_resource_usage(resource_type, category, value, unit):
                 utilization=value,
                 start_time=datetime.utcnow(),
                 end_time=datetime.utcnow(),
-                metadata={
+                context_data=json.dumps({
                     'category': category,
                     'unit': unit
-                }
+                })
             )
             db.session.add(metric)
             db.session.commit()
@@ -169,7 +179,9 @@ def track_feature_usage(feature, plugin, duration=None, success=True):
                 action='manual',
                 duration=duration,
                 success=success,
-                metadata={'plugin': plugin}
+                context_data=json.dumps({
+                    'plugin': plugin
+                })
             )
             db.session.add(usage)
             db.session.commit()

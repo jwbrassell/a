@@ -26,11 +26,17 @@ class NavigationCategory(db.Model):
     def __repr__(self):
         return f'<NavigationCategory {self.name}>'
 
+    def can_be_deleted(self) -> bool:
+        """Check if category can be safely deleted."""
+        # Categories with routes cannot be deleted
+        return len(self.routes) == 0
+
 class PageRouteMapping(db.Model):
     """Model for mapping pages to routes and managing navigation."""
     id = db.Column(db.Integer, primary_key=True)
     page_name = db.Column(db.String(128), nullable=False)
     route = db.Column(db.String(256), unique=True, nullable=False)
+    description = db.Column(db.String(256))  # Added description field
     icon = db.Column(db.String(32))
     weight = db.Column(db.Integer, default=0)  # For ordering within category
     category_id = db.Column(db.Integer, db.ForeignKey('navigation_category.id'))

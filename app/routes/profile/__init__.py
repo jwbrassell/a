@@ -15,11 +15,13 @@ profile_bp = Blueprint('profile', __name__,
 # Constants
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 DEFAULT_AVATARS = [
-    'user_1.jpg',
-    'user_2.jpg',
-    'user_3.jpg',
-    'user_4.jpg',
-    'user_5.jpg'
+    '8bitsq.jpg',  # Default avatar
+    'bary.jpg',
+    'blackhole.jpg',
+    'solarsystem.jpg',
+    'stego.jpg',
+    'synthsq.jpg',
+    'veloci.jpg'
 ]
 
 def allowed_file(filename):

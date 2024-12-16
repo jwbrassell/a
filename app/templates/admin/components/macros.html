@@ -1,0 +1,159 @@
+{% macro info_box(icon, title, value, color="info", extra_classes="") %}
+<div class="info-box {{ extra_classes }}">
+    <span class="info-box-icon bg-{{ color }}">
+        <i class="fas fa-{{ icon }}"></i>
+    </span>
+    <div class="info-box-content">
+        <span class="info-box-text">{{ title }}</span>
+        <span class="info-box-number">{{ value }}</span>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro stat_box(title, value, icon, color="info", footer_text=None, footer_link=None) %}
+<div class="small-box bg-{{ color }}">
+    <div class="inner">
+        <h3>{{ value }}</h3>
+        <p>{{ title }}</p>
+    </div>
+    <div class="icon">
+        <i class="fas fa-{{ icon }}"></i>
+    </div>
+    {% if footer_text %}
+    <a href="{{ footer_link or '#' }}" class="small-box-footer">
+        {{ footer_text }} <i class="fas fa-arrow-circle-right"></i>
+    </a>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro chart_card(title, chart_id, icon="chart-line", tools=True) %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-{{ icon }} mr-2"></i>{{ title }}
+        </h3>
+        {% if tools %}
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div id="{{ chart_id }}" class="chart-container"></div>
+        {{ caller() if caller else '' }}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro detail_box(title, id=None) %}
+<div class="detail-box">
+    <h5>{{ title }}</h5>
+    <div {% if id %}id="{{ id }}"{% endif %}>
+        {{ caller() if caller else 'Loading...' }}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro status_indicator(status, text=None) %}
+<span class="status-indicator status-{{ status }}"></span>
+{% if text %}{{ text }}{% endif %}
+{% endmacro %}
+
+{% macro health_indicator(component, status) %}
+<span class="health-indicator health-{{ status }}" data-component="{{ component }}"></span>
+{% endmacro %}
+
+{% macro data_table(id, headers, show_tools=True) %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">{{ caller() if caller else '' }}</h3>
+        {% if show_tools %}
+        <div class="card-tools">
+            {{ caller() if caller else '' }}
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <table id="{{ id }}" class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    {% for header in headers %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table content will be populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro user_info(user) %}
+<div class="user-info">
+    <img src="{{ url_for('profile.get_avatar', user_id=user.id) }}" 
+         class="user-avatar" 
+         alt="User Avatar">
+    <span>{{ user.username }}</span>
+</div>
+{% endmacro %}
+
+{% macro role_badge(role) %}
+<span class="role-badge" data-toggle="tooltip" title="Click to edit roles">
+    <i class="{{ role.icon }}"></i>{{ role.name }}
+</span>
+{% endmacro %}
+
+{% macro action_buttons() %}
+<div class="btn-group">
+    {{ caller() if caller }}
+</div>
+{% endmacro %}
+
+{% macro system_info_item(label, id=None, initial_value="Loading...") %}
+<div class="system-info-item" {% if id %}id="{{ id }}"{% endif %}>
+    <div class="system-info-label">{{ label }}</div>
+    <div class="system-info-value">{{ initial_value }}</div>
+</div>
+{% endmacro %}
+
+{% macro progress_bar(value, max=100, color="info", show_label=True, size="normal") %}
+<div class="progress {% if size == 'small' %}inline-progress{% endif %}">
+    <div class="progress-bar bg-{{ color }}" 
+         style="width: {{ (value/max * 100)|round|int }}%"
+         role="progressbar"
+         aria-valuenow="{{ value }}"
+         aria-valuemin="0"
+         aria-valuemax="{{ max }}">
+        {% if show_label %}
+        {{ (value/max * 100)|round|int }}%
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro modal(id, title, footer=True) %}
+<div class="modal fade" id="{{ id }}" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {{ caller() }}
+            </div>
+            {% if footer %}
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="save{{ id }}()">Save</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}

@@ -1,211 +1,140 @@
 {% extends "base.html" %}
+{% from "admin/components/macros.html" import info_box, chart_card, detail_box, health_indicator, system_info_item %}
 
 {% block title %}Admin Monitoring Dashboard{% endblock %}
 
-{% block styles %}
-{{ super() }}
-<style>
-.health-indicator {
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 5px;
-}
-.health-healthy { background-color: #00a65a; }
-.health-warning { background-color: #f39c12; }
-.health-error { background-color: #dd4b39; }
-
-.metric-card {
-    transition: all 0.3s ease;
-}
-.metric-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.chart-container {
-    min-height: 300px;
-}
-</style>
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Monitoring</li>
 {% endblock %}
 
-{% block content %}
-<div class="content-wrapper">
-    <!-- Content Header -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">System Monitoring</h1>
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='src/css/admin/common.css') }}">
+{% endblock %}
+
+{% block page_content %}
+<!-- System Health Overview -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-heartbeat mr-2"></i>System Health
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
                 </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
-                        <li class="breadcrumb-item active">Monitoring</li>
-                    </ol>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for component in ['cpu', 'memory', 'disk', 'network'] %}
+                    <div class="col-md-3 col-sm-6 col-12">
+                        {{ info_box(
+                            icon=component,
+                            title=component|title,
+                            value="Loading...",
+                            color="info",
+                            extra_classes="component-" + component
+                        ) }}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- System Information -->
+                <div class="system-info">
+                    {{ system_info_item("System Uptime", "uptimeInfo") }}
+                    {{ system_info_item("Load Avg (1m)", "loadAvg1") }}
+                    {{ system_info_item("Load Avg (5m)", "loadAvg5") }}
+                    {{ system_info_item("Load Avg (15m)", "loadAvg15") }}
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Main content -->
-    <section class="content">
-        <div class="container-fluid">
-            <!-- System Health Overview -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-heartbeat mr-2"></i>System Health
-                            </h3>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                    <i class="fas fa-minus"></i>
+<!-- Performance Metrics -->
+<div class="row">
+    <div class="col-md-6">
+        {% call chart_card("CPU & Memory Usage", "systemMetricsChart", "microchip") %}
+            {{ detail_box("CPU Details", "cpuDetails") }}
+            {{ detail_box("Memory Details", "memoryDetails") }}
+        {% endcall %}
+    </div>
+    <div class="col-md-6">
+        {% call chart_card("Network Traffic", "networkMetricsChart", "network-wired") %}
+            {{ detail_box("Network Speed", "networkDetails") }}
+        {% endcall %}
+    </div>
+</div>
+
+<!-- Application Metrics -->
+<div class="row">
+    <div class="col-md-6">
+        {% call chart_card("Active Users", "userActivityChart", "users") %}
+            {{ detail_box("User Activity Summary", "userActivityDetails") }}
+        {% endcall %}
+    </div>
+    <div class="col-md-6">
+        {% call chart_card("Response Times", "responseTimesChart", "clock") %}
+            {{ detail_box("Process Information", "processDetails") }}
+        {% endcall %}
+    </div>
+</div>
+
+<!-- Alerts -->
+<div class="row">
+    <div class="col-12">
+        {% call chart_card("Active Alerts", "", "bell", tools=false) %}
+            <div class="card-tools position-absolute top-0 end-0 m-3">
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newAlertModal">
+                    <i class="fas fa-plus"></i> New Alert
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Metric</th>
+                            <th>Condition</th>
+                            <th>Threshold</th>
+                            <th>Last Triggered</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alertsTableBody">
+                        {% for alert in alerts %}
+                        <tr>
+                            <td>{{ alert.name }}</td>
+                            <td>{{ alert.metric_name }}</td>
+                            <td>{{ alert.condition }}</td>
+                            <td>{{ alert.threshold }}</td>
+                            <td>{{ alert.last_triggered|default('Never', true) }}</td>
+                            <td>
+                                <span class="badge badge-{{ 'success' if alert.enabled else 'secondary' }}">
+                                    {{ 'Active' if alert.enabled else 'Disabled' }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="admin.handleAlertAction('edit', {{ alert.id }})">
+                                    <i class="fas fa-edit"></i>
                                 </button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                {% for component, status in health.components.items() %}
-                                <div class="col-md-3 col-sm-6 col-12">
-                                    <div class="info-box">
-                                        <span class="info-box-icon bg-{{ status.status }}">
-                                            <i class="fas fa-{{ component }}"></i>
-                                        </span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text">{{ component|title }}</span>
-                                            <span class="info-box-number">{{ status.value }}%</span>
-                                            <div class="progress">
-                                                <div class="progress-bar" style="width: {{ status.value }}%"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Performance Metrics -->
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-tachometer-alt mr-2"></i>CPU & Memory Usage
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="systemMetricsChart" class="chart-container"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-network-wired mr-2"></i>Network Traffic
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="networkMetricsChart" class="chart-container"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Application Metrics -->
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-users mr-2"></i>Active Users
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="userActivityChart" class="chart-container"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-clock mr-2"></i>Response Times
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="responseTimesChart" class="chart-container"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Alerts -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-bell mr-2"></i>Active Alerts
-                            </h3>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#newAlertModal">
-                                    <i class="fas fa-plus"></i> New Alert
+                                <button class="btn btn-sm btn-danger" onclick="admin.handleAlertAction('delete', {{ alert.id }})">
+                                    <i class="fas fa-trash"></i>
                                 </button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Metric</th>
-                                            <th>Condition</th>
-                                            <th>Threshold</th>
-                                            <th>Last Triggered</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="alertsTableBody">
-                                        {% for alert in alerts %}
-                                        <tr>
-                                            <td>{{ alert.name }}</td>
-                                            <td>{{ alert.metric_name }}</td>
-                                            <td>{{ alert.condition }}</td>
-                                            <td>{{ alert.threshold }}</td>
-                                            <td>{{ alert.last_triggered|default('Never', true) }}</td>
-                                            <td>
-                                                <span class="badge badge-{{ 'success' if alert.enabled else 'secondary' }}">
-                                                    {{ 'Active' if alert.enabled else 'Disabled' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-sm btn-info" onclick="editAlert({{ alert.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-danger" onclick="deleteAlert({{ alert.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        </div>
-    </section>
+        {% endcall %}
+    </div>
 </div>
 
 <!-- New Alert Modal -->
@@ -214,17 +143,15 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">New Alert</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="newAlertForm">
-                    <div class="form-group">
+                    <div class="form-group mb-3">
                         <label>Alert Name</label>
                         <input type="text" class="form-control" name="name" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group mb-3">
                         <label>Metric Name</label>
                         <select class="form-control" name="metric_name" required>
                             <option value="system_cpu_percent">CPU Usage</option>
@@ -233,7 +160,7 @@
                             <option value="request_duration_seconds">Response Time</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group mb-3">
                         <label>Condition</label>
                         <select class="form-control" name="condition" required>
                             <option value=">">&gt;</option>
@@ -243,19 +170,19 @@
                             <option value="<=">&lt;=</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group mb-3">
                         <label>Threshold</label>
                         <input type="number" class="form-control" name="threshold" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group mb-3">
                         <label>Duration (seconds)</label>
                         <input type="number" class="form-control" name="duration" value="300">
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveNewAlert()">Create Alert</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="admin.handleAlertAction('create')">Create Alert</button>
             </div>
         </div>
     </div>
@@ -264,182 +191,18 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('static', filename='plugins/highcharts/highcharts.js') }}"></script>
-<script>
-// Initialize charts
-document.addEventListener('DOMContentLoaded', function() {
-    initializeCharts();
-    refreshData();
-    // Refresh data every minute
-    setInterval(refreshData, 60000);
-});
+<script type="module">
+    import { Admin } from "{{ url_for('static', filename='src/js/admin/main.js') }}";
 
-function initializeCharts() {
-    // System Metrics Chart
-    Highcharts.chart('systemMetricsChart', {
-        chart: { type: 'line' },
-        title: { text: 'System Resource Usage' },
-        xAxis: { type: 'datetime' },
-        yAxis: { title: { text: 'Percentage' } },
-        series: [
-            { name: 'CPU', data: [] },
-            { name: 'Memory', data: [] }
-        ]
-    });
-
-    // Network Metrics Chart
-    Highcharts.chart('networkMetricsChart', {
-        chart: { type: 'area' },
-        title: { text: 'Network Traffic' },
-        xAxis: { type: 'datetime' },
-        yAxis: { title: { text: 'Bytes' } },
-        series: [
-            { name: 'Sent', data: [] },
-            { name: 'Received', data: [] }
-        ]
-    });
-
-    // User Activity Chart
-    Highcharts.chart('userActivityChart', {
-        chart: { type: 'column' },
-        title: { text: 'Active Users' },
-        xAxis: { type: 'datetime' },
-        yAxis: { title: { text: 'Count' } },
-        series: [{ name: 'Active Users', data: [] }]
-    });
-
-    // Response Times Chart
-    Highcharts.chart('responseTimesChart', {
-        chart: { type: 'line' },
-        title: { text: 'Response Times' },
-        xAxis: { type: 'datetime' },
-        yAxis: { title: { text: 'Seconds' } },
-        series: [{ name: 'Average Response Time', data: [] }]
-    });
-}
-
-function refreshData() {
-    // Fetch and update system metrics
-    fetch('/admin/monitoring/api/system-resources')
-        .then(response => response.json())
-        .then(updateSystemCharts);
-
-    // Fetch and update performance metrics
-    fetch('/admin/monitoring/api/performance')
-        .then(response => response.json())
-        .then(updatePerformanceCharts);
-
-    // Fetch and update user activity
-    fetch('/admin/monitoring/api/user-activity')
-        .then(response => response.json())
-        .then(updateUserActivityChart);
-
-    // Update health status
-    fetch('/admin/monitoring/api/health')
-        .then(response => response.json())
-        .then(updateHealthStatus);
-}
-
-// Alert management functions
-function saveNewAlert() {
-    const form = document.getElementById('newAlertForm');
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-
-    fetch('/admin/monitoring/api/alerts', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(alert => {
-        $('#newAlertModal').modal('hide');
-        refreshAlerts();
-    })
-    .catch(error => console.error('Error:', error));
-}
-
-function refreshAlerts() {
-    fetch('/admin/monitoring/api/alerts')
-        .then(response => response.json())
-        .then(alerts => {
-            const tbody = document.getElementById('alertsTableBody');
-            tbody.innerHTML = alerts.map(alert => `
-                <tr>
-                    <td>${alert.name}</td>
-                    <td>${alert.metric_name}</td>
-                    <td>${alert.condition}</td>
-                    <td>${alert.threshold}</td>
-                    <td>${alert.last_triggered || 'Never'}</td>
-                    <td>
-                        <span class="badge badge-${alert.enabled ? 'success' : 'secondary'}">
-                            ${alert.enabled ? 'Active' : 'Disabled'}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-info" onclick="editAlert(${alert.id})">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteAlert(${alert.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+    // Initialize admin dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        const admin = new Admin();
+        window.admin = admin; // Make available globally for event handlers
+        
+        // Initialize monitoring dashboard
+        admin.initMonitoringDashboard({
+            refreshInterval: 30000 // 30 seconds
         });
-}
-
-// Chart update functions
-function updateSystemCharts(data) {
-    const cpuChart = Highcharts.charts.find(c => c.renderTo.id === 'systemMetricsChart');
-    const networkChart = Highcharts.charts.find(c => c.renderTo.id === 'networkMetricsChart');
-
-    if (cpuChart && data.system_cpu_percent) {
-        cpuChart.series[0].setData(
-            data.system_cpu_percent.map(m => [new Date(m.timestamp).getTime(), m.value])
-        );
-    }
-
-    if (networkChart && data.system_network_bytes_sent) {
-        networkChart.series[0].setData(
-            data.system_network_bytes_sent.map(m => [new Date(m.timestamp).getTime(), m.value])
-        );
-        networkChart.series[1].setData(
-            data.system_network_bytes_recv.map(m => [new Date(m.timestamp).getTime(), m.value])
-        );
-    }
-}
-
-function updatePerformanceCharts(data) {
-    const responseChart = Highcharts.charts.find(c => c.renderTo.id === 'responseTimesChart');
-    
-    if (responseChart && data.requests) {
-        responseChart.series[0].setData(
-            data.requests.map(r => [new Date(r.timestamp).getTime(), r.value])
-        );
-    }
-}
-
-function updateUserActivityChart(data) {
-    const activityChart = Highcharts.charts.find(c => c.renderTo.id === 'userActivityChart');
-    
-    if (activityChart) {
-        activityChart.series[0].setData(
-            data.recent_actions.map(a => [new Date(a.timestamp).getTime(), 1])
-        );
-    }
-}
-
-function updateHealthStatus(health) {
-    Object.entries(health.components).forEach(([component, status]) => {
-        const element = document.querySelector(`[data-component="${component}"]`);
-        if (element) {
-            element.className = `health-indicator health-${status.status}`;
-        }
     });
-}
 </script>
 {% endblock %}

@@ -2,6 +2,12 @@
 
 {% block title %}Analytics Dashboard{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Analytics</li>
+{% endblock %}
+
 {% block styles %}
 {{ super() }}
 <style>
@@ -30,291 +36,267 @@
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="content-wrapper">
-    <!-- Content Header -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Analytics Dashboard</h1>
+{% block page_content %}
+<!-- Controls -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="date-range-selector">
+            <div class="btn-group">
+                <button type="button" class="btn btn-default" data-range="7">7 Days</button>
+                <button type="button" class="btn btn-primary active" data-range="30">30 Days</button>
+                <button type="button" class="btn btn-default" data-range="90">90 Days</button>
+                <button type="button" class="btn btn-default" data-range="365">1 Year</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="export-options float-right">
+            <div class="btn-group">
+                <button type="button" class="btn btn-success" onclick="exportData('csv')">
+                    <i class="fas fa-file-csv"></i> Export CSV
+                </button>
+                <button type="button" class="btn btn-danger" onclick="exportData('pdf')">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overview Cards -->
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3 id="activeUsers">0</h3>
+                <p>Active Users</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-users"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3 id="documentAccess">0</h3>
+                <p>Document Accesses</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-file"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3 id="activeProjects">0</h3>
+                <p>Active Projects</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-project-diagram"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner">
+                <h3 id="resourceUsage">0</h3>
+                <p>Resource Usage</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-server"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Usage -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-line mr-1"></i>
+                    Feature Usage Trends
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
                 </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
-                        <li class="breadcrumb-item active">Analytics</li>
-                    </ol>
+            </div>
+            <div class="card-body">
+                <div id="featureUsageChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-star mr-1"></i>
+                    Top Features
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <ul class="products-list product-list-in-card pl-2 pr-2" id="topFeaturesList">
+                    <!-- Populated by JavaScript -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Analytics -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-folder mr-1"></i>
+                    Popular Categories
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="categoryChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-clock mr-1"></i>
+                    Access Patterns
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="accessPatternChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project Performance -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-tasks mr-1"></i>
+                    Project Performance
+                </h3>
+                <div class="card-tools">
+                    <select class="form-control" id="projectSelector">
+                        <option value="">All Projects</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="projectPerformanceChart" class="chart-container"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div id="projectMetrics">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Main content -->
-    <section class="content">
-        <div class="container-fluid">
-            <!-- Controls -->
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="date-range-selector">
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-default" data-range="7">7 Days</button>
-                            <button type="button" class="btn btn-primary active" data-range="30">30 Days</button>
-                            <button type="button" class="btn btn-default" data-range="90">90 Days</button>
-                            <button type="button" class="btn btn-default" data-range="365">1 Year</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="export-options float-right">
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-success" onclick="exportData('csv')">
-                                <i class="fas fa-file-csv"></i> Export CSV
-                            </button>
-                            <button type="button" class="btn btn-danger" onclick="exportData('pdf')">
-                                <i class="fas fa-file-pdf"></i> Export PDF
-                            </button>
-                        </div>
-                    </div>
+<!-- Team Productivity -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-users mr-1"></i>
+                    Team Performance
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="teamPerformanceChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-trophy mr-1"></i>
+                    Team Rankings
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="teamRankingsTable">
+                        <thead>
+                            <tr>
+                                <th>Team</th>
+                                <th>Score</th>
+                                <th>Trend</th>
+                                <th>Members</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
 
-            <!-- Overview Cards -->
-            <div class="row">
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-info">
-                        <div class="inner">
-                            <h3 id="activeUsers">0</h3>
-                            <p>Active Users</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-success">
-                        <div class="inner">
-                            <h3 id="documentAccess">0</h3>
-                            <p>Document Accesses</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-file"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-warning">
-                        <div class="inner">
-                            <h3 id="activeProjects">0</h3>
-                            <p>Active Projects</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-project-diagram"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-danger">
-                        <div class="inner">
-                            <h3 id="resourceUsage">0</h3>
-                            <p>Resource Usage</p>
-                        </div>
-                        <div class="icon">
-                            <i class="fas fa-server"></i>
-                        </div>
-                    </div>
+<!-- Resource Utilization -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-server mr-1"></i>
+                    Resource Utilization
+                </h3>
+                <div class="card-tools">
+                    <select class="form-control" id="resourceTypeSelector">
+                        <option value="">All Resources</option>
+                    </select>
                 </div>
             </div>
-
-            <!-- Feature Usage -->
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-chart-line mr-1"></i>
-                                Feature Usage Trends
-                            </h3>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                    <i class="fas fa-minus"></i>
-                                </button>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="resourceUtilizationChart" class="chart-container"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-box mb-3">
+                            <span class="info-box-icon bg-success">
+                                <i class="fas fa-dollar-sign"></i>
+                            </span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Total Cost</span>
+                                <span class="info-box-number" id="totalCost">$0</span>
                             </div>
                         </div>
-                        <div class="card-body">
-                            <div id="featureUsageChart" class="chart-container"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-star mr-1"></i>
-                                Top Features
-                            </h3>
-                        </div>
-                        <div class="card-body p-0">
-                            <ul class="products-list product-list-in-card pl-2 pr-2" id="topFeaturesList">
-                                <!-- Populated by JavaScript -->
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Document Analytics -->
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-folder mr-1"></i>
-                                Popular Categories
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="categoryChart" class="chart-container"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-clock mr-1"></i>
-                                Access Patterns
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="accessPatternChart" class="chart-container"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Project Performance -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-tasks mr-1"></i>
-                                Project Performance
-                            </h3>
-                            <div class="card-tools">
-                                <select class="form-control" id="projectSelector">
-                                    <option value="">All Projects</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <div id="projectPerformanceChart" class="chart-container"></div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div id="projectMetrics">
-                                        <!-- Populated by JavaScript -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Team Productivity -->
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-users mr-1"></i>
-                                Team Performance
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="teamPerformanceChart" class="chart-container"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-trophy mr-1"></i>
-                                Team Rankings
-                            </h3>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-striped" id="teamRankingsTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Team</th>
-                                            <th>Score</th>
-                                            <th>Trend</th>
-                                            <th>Members</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Populated by JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Resource Utilization -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-server mr-1"></i>
-                                Resource Utilization
-                            </h3>
-                            <div class="card-tools">
-                                <select class="form-control" id="resourceTypeSelector">
-                                    <option value="">All Resources</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <div id="resourceUtilizationChart" class="chart-container"></div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="info-box mb-3">
-                                        <span class="info-box-icon bg-success">
-                                            <i class="fas fa-dollar-sign"></i>
-                                        </span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text">Total Cost</span>
-                                            <span class="info-box-number" id="totalCost">$0</span>
-                                        </div>
-                                    </div>
-                                    <div class="info-box mb-3">
-                                        <span class="info-box-icon bg-info">
-                                            <i class="fas fa-chart-pie"></i>
-                                        </span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text">Average Utilization</span>
-                                            <span class="info-box-number" id="avgUtilization">0%</span>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="info-box mb-3">
+                            <span class="info-box-icon bg-info">
+                                <i class="fas fa-chart-pie"></i>
+                            </span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Average Utilization</span>
+                                <span class="info-box-number" id="avgUtilization">0%</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 </div>
 {% endblock %}
 
@@ -386,7 +368,10 @@ function initializeCharts() {
         title: { text: 'Access Patterns' },
         xAxis: { categories: [] },
         yAxis: { title: { text: 'Count' } },
-        series: []
+        series: [{
+            name: 'Access Count',
+            data: []
+        }]
     });
 
     // Project Performance Chart
@@ -435,7 +420,11 @@ function refreshData() {
 
 function updateDashboard(data) {
     // Update overview cards
-    updateOverviewCards(data.feature_usage);
+    document.getElementById('activeUsers').textContent = data.feature_usage.user_engagement.active_users;
+    document.getElementById('documentAccess').textContent = data.document_analytics.total_access;
+    document.getElementById('activeProjects').textContent = data.project_performance.active_projects;
+    document.getElementById('resourceUsage').textContent = 
+        Math.round(data.resource_utilization.avg_utilization) + '%';
     
     // Update charts
     updateFeatureUsageChart(data.feature_usage);
@@ -443,14 +432,6 @@ function updateDashboard(data) {
     updateProjectPerformance(data.project_performance);
     updateTeamProductivity(data.team_productivity);
     updateResourceUtilization(data.resource_utilization);
-}
-
-function updateOverviewCards(data) {
-    document.getElementById('activeUsers').textContent = data.user_engagement.active_users;
-    document.getElementById('documentAccess').textContent = data.document_analytics?.total_access || 0;
-    document.getElementById('activeProjects').textContent = data.project_performance?.active_projects || 0;
-    document.getElementById('resourceUsage').textContent = 
-        Math.round(data.resource_utilization?.avg_utilization || 0) + '%';
 }
 
 function updateFeatureUsageChart(data) {
@@ -483,17 +464,12 @@ function updateFeatureUsageChart(data) {
 
 function updateDocumentAnalytics(data) {
     // Update category chart
-    charts.category.series[0].setData(
-        data.popular_categories.map(cat => ({
-            name: cat.category,
-            y: cat.access_count
-        }))
-    );
+    charts.category.series[0].setData(data.popular_categories);
 
     // Update access pattern chart
     charts.accessPattern.update({
         xAxis: {
-            categories: data.access_patterns.map(p => p.hour)
+            categories: data.access_patterns.map(p => `${p.hour}:00`)
         },
         series: [{
             name: 'Access Count',
@@ -510,36 +486,37 @@ function updateProjectPerformance(data) {
             `<option value="${id}">Project ${id}</option>`
         ).join('');
 
-    // Update chart
-    charts.projectPerformance.update({
-        series: Object.entries(data.projects).map(([id, metrics]) => ({
-            name: `Project ${id}`,
-            data: Object.entries(metrics).map(([metric, values]) => ({
-                x: new Date(values.timestamp).getTime(),
-                y: values.avg
-            }))
-        }))
-    }, true);
+    // Update chart with all projects
+    const series = [];
+    Object.entries(data.projects).forEach(([projectId, metrics]) => {
+        Object.entries(metrics).forEach(([metricName, values]) => {
+            series.push({
+                name: `Project ${projectId} - ${metricName}`,
+                data: values.map(v => [v.timestamp, v.avg])
+            });
+        });
+    });
 
-    // Update metrics
-    updateProjectMetrics(data.projects[projectSelector.value] || {});
+    charts.projectPerformance.update({ series }, true);
 }
 
 function updateTeamProductivity(data) {
+    const teams = Object.entries(data.teams);
+    
     // Update team performance chart
     charts.teamPerformance.update({
         xAxis: {
-            categories: Object.keys(data.teams).map(id => `Team ${id}`)
+            categories: teams.map(([id]) => `Team ${id}`)
         },
         series: [{
             name: 'Productivity Score',
-            data: Object.values(data.teams).map(team => team.productivity_score)
+            data: teams.map(([, team]) => team.productivity_score)
         }]
     }, true);
 
     // Update rankings table
     document.getElementById('teamRankingsTable').querySelector('tbody').innerHTML =
-        Object.entries(data.teams)
+        teams
             .sort((a, b) => b[1].productivity_score - a[1].productivity_score)
             .map(([id, team]) => `
                 <tr>

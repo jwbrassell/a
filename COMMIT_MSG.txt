@@ -17,6 +17,14 @@ Changes:
    - Graceful handling of Vault connection failure
    - Warning log instead of error for Vault absence
 
+6. Added dynamic user selection functionality:
+   - Created reusable UserSelect component (user-select.js)
+   - Added API endpoints for user search and selection (api_users.py)
+   - Implemented in role management for member assignment
+   - Support for filtering by role and exclusions
+   - Real-time search with Select2 integration
+   - Proper handling of user avatars and display names
+
 Available Test Users:
 - admin: Admin User (admin, user roles)
 - manager: Team Manager (manager, user roles)
@@ -37,3 +45,4 @@ Core functionality is now working:
 - Role-based access control
 - Navigation system
 - Basic templates and UI
+- Dynamic user selection and management
