@@ -7,407 +7,92 @@
 <li class="breadcrumb-item active">Admin Dashboard</li>
 {% endblock %}
 
+{# Import components #}
+{% from 'admin/components/shared_styles.html' import admin_styles %}
+{% from 'admin/components/stat_card.html' import stat_card %}
+{% from 'admin/components/activity_list.html' import activity_list %}
+{% from 'admin/components/role_list.html' import role_list %}
+{% from 'admin/components/system_charts.html' import system_health_chart, resource_usage_chart, charts_scripts %}
+{% from 'admin/components/quick_actions.html' import quick_actions %}
+
 {% block styles %}
 {{ super() }}
-<style>
-.stat-card {
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    border: none;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-.stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-}
-.stat-icon {
-    font-size: 2.5rem;
-    opacity: 0.8;
-}
-.stat-users { background: linear-gradient(45deg, #4099ff, #73b4ff); }
-.stat-roles { background: linear-gradient(45deg, #2ed8b6, #59e0c5); }
-.stat-categories { background: linear-gradient(45deg, #FFB64D, #ffcb80); }
-.stat-routes { background: linear-gradient(45deg, #FF5370, #ff869a); }
-.stat-card .card-body { padding: 2rem; }
-.stat-value {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-}
-.stat-label {
-    font-size: 1rem;
-    opacity: 0.9;
-}
-.chart-card {
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    margin-bottom: 2rem;
-}
-.chart-container {
-    min-height: 300px;
-    padding: 1rem;
-}
-.activity-item {
-    padding: 1rem;
-    border-left: 4px solid #4099ff;
-    margin-bottom: 1rem;
-    background: #f8f9fa;
-    border-radius: 0 5px 5px 0;
-    transition: all 0.3s ease;
-}
-.activity-item:hover {
-    transform: translateX(5px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-.activity-time {
-    font-size: 0.85rem;
-    color: #6c757d;
-}
-.role-card {
-    border-radius: 10px;
-    margin-bottom: 1rem;
-    transition: all 0.3s ease;
-}
-.role-card:hover {
-    transform: translateX(5px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-.quick-actions {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    z-index: 1000;
-}
-.quick-action-btn {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    margin-top: 0.5rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-}
-.quick-action-btn:hover {
-    transform: scale(1.1);
-}
-</style>
+{{ admin_styles() }}
 {% endblock %}
 
 {% block page_content %}
 <!-- Statistics Cards -->
 <div class="row">
     <div class="col-lg-3 col-md-6">
-        <div class="card stat-card stat-users text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-value">{{ stats.users.total }}</div>
-                        <div class="stat-label">Total Users</div>
-                    </div>
-                    <i class="fas fa-users stat-icon"></i>
-                </div>
-                <div class="progress mt-3" style="height: 5px;">
-                    <div class="progress-bar bg-white" style="width: {{ (stats.users.active / stats.users.total * 100) if stats.users.total > 0 else 0 }}%"></div>
-                </div>
-                <div class="mt-2">
-                    <small>{{ stats.users.active }} Active Users</small>
-                </div>
-            </div>
-        </div>
+        {{ stat_card(
+            title="Total Users",
+            value=stats.users.total,
+            icon="fa-users",
+            color_class="stat-users",
+            progress_value=(stats.users.active / stats.users.total * 100) if stats.users.total > 0 else 0,
+            progress_label=stats.users.active|string + " Active Users"
+        ) }}
     </div>
 
     <div class="col-lg-3 col-md-6">
-        <div class="card stat-card stat-roles text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-value">{{ stats.roles.total }}</div>
-                        <div class="stat-label">Total Roles</div>
-                    </div>
-                    <i class="fas fa-user-shield stat-icon"></i>
-                </div>
-                <div class="progress mt-3" style="height: 5px;">
-                    <div class="progress-bar bg-white" style="width: {{ (stats.roles.with_users / stats.roles.total * 100) if stats.roles.total > 0 else 0 }}%"></div>
-                </div>
-                <div class="mt-2">
-                    <small>{{ stats.roles.with_users }} Roles with Users</small>
-                </div>
-            </div>
-        </div>
+        {{ stat_card(
+            title="Total Roles",
+            value=stats.roles.total,
+            icon="fa-user-shield",
+            color_class="stat-roles",
+            progress_value=(stats.roles.with_users / stats.roles.total * 100) if stats.roles.total > 0 else 0,
+            progress_label=stats.roles.with_users|string + " Roles with Users"
+        ) }}
     </div>
 
     <div class="col-lg-3 col-md-6">
-        <div class="card stat-card stat-categories text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-value">{{ stats.categories.total }}</div>
-                        <div class="stat-label">Categories</div>
-                    </div>
-                    <i class="fas fa-folder stat-icon"></i>
-                </div>
-                <div class="progress mt-3" style="height: 5px;">
-                    <div class="progress-bar bg-white" style="width: {{ (stats.categories.with_routes / stats.categories.total * 100) if stats.categories.total > 0 else 0 }}%"></div>
-                </div>
-                <div class="mt-2">
-                    <small>{{ stats.categories.with_routes }} Categories with Routes</small>
-                </div>
-            </div>
-        </div>
+        {{ stat_card(
+            title="Categories",
+            value=stats.categories.total,
+            icon="fa-folder",
+            color_class="stat-categories",
+            progress_value=(stats.categories.with_routes / stats.categories.total * 100) if stats.categories.total > 0 else 0,
+            progress_label=stats.categories.with_routes|string + " Categories with Routes"
+        ) }}
     </div>
 
     <div class="col-lg-3 col-md-6">
-        <div class="card stat-card stat-routes text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-value">{{ stats.routes.total }}</div>
-                        <div class="stat-label">Routes</div>
-                    </div>
-                    <i class="fas fa-route stat-icon"></i>
-                </div>
-                <div class="progress mt-3" style="height: 5px;">
-                    <div class="progress-bar bg-white" style="width: {{ (stats.routes.categorized / stats.routes.total * 100) if stats.routes.total > 0 else 0 }}%"></div>
-                </div>
-                <div class="mt-2">
-                    <small>{{ stats.routes.categorized }} Categorized Routes</small>
-                </div>
-            </div>
-        </div>
+        {{ stat_card(
+            title="Routes",
+            value=stats.routes.total,
+            icon="fa-route",
+            color_class="stat-routes",
+            progress_value=(stats.routes.categorized / stats.routes.total * 100) if stats.routes.total > 0 else 0,
+            progress_label=stats.routes.categorized|string + " Categorized Routes"
+        ) }}
     </div>
 </div>
 
 <!-- System Health & Activity -->
 <div class="row mt-4">
     <div class="col-md-8">
-        <div class="card chart-card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-chart-line mr-2"></i>System Health
-                </h3>
-                <div class="card-tools">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-tool" data-range="1h">1H</button>
-                        <button type="button" class="btn btn-tool active" data-range="24h">24H</button>
-                        <button type="button" class="btn btn-tool" data-range="7d">7D</button>
-                        <button type="button" class="btn btn-tool" data-range="30d">30D</button>
-                    </div>
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <div id="systemHealthChart" class="chart-container"></div>
-            </div>
-        </div>
+        {{ system_health_chart() }}
     </div>
-
     <div class="col-md-4">
-        <div class="card chart-card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-chart-pie mr-2"></i>Resource Usage
-                </h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <div id="resourceUsageChart" class="chart-container"></div>
-            </div>
-        </div>
+        {{ resource_usage_chart() }}
     </div>
 </div>
 
 <!-- Recent Activity and Role Stats -->
 <div class="row mt-4">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-history mr-2"></i>Recent Activity
-                </h3>
-                <div class="card-tools">
-                    <a href="{{ url_for('admin.logs') }}" class="btn btn-tool">
-                        <i class="fas fa-arrow-right"></i> View All
-                    </a>
-                </div>
-            </div>
-            <div class="card-body">
-                {% for activity in recent_activities[:5] %}
-                <div class="activity-item">
-                    <div class="d-flex justify-content-between">
-                        <strong>{{ activity.username }}</strong>
-                        <span class="activity-time">
-                            {{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}
-                        </span>
-                    </div>
-                    <div>{{ activity.activity }}</div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
+        {{ activity_list(recent_activities[:5]) }}
     </div>
-
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-star mr-2"></i>Top Roles
-                </h3>
-                <div class="card-tools">
-                    <a href="{{ url_for('admin.roles') }}" class="btn btn-tool">
-                        <i class="fas fa-arrow-right"></i> View All
-                    </a>
-                </div>
-            </div>
-            <div class="card-body">
-                {% for role in role_stats.top_roles %}
-                <div class="role-card p-3 bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-1">
-                                <i class="fas {{ role.icon }} mr-2"></i>{{ role.name }}
-                            </h5>
-                            <small class="text-muted">{{ role.users|length }} users</small>
-                        </div>
-                        <a href="{{ url_for('admin.role_members', role_id=role.id) }}" 
-                           class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-users mr-1"></i>Manage
-                        </a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
+        {{ role_list(role_stats.top_roles) }}
     </div>
 </div>
 
 <!-- Quick Action Buttons -->
-<div class="quick-actions">
-    <button class="btn btn-primary quick-action-btn" data-toggle="tooltip" title="New User"
-            onclick="window.location.href='{{ url_for('admin.users') }}'">
-        <i class="fas fa-user-plus"></i>
-    </button>
-    <button class="btn btn-success quick-action-btn" data-toggle="tooltip" title="New Role"
-            onclick="window.location.href='{{ url_for('admin.new_role') }}'">
-        <i class="fas fa-user-shield"></i>
-    </button>
-    <button class="btn btn-info quick-action-btn" data-toggle="tooltip" title="System Status"
-            onclick="window.location.href='{{ url_for('admin.monitoring') }}'">
-        <i class="fas fa-heartbeat"></i>
-    </button>
-</div>
+{{ quick_actions() }}
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-
-    // Initialize charts
-    initializeCharts();
-});
-
-function initializeCharts() {
-    // System Health Chart
-    Highcharts.chart('systemHealthChart', {
-        chart: {
-            type: 'spline',
-            style: {
-                fontFamily: 'inherit'
-            }
-        },
-        title: {
-            text: null
-        },
-        xAxis: {
-            type: 'datetime',
-            labels: {
-                format: '{value:%H:%M}'
-            }
-        },
-        yAxis: [{
-            title: {
-                text: 'CPU & Memory Usage'
-            },
-            labels: {
-                format: '{value}%'
-            }
-        }, {
-            title: {
-                text: 'Response Time'
-            },
-            opposite: true
-        }],
-        tooltip: {
-            shared: true
-        },
-        series: [{
-            name: 'CPU Usage',
-            data: generateRandomData(24),
-            color: '#4099ff'
-        }, {
-            name: 'Memory Usage',
-            data: generateRandomData(24),
-            color: '#2ed8b6'
-        }, {
-            name: 'Response Time',
-            data: generateRandomData(24),
-            yAxis: 1,
-            color: '#FFB64D'
-        }]
-    });
-
-    // Resource Usage Chart
-    Highcharts.chart('resourceUsageChart', {
-        chart: {
-            type: 'pie',
-            style: {
-                fontFamily: 'inherit'
-            }
-        },
-        title: {
-            text: null
-        },
-        tooltip: {
-            pointFormat: '{point.y}%'
-        },
-        plotOptions: {
-            pie: {
-                allowPointSelect: true,
-                cursor: 'pointer',
-                dataLabels: {
-                    enabled: true,
-                    format: '<b>{point.name}</b>'
-                }
-            }
-        },
-        series: [{
-            name: 'Usage',
-            data: [
-                { name: 'CPU', y: 45, color: '#4099ff' },
-                { name: 'Memory', y: 30, color: '#2ed8b6' },
-                { name: 'Disk', y: 25, color: '#FFB64D' }
-            ]
-        }]
-    });
-}
-
-function generateRandomData(points) {
-    const data = [];
-    const now = Date.now();
-    for (let i = points; i > 0; i--) {
-        data.push([
-            now - i * 3600000,
-            Math.round(Math.random() * 100)
-        ]);
-    }
-    return data;
-}
-</script>
+{{ charts_scripts() }}
 {% endblock %}

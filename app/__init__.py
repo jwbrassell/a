@@ -14,6 +14,7 @@ from app.extensions import init_extensions, db, csrf
 from vault_utility import VaultUtility
 from app.utils.vault_defaults import initialize_vault_structure
 from app.utils.cache_manager import cached
+from app.utils.alert_service import alert_service
 
 def create_app(config_name=None, skip_session=False):
     app = Flask(__name__)
@@ -58,6 +59,21 @@ def create_app(config_name=None, skip_session=False):
     # Initialize image registry
     from app.utils.image_registry import ImageRegistry
     ImageRegistry.init_app(app)
+
+    # Initialize Alert Service
+    alert_service.init_app(app)
+
+    # Initialize Login Manager
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'main.login'  # Changed from auth.login to main.login
+    login_manager.login_message = 'Please log in to access this page.'
+    login_manager.login_message_category = 'info'
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models.user import User
+        return User.query.get(int(user_id))
 
     # Import and register blueprints
     from app.routes import init_routes

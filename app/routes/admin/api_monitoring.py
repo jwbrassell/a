@@ -4,6 +4,8 @@ from flask import jsonify, request, current_app
 from flask_login import login_required, current_user
 from app.utils.enhanced_rbac import requires_permission
 from app.extensions import cache
+from app.utils.alert_service import alert_service
+from app.models.metrics import MetricAlert
 import psutil
 from datetime import datetime, timedelta
 import logging
@@ -120,15 +122,101 @@ def init_monitoring_api_routes(bp):
                     'network': {
                         'upload_speed': upload_speed,
                         'download_speed': download_speed,
-                        'upload_speed_mb': upload_speed / (1024 * 1024),  # Convert to MB/s
-                        'download_speed_mb': download_speed / (1024 * 1024)  # Convert to MB/s
+                        'upload_speed_mb': upload_speed / (1024 * 1024),
+                        'download_speed_mb': download_speed / (1024 * 1024)
                     }
                 }
             })
             
         except Exception as e:
             logger.error(f"Error getting system resources: {e}")
-            cache.delete_memoized(get_system_resources)  # Clear cache on error
+            cache.delete_memoized(get_system_resources)
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @bp.route('/monitoring/api/alerts', methods=['GET'])
+    @login_required
+    @requires_permission('admin_monitoring_access', 'read')
+    def get_alerts():
+        """Get all metric alerts."""
+        try:
+            alerts = MetricAlert.query.all()
+            return jsonify({
+                'success': True,
+                'data': [alert.to_dict() for alert in alerts]
+            })
+        except Exception as e:
+            logger.error(f"Error getting alerts: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @bp.route('/monitoring/api/alerts', methods=['POST'])
+    @login_required
+    @requires_permission('admin_monitoring_access', 'write')
+    def create_alert():
+        """Create a new metric alert."""
+        try:
+            data = request.get_json()
+            alert = alert_service.create_alert(
+                name=data['name'],
+                metric_name=data['metric_name'],
+                condition=data['condition'],
+                threshold=float(data['threshold']),
+                duration=int(data['duration']),
+                tags=data.get('tags')
+            )
+            return jsonify({
+                'success': True,
+                'data': alert.to_dict()
+            })
+        except Exception as e:
+            logger.error(f"Error creating alert: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @bp.route('/monitoring/api/alerts/<int:alert_id>', methods=['PUT'])
+    @login_required
+    @requires_permission('admin_monitoring_access', 'write')
+    def update_alert(alert_id):
+        """Update an existing metric alert."""
+        try:
+            data = request.get_json()
+            alert = alert_service.update_alert(
+                alert_id,
+                **{k: v for k, v in data.items() if k in [
+                    'name', 'metric_name', 'condition', 'threshold',
+                    'duration', 'tags', 'enabled'
+                ]}
+            )
+            return jsonify({
+                'success': True,
+                'data': alert.to_dict()
+            })
+        except Exception as e:
+            logger.error(f"Error updating alert: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @bp.route('/monitoring/api/alerts/<int:alert_id>', methods=['DELETE'])
+    @login_required
+    @requires_permission('admin_monitoring_access', 'write')
+    def delete_alert(alert_id):
+        """Delete a metric alert."""
+        try:
+            success = alert_service.delete_alert(alert_id)
+            return jsonify({
+                'success': success
+            })
+        except Exception as e:
+            logger.error(f"Error deleting alert: {e}")
             return jsonify({
                 'success': False,
                 'error': str(e)
@@ -182,7 +270,7 @@ def init_monitoring_api_routes(bp):
             
         except Exception as e:
             logger.error(f"Error getting performance metrics: {e}")
-            cache.delete_memoized(get_performance_metrics)  # Clear cache on error
+            cache.delete_memoized(get_performance_metrics)
             return jsonify({
                 'success': False,
                 'error': str(e)
@@ -236,7 +324,7 @@ def init_monitoring_api_routes(bp):
                         },
                         'network': {
                             'status': network_status,
-                            'value': min(network_utilization, 100)  # Cap at 100%
+                            'value': min(network_utilization, 100)
                         }
                     },
                     'system': {
@@ -256,7 +344,7 @@ def init_monitoring_api_routes(bp):
             
         except Exception as e:
             logger.error(f"Error getting health status: {e}")
-            cache.delete_memoized(get_health_status)  # Clear cache on error
+            cache.delete_memoized(get_health_status)
             return jsonify({
                 'success': False,
                 'error': str(e)
@@ -318,7 +406,7 @@ def init_monitoring_api_routes(bp):
             
         except Exception as e:
             logger.error(f"Error getting user activity: {e}")
-            cache.delete_memoized(get_user_activity)  # Clear cache on error
+            cache.delete_memoized(get_user_activity)
             return jsonify({
                 'success': False,
                 'error': str(e)

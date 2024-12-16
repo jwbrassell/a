@@ -10,6 +10,17 @@ from app.utils.route_manager import route_to_endpoint
 
 logger = logging.getLogger(__name__)
 
+class PermissionDenied(Exception):
+    """Custom exception for permission denied errors."""
+    def __init__(self, message="Permission denied", status_code=403):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+
+    def get_response(self):
+        """Return the HTTP response for this error."""
+        return render_template('403.html'), self.status_code
+
 def register_permission(name, description=None, actions=None, roles=None):
     """
     Register a new permission with optional actions and roles.
@@ -222,7 +233,9 @@ def requires_permission(permission_name, *actions):
                         f"Permission denied: {permission_name} with action {action} "
                         f"for user {current_user.username}"
                     )
-                    return render_template('403.html'), 403
+                    raise PermissionDenied(
+                        f"Permission denied: {permission_name} with action {action}"
+                    )
             
             # If no actions specified, just check the permission
             if not actions and not check_permission_access(permission_name):
@@ -230,7 +243,7 @@ def requires_permission(permission_name, *actions):
                     f"Permission denied: {permission_name} "
                     f"for user {current_user.username}"
                 )
-                return render_template('403.html'), 403
+                raise PermissionDenied(f"Permission denied: {permission_name}")
             
             return f(*args, **kwargs)
         return decorated_function

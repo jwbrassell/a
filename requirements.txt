@@ -8,6 +8,10 @@ Flask-Migrate
 Flask-SQLAlchemy
 Flask-Session
 Flask-WTF
+Flask-SocketIO
+python-socketio
+python-engineio
+eventlet
 greenlet
 gunicorn
 itsdangerous

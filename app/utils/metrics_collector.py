@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy import func
 from flask import current_app, request
 from app.extensions import db, cache_manager
+from app.utils.websocket_service import monitoring_ns
 from dataclasses import dataclass
 import json
 
@@ -118,11 +119,19 @@ class MetricsCollector:
             
             # Update real-time cache
             cache_key = f"metric:{name}:{json.dumps(tags or {})}"
-            cache_manager.memory_cache.set(cache_key, {
+            cache_data = {
                 'value': value,
                 'timestamp': metric.timestamp.isoformat(),
                 'type': metric_type
-            }, timeout=300)  # Cache for 5 minutes
+            }
+            cache_manager.memory_cache.set(cache_key, cache_data, timeout=300)  # Cache for 5 minutes
+            
+            # Emit real-time update via WebSocket
+            monitoring_ns.emit_metric_update(
+                metric_name=name,
+                value=value,
+                tags=tags
+            )
             
         except Exception as e:
             logger.error(f"Error recording metric {name}: {e}")
