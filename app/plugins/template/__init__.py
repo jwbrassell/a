@@ -7,7 +7,7 @@ it according to your needs.
 
 from app.utils.plugin_base import PluginBase, PluginMetadata
 from flask_login import login_required
-from flask import render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request
 from sqlalchemy.exc import SQLAlchemyError
 import logging
 
@@ -30,10 +30,13 @@ class TemplatePlugin(PluginBase):
         )
         super().__init__(metadata)
         
-        # Initialize blueprint with standard configuration
-        self.init_blueprint(
+        # Create blueprint with standard configuration
+        self.blueprint = Blueprint(
+            'template',
+            __name__,
             template_folder='templates',
-            static_folder='static'
+            static_folder='static',
+            url_prefix='/template'
         )
         
         # Register routes
@@ -138,3 +141,6 @@ class TemplatePlugin(PluginBase):
 
 # Create plugin instance
 plugin = TemplatePlugin()
+
+# Make the blueprint available for import
+bp = plugin.blueprint

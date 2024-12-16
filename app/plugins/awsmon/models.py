@@ -91,6 +91,18 @@ class JumpServerTemplate(db.Model):
     updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     deleted_at = db.Column(db.DateTime)
 
+class ChangeLog(db.Model):
+    """Change Log model for tracking AWS resource changes."""
+    __tablename__ = 'aws_change_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    action = db.Column(db.String(50), nullable=False)  # start, stop, terminate, etc.
+    resource_type = db.Column(db.String(50), nullable=False)  # instance, template, etc.
+    resource_id = db.Column(db.String(50), nullable=False)
+    details = db.Column(MutableDict.as_mutable(JSONB))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
 def init_models():
     """Initialize models."""
     # Add default regions if they don't exist

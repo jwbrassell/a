@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}AWS Monitor{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">AWS Monitor</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+                    <li class="breadcrumb-item active">AWS Monitor</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">AWS Resources</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-info">
+                                    <div class="inner">
+                                        <h3>{{ instance_count }}</h3>
+                                        <p>EC2 Instances</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="fas fa-server"></i>
+                                    </div>
+                                    <a href="{{ url_for('awsmon.instances') }}" class="small-box-footer">
+                                        More info <i class="fas fa-arrow-circle-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-success">
+                                    <div class="inner">
+                                        <h3>{{ synthetic_count }}</h3>
+                                        <p>Synthetic Monitors</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="fas fa-heartbeat"></i>
+                                    </div>
+                                    <a href="{{ url_for('awsmon.synthetic') }}" class="small-box-footer">
+                                        More info <i class="fas fa-arrow-circle-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-warning">
+                                    <div class="inner">
+                                        <h3>{{ template_count }}</h3>
+                                        <p>CloudFormation Templates</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="fas fa-file-code"></i>
+                                    </div>
+                                    <a href="{{ url_for('awsmon.templates') }}" class="small-box-footer">
+                                        More info <i class="fas fa-arrow-circle-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('awsmon.static', filename='js/awsmon.js') }}"></script>
+{% endblock %}

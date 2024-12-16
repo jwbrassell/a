@@ -58,3 +58,6 @@ class ReportsPlugin(PluginBase):
 
 # Create plugin instance
 plugin = ReportsPlugin()
+
+# Make the blueprint available for import
+bp = plugin.blueprint

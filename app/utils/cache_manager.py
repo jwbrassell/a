@@ -16,13 +16,20 @@ class CacheManager:
     
     def __init__(self, app=None):
         """Initialize cache manager with optional Flask app."""
-        self.memory_cache = Cache()
+        self.memory_cache = Cache(config={'CACHE_TYPE': 'simple'})
         
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app):
         """Initialize cache with Flask application."""
+        if not hasattr(app, 'extensions'):
+            app.extensions = {}
+        
+        if 'cache' not in app.extensions:
+            app.extensions['cache'] = {}
+            
+        app.extensions['cache'][self.memory_cache] = self.memory_cache
         self.memory_cache.init_app(app)
         
         # Register cache management commands

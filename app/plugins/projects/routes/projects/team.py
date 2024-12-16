@@ -8,10 +8,10 @@ from app.extensions import db
 from app.models import User, Role
 from ...models import Project
 from app.plugins.projects import bp
+from ...utils import can_edit_project
 from .utils import (
     create_project_history,
-    log_project_activity,
-    can_edit_project
+    log_project_activity
 )
 
 @bp.route('/<int:project_id>/team', methods=['GET'])

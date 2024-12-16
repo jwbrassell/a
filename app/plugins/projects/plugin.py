@@ -5,78 +5,10 @@ from flask_migrate import Migrate
 import logging
 from logging.handlers import RotatingFileHandler
 import os
-from app.utils.rbac import check_route_access
-from app.models import PageRouteMapping
-from flask_login import current_user
 from app.extensions import db
+from .utils import can_edit_project, route_to_endpoint
 
 migrate = Migrate()
-
-def can_edit_project(user, project):
-    """Check if a user can edit a project based on RBAC permissions.
-    
-    Args:
-        user: The user to check permissions for
-        project: The project to check access to
-        
-    Returns:
-        bool: True if user has edit access, False otherwise
-    """
-    if not user or not project:
-        return False
-        
-    # Admin users always have access
-    if any(role.name == 'admin' for role in user.roles):
-        return True
-        
-    # Get the route mapping for the edit project endpoint
-    mapping = PageRouteMapping.query.filter_by(route='projects.edit_project').first()
-    
-    if not mapping:
-        # If no mapping exists, default to requiring authentication only
-        return True
-        
-    # Get the set of role names required for this route
-    required_roles = {role.name for role in mapping.allowed_roles}
-    
-    if not required_roles:
-        # If no roles are specified, default to requiring authentication only
-        return True
-        
-    # Get the set of user's role names
-    user_roles = {role.name for role in user.roles}
-    
-    # Check if user has any of the required roles
-    return bool(required_roles & user_roles)
-
-def route_to_endpoint(route: str) -> str:
-    """Convert route name to endpoint name.
-    For example: 'index' -> 'projects.index'
-             'dashboard' -> 'projects.project_dashboard'
-    """
-    if not route:
-        return ''
-    
-    # If it's already a fully qualified endpoint (contains a dot), return as is
-    if '.' in route:
-        return route
-        
-    # Map common route names to their endpoints
-    route_map = {
-        'index': 'projects.index',
-        'dashboard': 'projects.project_dashboard',
-        'kanban': 'projects.project_kanban',
-        'calendar': 'projects.project_calendar',
-        'timeline': 'projects.project_timeline',
-        'settings': 'projects.project_settings',
-        'reports': 'projects.project_reports',
-        'list': 'projects.list_projects',
-        'new': 'projects.new_project',
-        'create': 'projects.create_project'
-    }
-    
-    # Return mapped endpoint or default to projects.{route}
-    return route_map.get(route, f'projects.{route}')
 
 def init_plugin(app: Flask) -> None:
     """Initialize the projects plugin"""

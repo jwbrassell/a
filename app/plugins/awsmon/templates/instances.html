@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">AWS Instances</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addInstanceModal">
+                            <i class="fas fa-plus"></i> Add Instance
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="instances-table">
+                            <thead>
+                                <tr>
+                                    <th>Instance ID</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>State</th>
+                                    <th>Public IP</th>
+                                    <th>Private IP</th>
+                                    <th>Region</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Instances will be populated via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Instance Modal -->
+<div class="modal fade" id="addInstanceModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Instance</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addInstanceForm">
+                    <div class="form-group">
+                        <label for="instanceId">Instance ID</label>
+                        <input type="text" class="form-control" id="instanceId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="region">Region</label>
+                        <select class="form-control" id="region" required>
+                            <option value="">Select Region</option>
+                            <option value="us-east-1">US East (N. Virginia)</option>
+                            <option value="us-east-2">US East (Ohio)</option>
+                            <option value="us-west-1">US West (N. California)</option>
+                            <option value="us-west-2">US West (Oregon)</option>
+                            <!-- Add more regions as needed -->
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="addInstanceBtn">Add Instance</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('awsmon.static', filename='js/instances.js') }}"></script>
+{% endblock %}

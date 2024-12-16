@@ -98,17 +98,25 @@ class PluginManager:
             if not plugin_module:
                 return None
             
-            # Get plugin class
-            plugin_class = self._validate_plugin_class(plugin_module)
-            if not plugin_class:
+            # Get plugin instance
+            if hasattr(plugin_module, 'plugin'):
+                plugin = plugin_module.plugin
+            else:
+                # Get plugin class
+                plugin_class = self._validate_plugin_class(plugin_module)
+                if not plugin_class:
+                    return None
+                plugin = plugin_class()
+            
+            # Get blueprint
+            if hasattr(plugin_module, 'bp'):
+                blueprint = plugin_module.bp
+                # Set URL prefix if not already set
+                if not blueprint.url_prefix:
+                    blueprint.url_prefix = f'/{plugin_name}'
+            else:
+                logger.error(f"No blueprint found in plugin {plugin_name}")
                 return None
-            
-            # Initialize plugin
-            plugin = plugin_class()
-            
-            # Initialize blueprint
-            if hasattr(plugin, 'init_blueprint'):
-                plugin.init_blueprint()
             
             # Initialize with app
             plugin.init_app(self.app)
@@ -146,8 +154,8 @@ class PluginManager:
         # Load each plugin
         for plugin_dir in plugin_dirs:
             plugin = self.load_plugin(plugin_dir.name)
-            if plugin and plugin.blueprint and plugin.blueprint.name not in self.app.blueprints:
-                loaded_blueprints.append(plugin.blueprint)
+            if plugin and hasattr(plugin_dir.name, 'bp') and plugin_dir.name not in self.app.blueprints:
+                loaded_blueprints.append(plugin_dir.name)
         
         return loaded_blueprints
 

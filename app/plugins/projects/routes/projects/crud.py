@@ -9,9 +9,8 @@ from sqlalchemy import or_
 from datetime import datetime
 from app.plugins.projects import bp
 from ...models import Project, ProjectStatus, ProjectPriority, Todo, User, Role
+from ...utils import can_edit_project, can_view_project
 from .utils import (
-    can_edit_project,
-    can_view_project,
     create_project_history,
     log_project_activity,
     track_project_changes,

@@ -69,3 +69,6 @@ class WeblinksPlugin(PluginBase):
 
 # Create plugin instance
 plugin = WeblinksPlugin()
+
+# Make the blueprint available for import
+bp = plugin.blueprint

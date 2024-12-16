@@ -8,10 +8,10 @@ from app.extensions import db
 from ...models import Project, Todo
 from app.plugins.projects import bp
 from datetime import datetime
+from ...utils import can_edit_project
 from .utils import (
     create_project_history,
     log_project_activity,
-    can_edit_project,
     serialize_date
 )
 

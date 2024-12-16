@@ -3,7 +3,7 @@
 from datetime import datetime
 from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from app import db
 from app.utils.enhanced_rbac import requires_permission
 from .models import WebLink, WebLinkCategory, WebLinkTag
@@ -30,6 +30,52 @@ def register_routes(bp):
         """Get all links for DataTables."""
         links = WebLink.query.filter_by(deleted_at=None).all()
         return jsonify({'data': [link.to_dict() for link in links]})
+
+    @bp.route('/api/stats')
+    @login_required
+    @requires_permission('weblinks_access', 'read')
+    def get_stats():
+        """Get weblinks statistics."""
+        total_links = WebLink.query.filter_by(deleted_at=None).count()
+        total_categories = WebLinkCategory.query.filter_by(deleted_at=None).count()
+        total_tags = WebLinkTag.query.filter_by(deleted_at=None).count()
+        
+        # Get links per category
+        category_stats = db.session.query(
+            WebLinkCategory.name,
+            func.count(WebLink.id)
+        ).outerjoin(
+            WebLink, 
+            (WebLink.category_id == WebLinkCategory.id) & 
+            (WebLink.deleted_at.is_(None))
+        ).filter(
+            WebLinkCategory.deleted_at.is_(None)
+        ).group_by(
+            WebLinkCategory.id,
+            WebLinkCategory.name
+        ).all()
+        
+        # Get links per tag
+        tag_stats = db.session.query(
+            WebLinkTag.name,
+            func.count(WebLink.id)
+        ).outerjoin(
+            WebLink.tags
+        ).filter(
+            WebLinkTag.deleted_at.is_(None),
+            WebLink.deleted_at.is_(None)
+        ).group_by(
+            WebLinkTag.id,
+            WebLinkTag.name
+        ).all()
+        
+        return jsonify({
+            'total_links': total_links,
+            'total_categories': total_categories,
+            'total_tags': total_tags,
+            'categories': [{'name': name, 'count': count} for name, count in category_stats],
+            'tags': [{'name': name, 'count': count} for name, count in tag_stats]
+        })
 
     @bp.route('/link/add', methods=['GET', 'POST'])
     @login_required

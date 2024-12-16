@@ -152,6 +152,4 @@ class ProjectsPlugin(PluginBase):
 plugin = ProjectsPlugin()
 
 # Make the blueprint available for import
-def get_blueprint():
-    """Get the plugin's blueprint."""
-    return plugin.blueprint
+bp = plugin.blueprint

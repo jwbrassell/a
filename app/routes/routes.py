@@ -180,6 +180,14 @@ def init_routes(bp):
         log_activity(current_user, 'Visited index page')
         return render_template('index.html', plugins=plugins)
 
+    @bp.route('/ohshit')
+    @login_required
+    @track_activity
+    def ohshit():
+        """Display all accessible pages."""
+        log_activity(current_user, 'Visited ohshit page')
+        return render_template('ohshit.html')
+
     # Error Handlers
     @bp.errorhandler(400)
     def bad_request_error(e):
