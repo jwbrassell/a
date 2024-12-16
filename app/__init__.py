@@ -15,26 +15,6 @@ from vault_utility import VaultUtility
 from app.utils.vault_defaults import initialize_vault_structure
 from app.utils.cache_manager import cached
 
-def register_plugins(app):
-    """Register plugin blueprints and routes"""
-    from app.utils.plugin_manager import PluginManager
-    plugin_manager = PluginManager(app)
-    
-    # Load and register plugin blueprints within app context
-    with app.app_context():
-        # Ensure static directories exist for all plugins
-        plugins_dir = os.path.join(app.root_path, 'plugins')
-        for plugin_name in os.listdir(plugins_dir):
-            plugin_static = os.path.join(plugins_dir, plugin_name, 'static')
-            if not os.path.exists(plugin_static):
-                os.makedirs(plugin_static, exist_ok=True)
-        
-        # Register all blueprints
-        blueprints = plugin_manager.load_all_plugins()
-        for blueprint in blueprints:
-            if blueprint:
-                app.register_blueprint(blueprint)
-
 def create_app(config_name=None, skip_session=False):
     app = Flask(__name__)
     
@@ -97,13 +77,6 @@ def create_app(config_name=None, skip_session=False):
     from app.utils.request_tracking import init_request_tracking
     init_request_tracking(app)
 
-    # Check if we're running migrations
-    is_migrating = len(sys.argv) > 1 and sys.argv[1] == 'db'
-
-    # Only load plugins if not explicitly skipped and not running migrations
-    if os.getenv('SKIP_PLUGIN_LOAD') != '1' and not is_migrating:
-        register_plugins(app)
-
     # Import navigation manager and route utilities
     from app.utils.navigation_manager import NavigationManager
     from app.utils.route_manager import route_to_endpoint
@@ -128,8 +101,11 @@ def create_app(config_name=None, skip_session=False):
                 
             app.logger.info("Successfully initialized Vault")
         except Exception as e:
-            app.logger.error(f"Failed to initialize Vault: {e}")
+            app.logger.warning(f"Running without Vault integration: {e}")
             app.vault = None
+            # Set a default secret key if Vault is not available
+            if not app.config.get('SECRET_KEY'):
+                app.config['SECRET_KEY'] = 'development-key-no-vault'
 
     # Make navigation manager available to templates
     @app.context_processor

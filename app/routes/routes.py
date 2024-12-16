@@ -12,8 +12,6 @@ from app.models import User, UserActivity, UserPreference
 from app.forms import LoginForm
 from app.mock_ldap import authenticate_ldap
 from app.logging_utils import log_page_visit
-from app.utils.plugin_manager import PluginManager
-from app.utils.init_db import init_roles_and_users
 from app.utils.activity_tracking import track_activity
 
 # Configure logging
@@ -162,23 +160,8 @@ def init_routes(bp):
         if not current_user.is_authenticated:
             return redirect(url_for('main.login'))
         
-        # Get plugin metadata from plugin manager
-        plugin_manager = current_app.config.get('PLUGIN_MANAGER')
-        plugins = {}
-        if plugin_manager:
-            try:
-                plugins = plugin_manager.get_all_plugin_metadata()
-                # Filter out plugins that don't have valid routes
-                from app.utils.route_manager import route_to_endpoint
-                plugins = {
-                    name: meta for name, meta in plugins.items()
-                    if route_to_endpoint(f"{name}.index")  # Only keep plugins with valid index routes
-                }
-            except Exception as e:
-                logger.error(f"Error getting plugin metadata: {str(e)}")
-        
         log_activity(current_user, 'Visited index page')
-        return render_template('index.html', plugins=plugins)
+        return render_template('index.html')
 
     @bp.route('/ohshit')
     @login_required
