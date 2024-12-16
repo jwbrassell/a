@@ -25,6 +25,19 @@ venv/
 ENV/
 env/
 .env
+.venv
+
+# Flask
+instance/
+.webassets-cache
+*.db
+*.sqlite3
+
+# Environment Variables
+.env
+.env.*
+.env.vault
+!.env.example
 
 # IDE
 .idea/
@@ -33,53 +46,27 @@ env/
 *.swo
 .DS_Store
 
-# Flask
-instance/
-.webassets-cache
-
-# Database
-*.db
-*.sqlite3
-
 # Logs
 *.log
 logs/
 
+# Database
+*.db
+*.sqlite
+migrations/versions/
+
 # Cache
-.cache/
+__pycache__/
 .pytest_cache/
-
-# Coverage reports
-htmlcov/
-.tox/
 .coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
+htmlcov/
 
-# Vault
-vault/data/
-vault/logs/
-vault/file/
+# User uploads
+app/static/uploads/
+app/static/uploads/avatars/
+app/static/uploads/documents/
 
-# Certificates
-*.pem
-*.key
-*.crt
-*.csr
-*.srl
-
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Misc
-*.bak
+# Temporary files
 *.tmp
-*.swp
-.DS_Store
+*.temp
+*.bak
