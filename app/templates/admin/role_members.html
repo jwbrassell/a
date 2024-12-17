@@ -3,6 +3,7 @@
 {% block title %}{{ role.name }} - Members{% endblock %}
 
 {% block styles %}
+{{ super() }}
 <style>
 .member-card {
     transition: all 0.2s;
@@ -14,6 +15,7 @@
 .activity-timeline {
     position: relative;
     padding-left: 2rem;
+    min-height: 100px;
 }
 .activity-timeline::before {
     content: '';
@@ -39,10 +41,85 @@
     background: #fff;
     border: 2px solid #007bff;
 }
+.activity-item.add_role_members::before {
+    border-color: #28a745;
+}
+.activity-item.remove_role_member::before {
+    border-color: #dc3545;
+}
+.activity-item.update_role::before {
+    border-color: #ffc107;
+}
 .ldap-sync-status {
     position: relative;
     padding: 1rem;
     border-left: 4px solid #ffc107;
+    background: #fff;
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.btn .spinner-border {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+    display: none;
+}
+.btn.loading .spinner-border {
+    display: inline-block;
+}
+.btn.loading i {
+    display: none;
+}
+.system-role-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    margin-left: 0.5rem;
+    background: #e9ecef;
+    border-radius: 0.25rem;
+    color: #6c757d;
+}
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+.user-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+.user-status.active {
+    background: #28a745;
+}
+.user-status.inactive {
+    background: #dc3545;
+}
+.keyboard-shortcut {
+    background: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+    color: #6c757d;
+}
+.ldap-badge {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1rem;
+    background: #e3f2fd;
+    color: #0d47a1;
+    border: 1px solid #90caf9;
+}
+.ldap-badge i {
+    font-size: 0.7rem;
+    margin-right: 0.25rem;
 }
 </style>
 {% endblock %}
@@ -63,24 +140,43 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h3 class="card-title mb-0">
                         <i class="fas {{ role.icon }} mr-2"></i>{{ role.name }} - Members
+                        {% if role.is_system_role %}
+                        <span class="system-role-badge" data-toggle="tooltip" title="System roles have special privileges">
+                            <i class="fas fa-shield-alt mr-1"></i>System Role
+                        </span>
+                        {% endif %}
                     </h3>
                     <div class="btn-group">
                         {% if role.ldap_groups %}
-                        <a href="{{ url_for('admin.sync_role_ldap', role_id=role.id) }}" 
-                           class="btn btn-outline-primary">
+                        <button type="button" class="btn btn-outline-primary sync-ldap" 
+                                data-url="{{ url_for('admin.sync_role_ldap', role_id=role.id) }}"
+                                data-toggle="tooltip" title="Synchronize with LDAP groups">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
                             <i class="fas fa-sync mr-1"></i>Sync LDAP
-                        </a>
+                        </button>
                         {% endif %}
                         <button type="button" class="btn btn-primary" data-toggle="modal" 
-                                data-target="#addMemberModal">
+                                data-target="#addMemberModal" {% if role.is_system_role and not can_modify_system %}disabled{% endif %}
+                                data-toggle="tooltip" title="Add new members to this role">
                             <i class="fas fa-user-plus mr-1"></i>Add Member
+                            <span class="keyboard-shortcut">⌘A</span>
                         </button>
                     </div>
                 </div>
             </div>
             <div class="card-body">
+                {% if role.is_system_role and not can_modify_system %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    You need additional permissions to modify system roles.
+                </div>
+                {% endif %}
+
                 <!-- LDAP Sync Status -->
                 {% if role.ldap_groups %}
+                {% set sync_status = role.get_ldap_sync_status() %}
                 <div class="ldap-sync-status mb-4">
                     <h5><i class="fas fa-users-cog mr-2"></i>LDAP Integration</h5>
                     <div class="row">
@@ -91,14 +187,20 @@
                             {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            <p class="mb-2">Auto-sync: 
-                                {% if role.auto_sync %}
-                                <span class="badge badge-success">Enabled</span>
-                                {% else %}
-                                <span class="badge badge-warning">Disabled</span>
-                                {% endif %}
+                            <p class="mb-2">
+                                Sync Status: 
+                                <span class="badge badge-{{ 'success' if sync_status.status == 'active' else 'warning' }}">
+                                    {{ sync_status.status|title }}
+                                </span>
                             </p>
-                            <small class="text-muted">Last sync: 2 hours ago</small>
+                            <small class="text-muted">
+                                Last sync: 
+                                {% if sync_status.last_sync %}
+                                    {{ sync_status.last_sync.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    Never
+                                {% endif %}
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -114,7 +216,7 @@
                                 </span>
                             </div>
                             <input type="text" class="form-control" id="member-search" 
-                                   placeholder="Search members...">
+                                   placeholder="Search members... (⌘F)">
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -124,12 +226,24 @@
                                 <i class="fas fa-filter mr-1"></i>Filter
                             </button>
                             <div class="dropdown-menu">
-                                <a class="dropdown-item" href="#" data-filter="all">All Members</a>
-                                <a class="dropdown-item" href="#" data-filter="ldap">LDAP Users</a>
-                                <a class="dropdown-item" href="#" data-filter="manual">Manually Added</a>
+                                <a class="dropdown-item active" href="#" data-filter="all">
+                                    <i class="fas fa-globe mr-2"></i>All Members
+                                </a>
+                                {% if role.ldap_groups %}
+                                <a class="dropdown-item" href="#" data-filter="ldap">
+                                    <i class="fas fa-users-cog mr-2"></i>LDAP Users
+                                </a>
+                                <a class="dropdown-item" href="#" data-filter="manual">
+                                    <i class="fas fa-user-plus mr-2"></i>Manually Added
+                                </a>
                                 <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="#" data-filter="active">Active Users</a>
-                                <a class="dropdown-item" href="#" data-filter="inactive">Inactive Users</a>
+                                {% endif %}
+                                <a class="dropdown-item" href="#" data-filter="active">
+                                    <i class="fas fa-check-circle mr-2"></i>Active Users
+                                </a>
+                                <a class="dropdown-item" href="#" data-filter="inactive">
+                                    <i class="fas fa-times-circle mr-2"></i>Inactive Users
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -137,39 +251,68 @@
 
                 <!-- Members Grid -->
                 <div class="row" id="members-grid">
-                    {% for user in role.users %}
-                    <div class="col-md-6 mb-3 member-item">
-                        <div class="member-card card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="d-flex align-items-center">
-                                        <img src="{{ user.avatar_url or url_for('static', filename='images/default-avatar.png') }}" 
-                                             class="rounded-circle mr-3" width="48" height="48" 
-                                             alt="{{ user.username }}">
-                                        <div>
-                                            <h5 class="mb-1">{{ user.username }}</h5>
-                                            <p class="text-muted mb-0">{{ user.email }}</p>
+                    {% if users %}
+                        {% for user in users %}
+                        <div class="col-md-6 mb-3 member-item">
+                            <div class="member-card card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="d-flex align-items-center">
+                                            <img src="{{ user.avatar_url or url_for('static', filename='images/default-avatar.png') }}" 
+                                                 class="rounded-circle mr-3" width="48" height="48" 
+                                                 alt="{{ user.username }}">
+                                            <div>
+                                                <h5 class="mb-1">
+                                                    <span class="user-status {{ 'active' if user.is_active else 'inactive' }}"
+                                                          data-toggle="tooltip" 
+                                                          title="{{ 'Active' if user.is_active else 'Inactive' }}"></span>
+                                                    {{ user.username }}
+                                                </h5>
+                                                <p class="text-muted mb-0">{{ user.email }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-member"
+                                                    data-user-id="{{ user.id }}" 
+                                                    data-username="{{ user.username }}"
+                                                    {% if role.is_system_role and not can_modify_system 
+                                                       or (user.id == current_user.id and role.name.lower() == 'admin')
+                                                       or (role.ldap_groups and user.username in role.ldap_groups|join(' ')) %}disabled{% endif %}
+                                                    data-toggle="tooltip" 
+                                                    title="Remove from role">
+                                                <div class="spinner-border spinner-border-sm" role="status">
+                                                    <span class="sr-only">Loading...</span>
+                                                </div>
+                                                <i class="fas fa-user-minus"></i>
+                                            </button>
                                         </div>
                                     </div>
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-outline-danger remove-member"
-                                                data-user-id="{{ user.id }}" data-username="{{ user.username }}">
-                                            <i class="fas fa-user-minus"></i>
-                                        </button>
+                                    <div class="mt-3">
+                                        <small class="text-muted">Added: {{ user.created_at.strftime('%Y-%m-%d') }}</small>
+                                        {% if role.ldap_groups and user.username in role.ldap_groups|join(' ') %}
+                                        <span class="ldap-badge ml-2" data-toggle="tooltip" title="Synchronized with LDAP">
+                                            <i class="fas fa-users-cog"></i>LDAP
+                                        </span>
+                                        {% endif %}
                                     </div>
-                                </div>
-                                <div class="mt-3">
-                                    <small class="text-muted">Added: {{ user.created_at.strftime('%Y-%m-%d') }}</small>
-                                    {% if role.ldap_groups and user.username in role.ldap_groups|join(' ') %}
-                                    <span class="badge badge-info ml-2">
-                                        <i class="fas fa-users-cog mr-1"></i>LDAP
-                                    </span>
-                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <h4>No Members</h4>
+                                <p>This role doesn't have any members yet.</p>
+                                <button type="button" class="btn btn-primary" data-toggle="modal" 
+                                        data-target="#addMemberModal"
+                                        {% if role.is_system_role and not can_modify_system %}disabled{% endif %}>
+                                    <i class="fas fa-user-plus mr-1"></i>Add First Member
+                                </button>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -185,15 +328,23 @@
             </div>
             <div class="card-body">
                 <div class="activity-timeline">
-                    {% for activity in activities %}
-                    <div class="activity-item">
-                        <div class="d-flex justify-content-between">
-                            <strong>{{ activity.user.username }}</strong>
-                            <small class="text-muted">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                    {% if activities %}
+                        {% for activity in activities %}
+                        <div class="activity-item {{ activity.action }}">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ activity.username }}</strong>
+                                <small class="text-muted">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <p class="mb-0">{{ activity.description }}</p>
                         </div>
-                        <p class="mb-0">{{ activity.description }}</p>
-                    </div>
-                    {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-history"></i>
+                            <h4>No Recent Activity</h4>
+                            <p>No changes have been made to this role in the past week.</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -211,35 +362,79 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form id="add-member-form">
-                    <div class="form-group">
-                        <label for="user-select">Select User</label>
-                        <select class="form-control select2" id="user-select" name="user_id" required>
-                            <option value="">Select a user...</option>
-                            {% for user in available_users %}
-                            <option value="{{ user.id }}">{{ user.username }} ({{ user.email }})</option>
-                            {% endfor %}
-                        </select>
+                {% if available_users %}
+                    <form id="add-member-form">
+                        {{ form.csrf_token }}
+                        <div class="form-group">
+                            <label for="user-select">Select User</label>
+                            <select class="form-control select2" id="user-select" name="users[]" multiple required>
+                                {% for user in available_users %}
+                                <option value="{{ user.id }}">{{ user.username }} ({{ user.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-users-slash"></i>
+                        <h4>No Available Users</h4>
+                        <p>All users are already members of this role.</p>
                     </div>
-                </form>
+                {% endif %}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="add-member-submit">
-                    <i class="fas fa-user-plus mr-1"></i>Add Member
-                </button>
+                {% if available_users %}
+                    <button type="button" class="btn btn-primary" id="add-member-submit">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <i class="fas fa-user-plus mr-1"></i>Add Member
+                    </button>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<!-- Hidden form for CSRF token -->
+<form id="remove-member-form" style="display: none;">
+    {{ form.csrf_token }}
+</form>
+
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
 $(document).ready(function() {
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
     // Initialize Select2
     $('.select2').select2({
-        theme: 'bootstrap4'
+        theme: 'bootstrap4',
+        width: '100%',
+        placeholder: 'Search users...',
+        allowClear: true
+    });
+
+    // Keyboard shortcuts
+    $(document).keydown(function(e) {
+        if (e.metaKey || e.ctrlKey) {
+            switch(e.key.toLowerCase()) {
+                case 'f':
+                    e.preventDefault();
+                    $('#member-search').focus();
+                    break;
+                case 'a':
+                    e.preventDefault();
+                    if (!$('#addMemberModal').hasClass('show')) {
+                        $('#addMemberModal').modal('show');
+                    }
+                    break;
+            }
+        }
     });
 
     // Member search
@@ -249,58 +444,176 @@ $(document).ready(function() {
             const text = $(this).text().toLowerCase();
             $(this).toggle(text.includes(search));
         });
+        updateEmptyState();
     });
 
     // Member filtering
     $('[data-filter]').click(function(e) {
         e.preventDefault();
-        const filter = $(this).data('filter');
         
+        // Update active state
+        $('[data-filter]').removeClass('active');
+        $(this).addClass('active');
+        
+        const filter = $(this).data('filter');
         $('.member-item').show();
         
         switch(filter) {
             case 'ldap':
-                $('.member-item:not(:has(.badge-info))').hide();
+                $('.member-item:not(:has(.ldap-badge))').hide();
                 break;
             case 'manual':
-                $('.member-item:has(.badge-info)').hide();
+                $('.member-item:has(.ldap-badge)').hide();
                 break;
             case 'active':
-                // Add logic for active users
+                $('.member-item:has(.user-status.inactive)').hide();
                 break;
             case 'inactive':
-                // Add logic for inactive users
+                $('.member-item:has(.user-status.active)').hide();
                 break;
         }
+        updateEmptyState();
+    });
+
+    function updateEmptyState() {
+        const visibleItems = $('.member-item:visible').length;
+        if (visibleItems === 0) {
+            if (!$('#no-results').length) {
+                const filter = $('[data-filter].active').text().trim();
+                $('#members-grid').append(`
+                    <div class="col-12" id="no-results">
+                        <div class="empty-state">
+                            <i class="fas fa-filter"></i>
+                            <h4>No Matching Members</h4>
+                            <p>No members match the current ${filter} filter.</p>
+                        </div>
+                    </div>
+                `);
+            }
+        } else {
+            $('#no-results').remove();
+        }
+    }
+
+    // LDAP Sync
+    $('.sync-ldap').click(function() {
+        const $btn = $(this);
+        $btn.addClass('loading').prop('disabled', true);
+        
+        $.ajax({
+            url: $btn.data('url'),
+            method: 'POST',
+            data: {
+                csrf_token: $('#remove-member-form [name=csrf_token]').val()
+            }
+        })
+        .done(function(response) {
+            if (response.success) {
+                Swal.fire({
+                    title: 'Sync Complete',
+                    html: `
+                        <p>LDAP synchronization completed successfully:</p>
+                        <ul class="text-left">
+                            <li>${response.added} users added</li>
+                            <li>${response.removed} users removed</li>
+                        </ul>
+                    `,
+                    icon: 'success'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                throw new Error(response.message || 'Sync failed');
+            }
+        })
+        .fail(function(xhr) {
+            Swal.fire({
+                title: 'Sync Failed',
+                text: xhr.responseJSON?.message || 'Failed to sync with LDAP',
+                icon: 'error'
+            });
+        })
+        .always(function() {
+            $btn.removeClass('loading').prop('disabled', false);
+        });
     });
 
     // Add member
     $('#add-member-submit').click(function() {
-        const userId = $('#user-select').val();
-        if (!userId) {
+        const $btn = $(this);
+        const userIds = $('#user-select').val();
+        if (!userIds || !userIds.length) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Please select at least one user',
+                icon: 'error'
+            });
             return;
         }
 
-        $.post("{{ url_for('admin.add_role_member', role_id=role.id) }}", {
-            user_id: userId,
-            csrf_token: "{{ csrf_token() }}"
+        $btn.addClass('loading').prop('disabled', true);
+
+        const formData = new FormData($('#add-member-form')[0]);
+        userIds.forEach(id => formData.append('users[]', id));
+
+        $.ajax({
+            url: "{{ url_for('admin.add_role_members', role_id=role.id) }}",
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false
         })
-        .done(function() {
-            location.reload();
+        .done(function(response) {
+            if (response.success) {
+                Swal.fire({
+                    title: 'Success',
+                    text: response.message,
+                    icon: 'success'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                throw new Error(response.message || 'Failed to add member');
+            }
         })
         .fail(function(xhr) {
+            let errorMessage = xhr.responseJSON?.message || 'Failed to add member';
+            let errorTitle = 'Error';
+            
+            if (xhr.status === 403) {
+                errorTitle = 'Permission Denied';
+            } else if (xhr.status === 400 && errorMessage.includes('already members')) {
+                errorTitle = 'Already Members';
+            }
+            
             Swal.fire({
-                title: 'Error',
-                text: xhr.responseJSON?.message || 'Failed to add member',
+                title: errorTitle,
+                text: errorMessage,
                 icon: 'error'
             });
+        })
+        .always(function() {
+            $btn.removeClass('loading').prop('disabled', false);
         });
     });
 
     // Remove member
     $('.remove-member').click(function() {
-        const userId = $(this).data('user-id');
-        const username = $(this).data('username');
+        const $btn = $(this);
+        const userId = $btn.data('user-id');
+        const username = $btn.data('username');
+
+        // Check if button is disabled
+        if ($btn.prop('disabled')) {
+            if ($btn.closest('.member-card').find('.ldap-badge').length) {
+                Swal.fire({
+                    title: 'LDAP User',
+                    text: 'This user is synchronized from LDAP and cannot be removed directly.',
+                    icon: 'warning'
+                });
+            }
+            return;
+        }
 
         Swal.fire({
             title: 'Remove Member?',
@@ -311,22 +624,57 @@ $(document).ready(function() {
             confirmButtonText: 'Remove'
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post("{{ url_for('admin.remove_role_member', role_id=role.id) }}", {
-                    user_id: userId,
-                    csrf_token: "{{ csrf_token() }}"
+                $btn.addClass('loading').prop('disabled', true);
+
+                const formData = new FormData($('#remove-member-form')[0]);
+
+                $.ajax({
+                    url: "{{ url_for('admin.remove_role_member', role_id=role.id, user_id=0) }}".replace('0', userId),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false
                 })
-                .done(function() {
-                    location.reload();
+                .done(function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Success',
+                            text: response.message,
+                            icon: 'success'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        throw new Error(response.message || 'Failed to remove member');
+                    }
                 })
                 .fail(function(xhr) {
+                    let errorMessage = xhr.responseJSON?.message || 'Failed to remove member';
+                    let errorTitle = 'Error';
+                    
+                    if (xhr.status === 403) {
+                        errorTitle = 'Permission Denied';
+                    } else if (xhr.status === 400 && errorMessage.includes('Admin role')) {
+                        errorTitle = 'Cannot Remove Admin';
+                    }
+                    
                     Swal.fire({
-                        title: 'Error',
-                        text: xhr.responseJSON?.message || 'Failed to remove member',
+                        title: errorTitle,
+                        text: errorMessage,
                         icon: 'error'
                     });
+                })
+                .always(function() {
+                    $btn.removeClass('loading').prop('disabled', false);
                 });
             }
         });
+    });
+
+    // Reset form when modal is closed
+    $('#addMemberModal').on('hidden.bs.modal', function() {
+        $('#user-select').val(null).trigger('change');
+        $('#add-member-form')[0].reset();
     });
 });
 </script>

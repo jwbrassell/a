@@ -22,6 +22,7 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
     
     # Avatar fields
     avatar_data = db.Column(db.LargeBinary)
@@ -41,9 +42,28 @@ class User(UserMixin, db.Model):
         """Check password against hash."""
         return check_password_hash(self.password_hash, password)
 
+    def update_last_login(self):
+        """Update last login timestamp."""
+        self.last_login = datetime.utcnow()
+        db.session.commit()
+
     def has_role(self, role_name):
         """Check if user has a specific role."""
         return any(role.name == role_name for role in self.roles)
+
+    def has_permission(self, permission_name):
+        """Check if user has a specific permission through any of their roles."""
+        return any(
+            any(p.name == permission_name for p in role.get_permissions())
+            for role in self.roles
+        )
+
+    def get_permissions(self):
+        """Get all permissions from all roles."""
+        permissions = set()
+        for role in self.roles:
+            permissions.update(role.get_permissions())
+        return list(permissions)
 
     def get_preference(self, key, default=None):
         """Get user preference by key."""

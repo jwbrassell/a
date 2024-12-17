@@ -3,7 +3,7 @@
 from app.extensions import db
 from datetime import datetime
 from typing import Dict, Any, List
-from app.models.permissions import role_permissions
+from app.models.permissions import role_permissions, permission_actions, Action
 
 class Permission(db.Model):
     """Permission model defining granular access controls."""
@@ -25,6 +25,12 @@ class Permission(db.Model):
         secondary=role_permissions,
         back_populates='permissions',
         overlaps="permissions"
+    )
+    
+    actions = db.relationship(
+        'Action',
+        secondary=permission_actions,
+        backref=db.backref('permissions', lazy='dynamic')
     )
     
     def __repr__(self):
@@ -74,7 +80,8 @@ class Permission(db.Model):
     
     @staticmethod
     def create_permission(name: str, description: str = None, 
-                         category: str = None, created_by: str = 'system') -> 'Permission':
+                         category: str = None, created_by: str = 'system',
+                         add_actions: bool = True) -> 'Permission':
         """Create a new permission."""
         permission = Permission(
             name=name,
@@ -83,6 +90,14 @@ class Permission(db.Model):
             created_by=created_by
         )
         db.session.add(permission)
+        
+        # Add all actions to the permission if requested
+        if add_actions:
+            actions = Action.query.all()
+            for action in actions:
+                if action not in permission.actions:
+                    permission.actions.append(action)
+        
         db.session.commit()
         return permission
     
@@ -113,10 +128,15 @@ class Permission(db.Model):
         default_permissions = [
             # Admin permissions
             ('admin_dashboard_access', 'Access admin dashboard', 'admin'),
+            ('admin_routes_access', 'Access route management', 'admin'),  # Added this
             ('admin_users_access', 'Access user management', 'admin'),
             ('admin_roles_access', 'Access role management', 'admin'),
             ('admin_monitoring_access', 'Access system monitoring', 'admin'),
             ('admin_logs_access', 'Access system logs', 'admin'),
+            ('admin_vault_access', 'Access vault management', 'admin'),
+            ('admin_settings_access', 'Access admin settings', 'admin'),
+            ('admin_analytics_access', 'Access admin analytics', 'admin'),
+            ('admin_system_access', 'Access system management', 'admin'),
             
             # User permissions
             ('user_profile_access', 'Access user profile', 'user'),
@@ -134,10 +154,22 @@ class Permission(db.Model):
             ('system_update_access', 'Access system updates', 'system')
         ]
         
+        # Get all actions
+        actions = Action.query.all()
+        
         for name, description, category in default_permissions:
-            if not Permission.get_by_name(name):
-                Permission.create_permission(
+            permission = Permission.get_by_name(name)
+            if not permission:
+                permission = Permission.create_permission(
                     name=name,
                     description=description,
-                    category=category
+                    category=category,
+                    add_actions=False  # We'll add actions manually
                 )
+            
+            # Add all actions to the permission
+            for action in actions:
+                if action not in permission.actions:
+                    permission.actions.append(action)
+        
+        db.session.commit()

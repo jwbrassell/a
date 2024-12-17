@@ -48,10 +48,11 @@ export class Admin {
         // Initialize tooltips
         this.utils.initTooltips();
 
-        // Initialize charts if needed
-        if (document.getElementById('userActivityChart')) {
-            this.charts.initUserActivityChart('userActivityChart');
-        }
+        // Initialize charts
+        this.charts.initializeUsersDashboard({
+            userActivity: 'userActivityChart',
+            roleDistribution: 'roleDistributionChart'
+        });
 
         // Start data refresh
         this.startDataRefresh(options.refreshInterval || 30000);
@@ -82,33 +83,22 @@ export class Admin {
      */
     async refreshData() {
         try {
-            // Fetch system resources
-            const systemData = await this.utils.fetchWithCache('/admin/monitoring/api/system-resources');
-            if (systemData.success) {
-                this.charts.updateSystemCharts(systemData.data);
-                this.ui.updateSystemDetails(systemData.data);
-            }
-
-            // Fetch performance metrics
-            const perfData = await this.utils.fetchWithCache('/admin/monitoring/api/performance');
-            if (perfData.success) {
-                this.charts.updatePerformanceCharts(perfData.data);
-                this.ui.updateProcessDetails(perfData.data.process);
-            }
-
-            // Fetch user activity
-            const activityData = await this.utils.fetchWithCache('/admin/monitoring/api/user-activity');
+            // Fetch user activity data
+            const activityData = await this.utils.fetchWithCache('/admin/api/users/dashboard/activity');
             if (activityData.success) {
                 this.charts.updateUserActivityChart(activityData.data);
-                this.ui.updateUserActivityDetails(activityData.data);
             }
 
-            // Fetch health status
-            const healthData = await this.utils.fetchWithCache('/admin/monitoring/api/health');
-            if (healthData.success) {
-                this.ui.updateHealthStatus(healthData.data);
-                this.ui.updateSystemInfo(healthData.data.system);
+            // Fetch user stats including role distribution
+            const statsData = await this.utils.fetchWithCache('/admin/api/users/dashboard/stats');
+            if (statsData.success) {
+                this.charts.updateRoleDistributionChart(statsData.data);
+                this.ui.updateUserStats(statsData.data);
             }
+
+            // Update table data
+            await this.refreshTableData();
+
         } catch (error) {
             console.error('Error refreshing data:', error);
             this.utils.showNotification('Failed to refresh dashboard data', 'error');
@@ -116,41 +106,67 @@ export class Admin {
     }
 
     /**
-     * Handle user management actions
+     * Refresh users table data
      */
-    async handleUserAction(action, userId, data = {}) {
+    async refreshTableData() {
         try {
-            const endpoint = `/admin/api/users/${userId}/${action}`;
-            const response = await this.utils.fetchWithCache(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            }, false);
-
-            if (response.success) {
-                this.utils.showNotification('Action completed successfully', 'success');
-                return response;
-            } else {
-                throw new Error(response.error || 'Action failed');
+            const response = await this.utils.fetchWithCache('/admin/api/users');
+            if (response.results) {
+                const table = $('#usersTable').DataTable();
+                table.clear();
+                table.rows.add(response.results);
+                table.draw();
             }
         } catch (error) {
-            this.utils.showNotification(error.message, 'error');
-            throw error;
+            console.error('Error refreshing table:', error);
         }
     }
 
     /**
-     * Handle alert management
+     * Handle user management actions
      */
-    async handleAlertAction(action, alertId = null, data = {}) {
+    async handleUserAction(action, userId = null, data = {}) {
         try {
-            let endpoint = '/admin/monitoring/api/alerts';
+            let endpoint = '/admin/api/users';
             let method = 'POST';
 
-            if (alertId) {
-                endpoint += `/${alertId}`;
+            if (action === 'import') {
+                // Handle file import
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.csv';
+                fileInput.click();
+                
+                fileInput.onchange = async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        const response = await fetch('/admin/api/users/import', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            this.utils.showNotification('Users imported successfully', 'success');
+                            this.refreshData();
+                        } else {
+                            throw new Error(result.error || 'Import failed');
+                        }
+                    }
+                };
+                return;
+            }
+
+            if (action === 'export') {
+                window.location.href = '/admin/api/users/export';
+                return;
+            }
+
+            if (userId) {
+                endpoint += `/${userId}/${action}`;
                 method = action === 'delete' ? 'DELETE' : 'PUT';
             }
 
@@ -159,14 +175,16 @@ export class Admin {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: method !== 'DELETE' ? JSON.stringify(data) : undefined
+                body: JSON.stringify(data)
             }, false);
 
             if (response.success) {
-                this.utils.showNotification('Alert action completed successfully', 'success');
+                this.utils.showNotification('Action completed successfully', 'success');
+                // Refresh data after successful action
+                this.refreshData();
                 return response;
             } else {
-                throw new Error(response.error || 'Alert action failed');
+                throw new Error(response.error || 'Action failed');
             }
         } catch (error) {
             this.utils.showNotification(error.message, 'error');
@@ -182,6 +200,3 @@ export class Admin {
         // Clean up any other resources
     }
 }
-
-// Create global admin instance
-window.admin = new Admin();

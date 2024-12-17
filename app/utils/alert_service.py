@@ -6,6 +6,7 @@ import logging
 from app.extensions import db
 from app.models.metrics import MetricAlert, Metric
 from app.utils.websocket_service import monitoring_ns
+from app.utils.email_service import send_notification_email
 import json
 from typing import Dict, Any, List
 from dataclasses import dataclass
@@ -215,8 +216,29 @@ class AlertService:
                 'tags': json.loads(alert.tags) if isinstance(alert.tags, str) else alert.tags
             }
             
-            # Emit via WebSocket
+            # Emit via WebSocket for real-time updates
             monitoring_ns.emit_alert(alert_data)
+            
+            # Send email notification
+            subject = f"System Alert: {alert.name}"
+            body = f"""
+System Alert Notification
+------------------------
+
+Alert Name: {alert.name}
+Metric: {alert.metric_name}
+Condition: {alert.condition} {alert.threshold}
+Current Value: {condition.current_value:.2f}
+Triggered At: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}
+
+Additional Details:
+{json.dumps(alert_data.get('tags', {}), indent=2)}
+
+This is an automated message from the system monitoring service.
+"""
+            
+            # Send to admin users (in development, this will be logged instead of sent)
+            send_notification_email(subject, body, ['admin@localhost'])
             
             logger.info(f"Alert notification sent: {alert_data}")
             

@@ -77,6 +77,48 @@ export class AdminUI {
     }
 
     /**
+     * Update user statistics
+     * @param {Object} data - User statistics data
+     */
+    updateUserStats(data) {
+        // Update total users box
+        const totalUsersBox = document.getElementById('totalUsersBox');
+        if (totalUsersBox) {
+            const valueElement = totalUsersBox.querySelector('.info-box-number');
+            if (valueElement) {
+                valueElement.textContent = data.total_users;
+            }
+        }
+
+        // Update active users box
+        const activeUsersBox = document.getElementById('activeUsersBox');
+        if (activeUsersBox) {
+            const valueElement = activeUsersBox.querySelector('.info-box-number');
+            if (valueElement) {
+                valueElement.textContent = data.active_users;
+            }
+        }
+
+        // Update new users box
+        const newUsersBox = document.getElementById('newUsersBox');
+        if (newUsersBox) {
+            const valueElement = newUsersBox.querySelector('.info-box-number');
+            if (valueElement) {
+                valueElement.textContent = data.new_users;
+            }
+        }
+
+        // Update inactive users box
+        const inactiveUsersBox = document.getElementById('inactiveUsersBox');
+        if (inactiveUsersBox) {
+            const valueElement = inactiveUsersBox.querySelector('.info-box-number');
+            if (valueElement) {
+                valueElement.textContent = data.inactive_users;
+            }
+        }
+    }
+
+    /**
      * Update health status indicators
      * @param {Object} data - Health status data
      */
@@ -262,7 +304,7 @@ export class AdminUI {
      * @returns {string} Generated HTML
      */
     generateUserActivityDetailsHtml(data) {
-        const recentActions = data.recent_actions.slice(0, 5);
+        const recentActions = data.recent_actions?.slice(0, 5) || [];
         
         return `
             <div class="detail-item">

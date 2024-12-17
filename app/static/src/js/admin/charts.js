@@ -81,17 +81,68 @@ export class AdminCharts {
                 backgroundColor: 'transparent'
             },
             title: { text: null },
-            xAxis: { type: 'datetime' },
+            xAxis: { 
+                type: 'datetime',
+                title: { text: 'Hour' }
+            },
             yAxis: { 
-                title: { text: 'Count' },
+                title: { text: 'Active Users' },
                 min: 0
             },
+            tooltip: {
+                formatter: function() {
+                    return `<b>${Highcharts.dateFormat('%Y-%m-%d %H:00', this.x)}</b><br/>
+                            Active Users: ${this.y}`;
+                }
+            },
+            series: [{ 
+                name: 'Active Users',
+                data: [],
+                color: '#3498db'
+            }],
+            credits: { enabled: false }
+        });
+    }
+
+    /**
+     * Initialize a role distribution chart
+     * @param {string} containerId - The ID of the container element
+     * @returns {Highcharts.Chart}
+     */
+    initRoleDistributionChart(containerId) {
+        return Highcharts.chart(containerId, {
+            chart: {
+                type: 'pie',
+                backgroundColor: 'transparent'
+            },
+            title: { text: null },
+            tooltip: {
+                pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+            },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                        style: {
+                            color: '#333333'
+                        }
+                    },
+                    showInLegend: true
+                }
+            },
+            series: [{
+                name: 'Users',
+                colorByPoint: true,
+                data: []
+            }],
             legend: {
                 align: 'right',
-                verticalAlign: 'top',
+                verticalAlign: 'middle',
                 layout: 'vertical'
             },
-            series: [{ name: 'Active Users', data: [] }],
             credits: { enabled: false }
         });
     }
@@ -129,6 +180,19 @@ export class AdminCharts {
         this.charts.networkMetrics = this.initNetworkMetricsChart(containerIds.networkMetrics);
         this.charts.userActivity = this.initUserActivityChart(containerIds.userActivity);
         this.charts.responseTimes = this.initResponseTimesChart(containerIds.responseTimes);
+    }
+
+    /**
+     * Initialize all charts for the users dashboard
+     * @param {Object} containerIds - Object containing chart container IDs
+     */
+    initializeUsersDashboard(containerIds) {
+        if (containerIds.userActivity) {
+            this.charts.userActivity = this.initUserActivityChart(containerIds.userActivity);
+        }
+        if (containerIds.roleDistribution) {
+            this.charts.roleDistribution = this.initRoleDistributionChart(containerIds.roleDistribution);
+        }
     }
 
     /**
@@ -191,5 +255,19 @@ export class AdminCharts {
             h.count
         ]);
         this.charts.userActivity.series[0].setData(points);
+    }
+
+    /**
+     * Update role distribution chart with new data
+     * @param {Object} data - Role distribution data
+     */
+    updateRoleDistributionChart(data) {
+        if (!data.role_distribution || !this.charts.roleDistribution) return;
+        
+        const points = data.role_distribution.map(r => ({
+            name: r.role,
+            y: r.count
+        }));
+        this.charts.roleDistribution.series[0].setData(points);
     }
 }

@@ -3,84 +3,61 @@
 {% block title %}{{ 'Edit' if role else 'New' }} Role{% endblock %}
 
 {% block styles %}
-<link href="{{ url_for('static', filename='src/select2/css/select2.min.css') }}" rel="stylesheet">
-<link href="{{ url_for('static', filename='src/select2-bootstrap4-theme/select2-bootstrap4.min.css') }}" rel="stylesheet">
-<link href="{{ url_for('static', filename='src/toastr/toastr.min.css') }}" rel="stylesheet">
+{{ super() }}
 <style>
-.permission-category {
-    background-color: #f8f9fa;
-    border-left: 4px solid #007bff;
-    margin-bottom: 1rem;
+.icon-grid {
+    max-height: 300px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 10px;
+    padding: 10px;
 }
-.permission-item {
-    transition: all 0.2s;
-}
-.permission-item:hover {
-    background-color: #f8f9fa;
-}
-.icon-select {
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.icon-select:hover {
-    background-color: #f8f9fa;
-    transform: scale(1.05);
-}
-.icon-select.selected {
-    background-color: #e3f2fd;
-    border-color: #90caf9;
-}
-.role-tree-item {
-    padding: 0.5rem;
-    margin: 0.25rem 0;
-    border: 1px solid #dee2e6;
+.icon-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
 }
-.role-tree-item:hover {
-    background-color: #f8f9fa;
+.icon-option:hover {
+    background: #e9ecef;
 }
-.role-tree-item.selected {
-    background-color: #e3f2fd;
-    border-color: #90caf9;
+.icon-option.selected {
+    background: #007bff;
+    color: white;
 }
-.role-tree-item.disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-.inheritance-preview {
-    background-color: #fff3cd;
-    border-left: 4px solid #ffc107;
-}
-.tab-pane {
-    padding: 1rem;
-}
-mark {
-    padding: 0;
-    background-color: #fff3cd;
-}
-.permission-category .card-header {
-    cursor: pointer;
-}
-.permission-category .card-header:hover {
-    background-color: #e9ecef;
-}
-.member-item {
+.permission-category {
     transition: all 0.2s;
 }
-.member-item:hover {
-    background-color: #f8f9fa;
+.permission-category:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
-.user-avatar-sm {
-    width: 24px;
-    height: 24px;
+.select-all {
+    font-size: 0.875rem;
+    color: #007bff;
+    cursor: pointer;
+}
+.permission-description {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+.system-role-warning {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
 }
 </style>
 {% endblock %}
@@ -100,534 +77,129 @@ mark {
         </h3>
     </div>
     <div class="card-body">
-        <form method="POST" id="role-form" data-role-id="{{ role.id if role else '' }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <form method="POST" id="role-form">
+            {{ form.csrf_token }}
             
-            <!-- Nav tabs -->
-            <ul class="nav nav-tabs" role="tablist">
-                <li class="nav-item">
-                    <a class="nav-link active" data-toggle="tab" href="#basic" role="tab">
-                        <i class="fas fa-info-circle mr-1"></i>Basic Info
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#permissions" role="tab">
-                        <i class="fas fa-key mr-1"></i>Permissions
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#hierarchy" role="tab">
-                        <i class="fas fa-sitemap mr-1"></i>Hierarchy
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#members" role="tab">
-                        <i class="fas fa-users mr-1"></i>Members
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#ldap" role="tab">
-                        <i class="fas fa-users-cog mr-1"></i>LDAP Integration
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#advanced" role="tab">
-                        <i class="fas fa-cogs mr-1"></i>Advanced
-                    </a>
-                </li>
-            </ul>
+            <!-- Basic Information -->
+            <div class="form-group">
+                <label for="name">Role Name</label>
+                <input type="text" class="form-control" id="name" name="name" 
+                       value="{{ role.name if role else '' }}" required
+                       pattern="[a-zA-Z0-9_-]+" 
+                       title="Only letters, numbers, underscores and hyphens are allowed"
+                       {% if role and role.is_system_role %}readonly{% endif %}>
+                <small class="form-text text-muted">
+                    Role names can only contain letters, numbers, underscores and hyphens
+                </small>
+            </div>
 
-            <!-- Tab content -->
-            <div class="tab-content mt-3">
-                <!-- Basic Info Tab -->
-                <div id="basic" class="tab-pane active" role="tabpanel">
-                    <div class="form-group">
-                        <label for="name">Role Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="name" name="name" 
-                               value="{{ role.name if role else '' }}" required
-                               data-toggle="tooltip" 
-                               title="Unique identifier for this role">
-                        <small class="form-text text-muted">Unique identifier for this role</small>
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea class="form-control" id="description" name="description" 
+                          rows="2" required>{{ role.description if role else '' }}</textarea>
+                <small class="form-text text-muted">
+                    Provide a clear description of this role's purpose and responsibilities
+                </small>
+            </div>
+
+            <!-- Icon Picker -->
+            <div class="form-group">
+                <label for="icon">Icon</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i id="icon-preview" class="fas {{ role.icon if role else 'fa-user-shield' }}"></i>
+                        </span>
                     </div>
-
-                    <div class="form-group">
-                        <label for="description">Description <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="description" name="description"
-                               value="{{ role.description if role else '' }}" required
-                               data-toggle="tooltip"
-                               title="Brief description of the role's purpose">
-                        <small class="form-text text-muted">Brief description of the role's purpose</small>
+                    <input type="text" class="form-control" id="icon" name="icon" 
+                           value="{{ role.icon if role else 'fa-user-shield' }}" readonly>
+                    <div class="input-group-append">
+                        <button type="button" class="btn btn-outline-secondary" 
+                                data-toggle="modal" data-target="#iconPickerModal">
+                            <i class="fas fa-th mr-1"></i>Choose Icon
+                        </button>
                     </div>
-
-                    <div class="form-group">
-                        <label for="notes">Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3"
-                                 data-toggle="tooltip"
-                                 title="Additional documentation about this role">{{ role.notes if role else '' }}</textarea>
-                        <small class="form-text text-muted">Additional documentation about this role</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="icon">Icon</label>
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">
-                                    <i id="icon-preview" class="fas {{ role.icon if role else 'fa-user-shield' }}"></i>
-                                </span>
-                            </div>
-                            <input type="text" class="form-control" id="icon" name="icon" 
-                                   value="{{ role.icon if role else 'fa-user-shield' }}" readonly
-                                   data-toggle="tooltip"
-                                   title="Choose an icon for this role">
-                            <div class="input-group-append">
-                                <button type="button" class="btn btn-outline-secondary" id="icon-picker">
-                                    Choose Icon
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Permissions Tab -->
-                <div id="permissions" class="tab-pane fade" role="tabpanel">
-                    <div class="row mb-3">
-                        <div class="col">
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                </div>
-                                <input type="text" class="form-control" id="permission-search" 
-                                       placeholder="Search permissions..."
-                                       data-toggle="tooltip"
-                                       title="Search for specific permissions">
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <button type="button" class="btn btn-outline-primary" id="expand-all">
-                                <i class="fas fa-expand-alt mr-1"></i>Expand All
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" id="collapse-all">
-                                <i class="fas fa-compress-alt mr-1"></i>Collapse All
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="permissions-container">
-                        {% for category, perms in permissions|groupby('category') %}
-                        <div class="permission-category card mb-3" data-category-id="{{ category }}">
-                            <div class="card-header bg-light">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-folder mr-2"></i>{{ category|title }}
-                                    </h5>
-                                    <div>
-                                        <button type="button" class="btn btn-sm btn-outline-primary select-all-category"
-                                                data-category="{{ category }}">
-                                            Select All
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary deselect-all-category"
-                                                data-category="{{ category }}">
-                                            Deselect All
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body collapse show">
-                                {% for permission in perms %}
-                                <div class="permission-item d-flex justify-content-between align-items-center p-2">
-                                    <div>
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input permission-checkbox" 
-                                                   id="perm_{{ permission.id }}" name="permissions[]" 
-                                                   value="{{ permission.id }}"
-                                                   {% if role and permission in role.permissions %}checked{% endif %}
-                                                   data-permission-name="{{ permission.name }}">
-                                            <label class="custom-control-label" for="perm_{{ permission.id }}">
-                                                {{ permission.name }}
-                                            </label>
-                                        </div>
-                                        <small class="text-muted d-block">{{ permission.description }}</small>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Inherited Permissions Preview -->
-                    <div id="inheritance-preview-container">
-                        {% if role and role.parent %}
-                        <div class="inheritance-preview p-3 mt-3">
-                            <h6><i class="fas fa-arrow-up mr-2"></i>Inherited Permissions</h6>
-                            <p class="mb-2 text-muted">The following permissions are inherited from parent role: {{ role.parent.name }}</p>
-                            <div class="inherited-permissions">
-                                {% for perm in role.parent.get_permissions() %}
-                                <span class="badge badge-info mr-2 mb-2">{{ perm.name }}</span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Hierarchy Tab -->
-                <div id="hierarchy" class="tab-pane fade" role="tabpanel">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">Parent Role</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="form-group">
-                                        <label for="parent_id">Select Parent Role</label>
-                                        <select class="form-control" id="parent_id" name="parent_id"
-                                                data-toggle="tooltip"
-                                                title="Select a parent role to inherit permissions from">
-                                            <option value="">No Parent (Top Level)</option>
-                                            {% for r in available_roles %}
-                                            <option value="{{ r.id }}" 
-                                                    {% if role and role.parent_id == r.id %}selected{% endif %}>
-                                                {{ '─' * r.get_hierarchy_level() }} {{ r.name }}
-                                            </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle mr-2"></i>
-                                        Child roles inherit all permissions from their parent roles
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">Role Hierarchy Preview</h5>
-                                    <div>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="expand-role-tree">
-                                            <i class="fas fa-expand-alt"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="collapse-role-tree">
-                                            <i class="fas fa-compress-alt"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <input type="text" class="form-control mb-3" id="role-tree-search" 
-                                           placeholder="Search roles...">
-                                    <div id="role-tree">
-                                        <!-- Role tree will be dynamically updated -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Members Tab -->
-                <div id="members" class="tab-pane fade" role="tabpanel">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">Add Members</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="form-group">
-                                        <label for="add-members">Select Users</label>
-                                        <select class="form-control" id="add-members" multiple></select>
-                                        <small class="form-text text-muted">
-                                            Search and select users to add to this role
-                                        </small>
-                                    </div>
-                                    <button type="button" class="btn btn-primary" id="add-selected-members">
-                                        <i class="fas fa-user-plus mr-1"></i>Add Selected Users
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">Current Members</h5>
-                                    <div class="input-group input-group-sm" style="width: 200px;">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text">
-                                                <i class="fas fa-search"></i>
-                                            </span>
-                                        </div>
-                                        <input type="text" class="form-control" id="member-search" 
-                                               placeholder="Search members...">
-                                    </div>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="list-group list-group-flush" id="member-list">
-                                        {% if role and role.users %}
-                                            {% for user in role.users %}
-                                            <div class="list-group-item member-item" data-user-id="{{ user.id }}">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div class="d-flex align-items-center">
-                                                        {% if user.avatar_url %}
-                                                            <img src="{{ user.avatar_url }}" class="rounded-circle mr-2" 
-                                                                 style="width: 32px; height: 32px;" alt="{{ user.username }}">
-                                                        {% else %}
-                                                            <i class="fas fa-user-circle fa-2x mr-2 text-secondary"></i>
-                                                        {% endif %}
-                                                        <div>
-                                                            <div class="font-weight-bold">{{ user.username }}</div>
-                                                            {% if user.full_name %}
-                                                                <small class="text-muted">{{ user.full_name }}</small>
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger remove-member"
-                                                            data-user-id="{{ user.id }}"
-                                                            data-username="{{ user.username }}">
-                                                        <i class="fas fa-user-minus"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                        {% else %}
-                                            <div class="text-center text-muted p-3">
-                                                No members in this role
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% if role and role.users %}
-                                <div class="card-footer">
-                                    <small class="text-muted">
-                                        <i class="fas fa-users mr-1"></i>{{ role.users|length }} member{{ 's' if role.users|length != 1 }}
-                                    </small>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- LDAP Integration Tab -->
-                <div id="ldap" class="tab-pane fade" role="tabpanel">
-                    <div class="alert alert-info mb-3">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        Map this role to LDAP groups for automatic user assignment
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>LDAP Group Mappings</label>
-                        <select class="form-control select2" id="ldap_groups" name="ldap_groups[]" multiple
-                               data-toggle="tooltip"
-                               title="Select LDAP groups to map to this role">
-                            {% for group in ldap_groups %}
-                            <option value="{{ group }}" 
-                                    {% if role and role.ldap_groups and group in role.ldap_groups %}selected{% endif %}>
-                                {{ group }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <small class="form-text text-muted">
-                            Users in these LDAP groups will automatically be assigned this role
-                        </small>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" id="auto_sync" name="auto_sync"
-                                   {% if role and role.auto_sync %}checked{% endif %}
-                                   data-toggle="tooltip"
-                                   title="Enable automatic synchronization with LDAP">
-                            <label class="custom-control-label" for="auto_sync">
-                                Enable automatic LDAP synchronization
-                            </label>
-                        </div>
-                        <small class="form-text text-muted">
-                            When enabled, user memberships will be automatically updated based on LDAP group changes
-                        </small>
-                    </div>
-
-                    {% if role %}
-                    <div class="card mt-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-sync mr-2"></i>Synchronization Status
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <dl class="row mb-0">
-                                        <dt class="col-sm-4">Last Sync</dt>
-                                        <dd class="col-sm-8">
-                                            {% if role.last_sync_at %}
-                                                {{ role.last_sync_at.strftime('%Y-%m-%d %H:%M:%S') }}
-                                            {% else %}
-                                                Never
-                                            {% endif %}
-                                        </dd>
-
-                                        <dt class="col-sm-4">Status</dt>
-                                        <dd class="col-sm-8">
-                                            {% if role.auto_sync %}
-                                                <span class="badge badge-success">Active</span>
-                                            {% else %}
-                                                <span class="badge badge-secondary">Manual</span>
-                                            {% endif %}
-                                        </dd>
-
-                                        <dt class="col-sm-4">Groups</dt>
-                                        <dd class="col-sm-8">
-                                            {% if role.ldap_groups %}
-                                                {{ role.ldap_groups|length }} configured
-                                            {% else %}
-                                                None configured
-                                            {% endif %}
-                                        </dd>
-                                    </dl>
-                                </div>
-                                <div class="col-md-6 text-right">
-                                    <button type="button" class="btn btn-primary" id="sync-ldap"
-                                            {% if not role.ldap_groups %}disabled{% endif %}
-                                            data-url="{{ url_for('admin.sync_role_ldap', role_id=role.id) }}">
-                                        <i class="fas fa-sync mr-1"></i>Sync Now
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Advanced Tab -->
-                <div id="advanced" class="tab-pane fade" role="tabpanel">
-                    <div class="form-group">
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" id="is_system_role" name="is_system_role"
-                                   {% if role and role.is_system_role %}checked{% endif %}
-                                   data-toggle="tooltip"
-                                   title="Mark this role as a system role">
-                            <label class="custom-control-label" for="is_system_role">
-                                System Role
-                            </label>
-                        </div>
-                        <small class="form-text text-muted">
-                            System roles cannot be deleted and are essential for application functionality
-                        </small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="weight">Role Weight</label>
-                        <input type="number" class="form-control" id="weight" name="weight"
-                               value="{{ role.weight if role else 0 }}"
-                               data-toggle="tooltip"
-                               title="Set the weight for ordering roles in the UI">
-                        <small class="form-text text-muted">
-                            Used for ordering roles in the UI (higher weights appear first)
-                        </small>
-                    </div>
-
-                    {% if role %}
-                    <div class="card bg-light mt-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Role Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6 class="card-subtitle mb-3">Statistics</h6>
-                                    <ul class="list-unstyled mb-0">
-                                        <li class="mb-2">
-                                            <i class="fas fa-users mr-2"></i>Users: {{ role.get_user_count() }}
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-key mr-2"></i>Direct Permissions: {{ role.permissions|length }}
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-sitemap mr-2"></i>Child Roles: {{ role.children|length }}
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-layer-group mr-2"></i>Hierarchy Level: {{ role.get_hierarchy_level() }}
-                                        </li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6 class="card-subtitle mb-3">Audit Information</h6>
-                                    <ul class="list-unstyled mb-0">
-                                        <li class="mb-2">
-                                            <i class="fas fa-clock mr-2"></i>Created: 
-                                            <span class="text-muted">{{ role.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-user mr-2"></i>Created by: 
-                                            <span class="text-muted">{{ role.created_by }}</span>
-                                        </li>
-                                        {% if role.updated_at %}
-                                        <li class="mb-2">
-                                            <i class="fas fa-edit mr-2"></i>Last Updated: 
-                                            <span class="text-muted">{{ role.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
-                                        </li>
-                                        {% endif %}
-                                        {% if role.updated_by %}
-                                        <li class="mb-2">
-                                            <i class="fas fa-user-edit mr-2"></i>Updated by: 
-                                            <span class="text-muted">{{ role.updated_by }}</span>
-                                        </li>
-                                        {% endif %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card bg-light mt-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Danger Zone</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle mr-2"></i>
-                                Deleting a role will remove all associated permissions and user assignments.
-                                This action cannot be undone.
-                            </div>
-                            
-                            {% if role and not role.is_system_role %}
-                                {% if role.can_be_deleted() %}
-                                <button type="button" class="btn btn-danger" id="delete-role-btn"
-                                        data-url="{{ url_for('admin.delete_role_web', role_id=role.id) }}">
-                                    <i class="fas fa-trash mr-1"></i>Delete Role
-                                </button>
-                                {% else %}
-                                <button type="button" class="btn btn-danger" disabled
-                                        data-toggle="tooltip"
-                                        title="This role cannot be deleted because it has users or child roles">
-                                    <i class="fas fa-trash mr-1"></i>Delete Role
-                                </button>
-                                {% endif %}
-                            {% else %}
-                            <button type="button" class="btn btn-danger" disabled
-                                    data-toggle="tooltip"
-                                    title="System roles cannot be deleted">
-                                <i class="fas fa-trash mr-1"></i>Delete Role
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
 
-            <div class="form-group mt-4 border-top pt-3">
-                <button type="submit" class="btn btn-primary">
+            <!-- Permissions -->
+            <div class="form-group">
+                <label>Permissions</label>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Select the permissions this role should have. Users with this role will inherit all selected permissions.
+                </div>
+                <div class="row">
+                    {% for category, perms in permissions.items() %}
+                    <div class="col-md-6">
+                        <div class="card mb-3 permission-category">
+                            <div class="card-header bg-light">
+                                <div class="category-header">
+                                    <h5 class="mb-0">{{ category|title }}</h5>
+                                    <span class="select-all" data-category="{{ category }}">
+                                        Select All
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                {% for permission in perms %}
+                                <div class="custom-control custom-checkbox mb-2">
+                                    <input type="checkbox" class="custom-control-input permission-checkbox" 
+                                           id="perm_{{ permission.id }}" 
+                                           name="permissions[]" 
+                                           value="{{ permission.id }}"
+                                           data-category="{{ category }}"
+                                           {% if role and permission in role.permissions %}checked{% endif %}>
+                                    <label class="custom-control-label" for="perm_{{ permission.id }}">
+                                        {{ permission.name }}
+                                        <div class="permission-description">
+                                            {{ permission.description }}
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- System Role Toggle -->
+            <div class="form-group">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="is_system_role" 
+                           name="is_system_role" 
+                           {% if role and role.is_system_role %}checked disabled{% endif %}
+                           {% if not current_user.has_permission('admin_system_roles_access') %}disabled{% endif %}>
+                    <label class="custom-control-label" for="is_system_role">System Role</label>
+                </div>
+                <small class="form-text text-muted">
+                    System roles cannot be deleted and are essential for application functionality
+                </small>
+                {% if not current_user.has_permission('admin_system_roles_access') %}
+                <small class="form-text text-warning">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    You need additional permissions to create or modify system roles
+                </small>
+                {% endif %}
+                <div id="systemRoleWarning" class="system-role-warning">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <strong>Warning:</strong> Making this a system role cannot be undone. System roles cannot be deleted 
+                    and have special privileges in the application.
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" id="saveButton">
                     <i class="fas fa-save mr-1"></i>Save Role
                 </button>
                 <a href="{{ url_for('admin.roles') }}" class="btn btn-secondary">
                     <i class="fas fa-times mr-1"></i>Cancel
                 </a>
-                {% if role and not role.is_system_role and role.can_be_deleted() %}
-                <button type="button" class="btn btn-danger float-right" id="delete-role"
-                        data-delete-url="{{ url_for('admin.delete_role_web', role_id=role.id) }}">
+                {% if role and not role.is_system_role %}
+                <button type="button" class="btn btn-danger float-right" id="deleteButton">
                     <i class="fas fa-trash mr-1"></i>Delete Role
                 </button>
                 {% endif %}
@@ -637,7 +209,7 @@ mark {
 </div>
 
 <!-- Icon Picker Modal -->
-<div class="modal fade" id="iconModal" tabindex="-1">
+<div class="modal fade" id="iconPickerModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -647,12 +219,17 @@ mark {
                 </button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <input type="text" class="form-control" id="icon-search" 
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
+                    <input type="text" class="form-control" id="iconSearch" 
                            placeholder="Search icons...">
                 </div>
-                <div id="icon-grid" class="row">
-                    <!-- Icons will be loaded here -->
+                <div class="icon-grid" id="iconGrid">
+                    <!-- Icons will be populated by JavaScript -->
                 </div>
             </div>
         </div>
@@ -662,218 +239,154 @@ mark {
 
 {% block scripts %}
 {{ super() }}
-<!-- Required libraries -->
-<script src="{{ url_for('static', filename='src/select2/js/select2.full.min.js') }}"></script>
-<script src="{{ url_for('static', filename='src/toastr/toastr.min.js') }}"></script>
-<script src="{{ url_for('static', filename='src/jquery-contextmenu/jquery.contextMenu.min.js') }}"></script>
-<script src="{{ url_for('static', filename='src/jquery-contextmenu/jquery.ui.position.min.js') }}"></script>
-
-<!-- Custom role management scripts -->
-<script src="{{ url_for('static', filename='src/js/admin/user-select.js') }}"></script>
-<script src="{{ url_for('static', filename='src/js/admin/role-form.js') }}"></script>
-<script src="{{ url_for('static', filename='src/js/admin/role-permissions.js') }}"></script>
-<script src="{{ url_for('static', filename='src/js/admin/role-hierarchy.js') }}"></script>
-<script src="{{ url_for('static', filename='src/js/admin/role-icons.js') }}"></script>
-
 <script>
 $(document).ready(function() {
-    // Initialize toastr options
-    toastr.options = {
-        "closeButton": true,
-        "progressBar": true,
-        "positionClass": "toast-bottom-right",
-        "timeOut": "3000"
-    };
+    // Common FontAwesome icons for roles
+    const icons = [
+        'fa-user-shield', 'fa-users-cog', 'fa-user-lock', 'fa-user-tie',
+        'fa-user-cog', 'fa-user-edit', 'fa-user-clock', 'fa-user-check',
+        'fa-users', 'fa-user-friends', 'fa-user-graduate', 'fa-user-nurse',
+        'fa-user-md', 'fa-user-secret', 'fa-user-tag', 'fa-user-crown',
+        'fa-shield-alt', 'fa-lock', 'fa-key', 'fa-cog',
+        'fa-tools', 'fa-wrench', 'fa-screwdriver', 'fa-hammer',
+        'fa-clipboard-check', 'fa-tasks', 'fa-project-diagram', 'fa-sitemap',
+        'fa-chart-line', 'fa-analytics', 'fa-database', 'fa-server'
+    ];
 
-    // Initialize user select
-    const roleId = "{{ role.id if role else '' }}";
-    const userSelect = new UserSelect('#add-members', {
-        placeholder: 'Search users to add...',
-        multiple: true,
-        excludeRoleId: roleId ? parseInt(roleId) : null,
-        dropdownParent: $('#members')
-    });
-
-    // Initialize LDAP groups select2
-    $('#ldap_groups').select2({
-        placeholder: 'Select LDAP groups...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    // Handle LDAP sync button
-    $('#sync-ldap').click(function() {
-        const url = $(this).data('url');
-        if (!url) return;
-
-        $(this).prop('disabled', true)
-            .find('i')
-            .removeClass('fa-sync')
-            .addClass('fa-spinner fa-spin');
-
-        $.get(url)
-            .done(function() {
-                location.reload();
-            })
-            .fail(function(error) {
-                console.error('LDAP sync error:', error);
-                toastr.error('Error synchronizing with LDAP');
-            })
-            .always(function() {
-                $('#sync-ldap')
-                    .prop('disabled', false)
-                    .find('i')
-                    .removeClass('fa-spinner fa-spin')
-                    .addClass('fa-sync');
-            });
-    });
-
-    // Handle adding members
-    $('#add-selected-members').click(function() {
-        const selectedUsers = userSelect.getSelected();
-        if (!selectedUsers.length) {
-            toastr.warning('Please select users to add');
-            return;
-        }
-
-        if (!roleId) return;
-
-        const promises = selectedUsers.map(user => 
-            $.post(`/admin/roles/${roleId}/members/add`, { user_id: user.id })
-        );
-
-        Promise.all(promises)
-            .then(responses => {
-                const succeeded = responses.filter(r => r.success).length;
-                if (succeeded) {
-                    toastr.success(`Added ${succeeded} member${succeeded !== 1 ? 's' : ''}`);
-                    location.reload();  // Refresh to show new members
-                }
-            })
-            .catch(error => {
-                console.error('Error adding members:', error);
-                toastr.error('Error adding members');
-            });
-    });
-
-    // Handle removing members
-    $('.remove-member').click(function() {
-        const userId = $(this).data('user-id');
-        const username = $(this).data('username');
+    // Populate icon grid
+    function populateIcons(searchTerm = '') {
+        const $grid = $('#iconGrid').empty();
+        const currentIcon = $('#icon').val();
         
-        if (!roleId) return;
-
-        if (confirm(`Remove ${username} from this role?`)) {
-            $.post(`/admin/roles/${roleId}/members/remove`, { user_id: userId })
-                .then(response => {
-                    if (response.success) {
-                        $(this).closest('.member-item').fadeOut(() => {
-                            $(this).remove();
-                            updateMemberCount();
-                        });
-                        toastr.success(response.message);
-                    } else {
-                        toastr.error(response.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error removing member:', error);
-                    toastr.error('Error removing member');
-                });
-        }
-    });
-
-    // Member search functionality
-    $('#member-search').on('input', function() {
-        const search = $(this).val().toLowerCase();
-        $('.member-item').each(function() {
-            const text = $(this).text().toLowerCase();
-            $(this).toggle(text.includes(search));
-        });
-        updateMemberCount();
-    });
-
-    // Update member count in footer
-    function updateMemberCount() {
-        const count = $('.member-item:visible').length;
-        $('.card-footer small').html(
-            `<i class="fas fa-users mr-1"></i>${count} member${count !== 1 ? 's' : ''}`
-        );
+        icons.filter(icon => icon.includes(searchTerm.toLowerCase()))
+             .forEach(icon => {
+                const $option = $(`
+                    <div class="icon-option ${icon === currentIcon ? 'selected' : ''}" 
+                         data-icon="${icon}">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                `);
+                $grid.append($option);
+             });
     }
+
+    // Initial icon population
+    populateIcons();
+
+    // Icon search
+    $('#iconSearch').on('input', function() {
+        populateIcons($(this).val());
+    });
+
+    // Icon selection
+    $(document).on('click', '.icon-option', function() {
+        const icon = $(this).data('icon');
+        $('#icon').val(icon);
+        $('#icon-preview').attr('class', `fas ${icon}`);
+        $('.icon-option').removeClass('selected');
+        $(this).addClass('selected');
+        $('#iconPickerModal').modal('hide');
+    });
+
+    // Permission management
+    $('.select-all').click(function() {
+        const category = $(this).data('category');
+        const $checkboxes = $(`.permission-checkbox[data-category="${category}"]`);
+        const allChecked = $checkboxes.length === $checkboxes.filter(':checked').length;
+        
+        $checkboxes.prop('checked', !allChecked);
+        $(this).text(allChecked ? 'Select All' : 'Deselect All');
+    });
+
+    // Update select all text on checkbox change
+    $('.permission-checkbox').change(function() {
+        const category = $(this).data('category');
+        const $checkboxes = $(`.permission-checkbox[data-category="${category}"]`);
+        const $selectAll = $(`.select-all[data-category="${category}"]`);
+        const allChecked = $checkboxes.length === $checkboxes.filter(':checked').length;
+        
+        $selectAll.text(allChecked ? 'Deselect All' : 'Select All');
+    });
+
+    // System role warning
+    $('#is_system_role').change(function() {
+        $('#systemRoleWarning').toggle(this.checked);
+    });
 
     // Form validation
     $('#role-form').submit(function(e) {
         const name = $('#name').val().trim();
         const description = $('#description').val().trim();
+        const permissions = $('input[name="permissions[]"]:checked').length;
         
-        if (!name || !description) {
+        if (!name) {
             e.preventDefault();
-            toastr.error('Role name and description are required');
-            return false;
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Role name is required',
+                icon: 'error'
+            });
+            return;
         }
-
-        // Disable submit button to prevent double submission
-        $(this).find('button[type="submit"]')
-            .prop('disabled', true)
-            .html('<i class="fas fa-spinner fa-spin mr-1"></i>Saving...');
-    });
-
-    // Auto-save functionality
-    let autoSaveTimeout;
-    const autoSaveDelay = 1000; // 1 second
-
-    function scheduleAutoSave() {
-        clearTimeout(autoSaveTimeout);
-        autoSaveTimeout = setTimeout(function() {
-            const formData = $('#role-form').serialize();
-            $.ajax({
-                url: $('#role-form').attr('action'),
-                method: 'POST',
-                data: formData,
-                success: function(response) {
-                    toastr.success('Changes saved automatically');
-                },
-                error: function(xhr) {
-                    toastr.error('Error saving changes');
+        
+        if (!description) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Role description is required',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        if (permissions === 0) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'No Permissions Selected',
+                text: 'Please select at least one permission for this role',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Save Anyway',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $(this).off('submit').submit();
                 }
             });
-        }, autoSaveDelay);
-    }
-
-    // Watch for changes in form inputs
-    $('#role-form :input').on('change input', function() {
-        scheduleAutoSave();
+            return;
+        }
+        
+        if ($('#is_system_role').prop('checked')) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Confirm System Role',
+                text: 'Are you sure you want to make this a system role? This cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Continue',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $(this).off('submit').submit();
+                }
+            });
+        }
     });
 
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-
-    // Handle tab state persistence
-    const activeTab = sessionStorage.getItem('roleFormActiveTab');
-    if (activeTab) {
-        $('.nav-tabs a[href="' + activeTab + '"]').tab('show');
-    }
-
-    // Save active tab state
-    $('.nav-tabs a').on('shown.bs.tab', function(e) {
-        sessionStorage.setItem('roleFormActiveTab', $(e.target).attr('href'));
-    });
-
-    // Handle delete role button
-    $('#delete-role-btn').click(function() {
-        const url = $(this).data('url');
-        if (!url) return;
-
+    // Delete role confirmation
+    $('#deleteButton').click(function(e) {
+        e.preventDefault();
         Swal.fire({
             title: 'Delete Role?',
-            text: 'This action cannot be undone!',
+            text: 'Are you sure you want to delete this role? This action cannot be undone.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = url;
+                window.location.href = "{{ url_for('admin.delete_role', role_id=role.id) if role else '' }}";
             }
         });
     });

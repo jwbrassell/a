@@ -7,92 +7,324 @@
 <li class="breadcrumb-item active">Admin Dashboard</li>
 {% endblock %}
 
-{# Import components #}
-{% from 'admin/components/shared_styles.html' import admin_styles %}
-{% from 'admin/components/stat_card.html' import stat_card %}
-{% from 'admin/components/activity_list.html' import activity_list %}
-{% from 'admin/components/role_list.html' import role_list %}
-{% from 'admin/components/system_charts.html' import system_health_chart, resource_usage_chart, charts_scripts %}
-{% from 'admin/components/quick_actions.html' import quick_actions %}
-
 {% block styles %}
 {{ super() }}
-{{ admin_styles() }}
+<style>
+.admin-section {
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+.admin-section:hover {
+    transform: translateY(-5px);
+}
+.admin-card {
+    height: 100%;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+.admin-card .card-body {
+    padding: 2rem;
+    position: relative;
+}
+.admin-icon {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 2rem;
+    opacity: 0.2;
+    transition: all 0.3s ease;
+    z-index: 1;
+}
+.admin-card:hover .admin-icon {
+    transform: scale(1.1);
+    opacity: 0.3;
+}
+.admin-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    padding-right: 3rem;
+}
+.admin-description {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+.btn-group {
+    width: 100%;
+    justify-content: center;
+}
+.btn-group .btn {
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+}
+.stats-overview {
+    margin-bottom: 2rem;
+}
+.stat-card {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.recent-activity {
+    margin-top: 2rem;
+}
+.activity-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.stat-card .inner h3 {
+    font-size: 2.5rem;
+    font-weight: 600;
+}
+.stat-card .inner p {
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+}
+.stat-card .icon {
+    font-size: 3rem;
+    opacity: 0.3;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+}
+</style>
 {% endblock %}
 
 {% block page_content %}
-<!-- Statistics Cards -->
+<!-- Stats Overview -->
+<div class="row stats-overview">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info stat-card">
+            <div class="inner">
+                <h3>{{ stats.users.total }}</h3>
+                <p>Total Users</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-users"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success stat-card">
+            <div class="inner">
+                <h3>{{ stats.roles.total }}</h3>
+                <p>Total Roles</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-user-tag"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning stat-card">
+            <div class="inner">
+                <h3>{{ stats.routes.total }}</h3>
+                <p>Total Routes</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-route"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger stat-card">
+            <div class="inner">
+                <h3>{{ stats.users.active }}</h3>
+                <p>Active Users</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-user-clock"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Sections -->
 <div class="row">
-    <div class="col-lg-3 col-md-6">
-        {{ stat_card(
-            title="Total Users",
-            value=stats.users.total,
-            icon="fa-users",
-            color_class="stat-users",
-            progress_value=(stats.users.active / stats.users.total * 100) if stats.users.total > 0 else 0,
-            progress_label=stats.users.active|string + " Active Users"
-        ) }}
+    <!-- User Management -->
+    <div class="col-md-4 admin-section">
+        <div class="card admin-card">
+            <div class="card-body">
+                <i class="fas fa-users admin-icon text-primary"></i>
+                <h4 class="admin-title">User Management</h4>
+                <p class="admin-description">Manage users, permissions, and access control</p>
+                <div class="btn-group">
+                    <a href="{{ url_for('admin.users') }}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> List
+                    </a>
+                    <a href="{{ url_for('admin.new_user') }}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Create
+                    </a>
+                    <a href="{{ url_for('admin.users') }}" class="btn btn-info">
+                        <i class="fas fa-history"></i> Audit
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="col-lg-3 col-md-6">
-        {{ stat_card(
-            title="Total Roles",
-            value=stats.roles.total,
-            icon="fa-user-shield",
-            color_class="stat-roles",
-            progress_value=(stats.roles.with_users / stats.roles.total * 100) if stats.roles.total > 0 else 0,
-            progress_label=stats.roles.with_users|string + " Roles with Users"
-        ) }}
+    <!-- Role Management -->
+    <div class="col-md-4 admin-section">
+        <div class="card admin-card">
+            <div class="card-body">
+                <i class="fas fa-user-tag admin-icon text-success"></i>
+                <h4 class="admin-title">Role Management</h4>
+                <p class="admin-description">Configure roles and their associated permissions</p>
+                <div class="btn-group">
+                    <a href="{{ url_for('admin.roles') }}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> List
+                    </a>
+                    <a href="{{ url_for('admin.new_role') }}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Create
+                    </a>
+                    <a href="{{ url_for('admin.roles') }}" class="btn btn-info">
+                        <i class="fas fa-history"></i> Audit
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="col-lg-3 col-md-6">
-        {{ stat_card(
-            title="Categories",
-            value=stats.categories.total,
-            icon="fa-folder",
-            color_class="stat-categories",
-            progress_value=(stats.categories.with_routes / stats.categories.total * 100) if stats.categories.total > 0 else 0,
-            progress_label=stats.categories.with_routes|string + " Categories with Routes"
-        ) }}
+    <!-- Route Management -->
+    <div class="col-md-4 admin-section">
+        <div class="card admin-card">
+            <div class="card-body">
+                <i class="fas fa-route admin-icon text-warning"></i>
+                <h4 class="admin-title">Route Management</h4>
+                <p class="admin-description">Manage application routes and access controls</p>
+                <div class="btn-group">
+                    <a href="{{ url_for('admin.routes') }}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> List
+                    </a>
+                    <a href="{{ url_for('admin.new_route') }}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Create
+                    </a>
+                    <a href="{{ url_for('admin.routes') }}" class="btn btn-info">
+                        <i class="fas fa-history"></i> Audit
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="col-lg-3 col-md-6">
-        {{ stat_card(
-            title="Routes",
-            value=stats.routes.total,
-            icon="fa-route",
-            color_class="stat-routes",
-            progress_value=(stats.routes.categorized / stats.routes.total * 100) if stats.routes.total > 0 else 0,
-            progress_label=stats.routes.categorized|string + " Categorized Routes"
-        ) }}
+    <!-- Analytics -->
+    <div class="col-md-4 admin-section">
+        <div class="card admin-card">
+            <div class="card-body">
+                <i class="fas fa-chart-line admin-icon text-info"></i>
+                <h4 class="admin-title">Analytics</h4>
+                <p class="admin-description">View system analytics and usage statistics</p>
+                <div class="btn-group">
+                    <a href="{{ url_for('admin.analytics') }}" class="btn btn-primary">
+                        <i class="fas fa-chart-bar"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('admin.analytics') }}" class="btn btn-success">
+                        <i class="fas fa-download"></i> Export
+                    </a>
+                    <a href="{{ url_for('admin.analytics') }}" class="btn btn-info">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Monitoring -->
+    <div class="col-md-4 admin-section">
+        <div class="card admin-card">
+            <div class="card-body">
+                <i class="fas fa-desktop admin-icon text-danger"></i>
+                <h4 class="admin-title">System Monitoring</h4>
+                <p class="admin-description">Monitor system health and performance</p>
+                <div class="btn-group">
+                    <a href="{{ url_for('admin.monitoring') }}" class="btn btn-primary">
+                        <i class="fas fa-heartbeat"></i> Health
+                    </a>
+                    <a href="{{ url_for('admin.logs') }}" class="btn btn-warning">
+                        <i class="fas fa-list"></i> Logs
+                    </a>
+                    <a href="{{ url_for('admin.monitoring') }}" class="btn btn-info">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vault Management -->
+    <div class="col-md-4 admin-section">
+        <div class="card admin-card">
+            <div class="card-body">
+                <i class="fas fa-lock admin-icon text-secondary"></i>
+                <h4 class="admin-title">Vault Management</h4>
+                <p class="admin-description">Manage secure storage and credentials</p>
+                <div class="btn-group">
+                    <a href="{{ url_for('admin.vault_status') }}" class="btn btn-primary">
+                        <i class="fas fa-info-circle"></i> Status
+                    </a>
+                    <a href="{{ url_for('admin.vault_status') }}" class="btn btn-success">
+                        <i class="fas fa-key"></i> Secrets
+                    </a>
+                    <a href="{{ url_for('admin.vault_status') }}" class="btn btn-info">
+                        <i class="fas fa-history"></i> Audit
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- System Health & Activity -->
-<div class="row mt-4">
-    <div class="col-md-8">
-        {{ system_health_chart() }}
+<!-- Recent Activity -->
+<div class="card recent-activity">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-history"></i>
+            Recent Activity
+        </h3>
     </div>
-    <div class="col-md-4">
-        {{ resource_usage_chart() }}
+    <div class="card-body">
+        <div class="activity-list">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Resource</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for activity in recent_activities %}
+                        <tr>
+                            <td>{{ activity.username }}</td>
+                            <td>{{ activity.action }}</td>
+                            <td>{{ activity.resource }}</td>
+                            <td>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
-
-<!-- Recent Activity and Role Stats -->
-<div class="row mt-4">
-    <div class="col-md-6">
-        {{ activity_list(recent_activities[:5]) }}
-    </div>
-    <div class="col-md-6">
-        {{ role_list(role_stats.top_roles) }}
-    </div>
-</div>
-
-<!-- Quick Action Buttons -->
-{{ quick_actions() }}
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-{{ charts_scripts() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add any JavaScript functionality here
+});
+</script>
 {% endblock %}

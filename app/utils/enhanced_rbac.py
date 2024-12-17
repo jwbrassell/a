@@ -21,6 +21,66 @@ class PermissionDenied(Exception):
         """Return the HTTP response for this error."""
         return render_template('403.html'), self.status_code
 
+def has_permission(permission_name, action_name=None):
+    """
+    Check if the current user has access to the specified permission and action.
+    Similar to check_permission_access but can be used directly in templates and code.
+    
+    Args:
+        permission_name: Name of the permission to check
+        action_name: Optional action name to check
+    
+    Returns:
+        bool: True if user has access, False otherwise
+    """
+    if not current_user.is_authenticated:
+        return False
+    
+    try:
+        # Admin users always have access
+        if any(role.name == 'Administrator' for role in current_user.roles):
+            return True
+        
+        # Get the permission
+        permission = Permission.query.filter_by(name=permission_name).first()
+        if not permission:
+            logger.warning(f"Permission not found: {permission_name}")
+            return False
+        
+        # Check if user has any role with this permission
+        user_has_permission = False
+        for role in current_user.roles:
+            if permission in role.permissions:
+                user_has_permission = True
+                break
+            # Check parent roles if they exist
+            parent = role
+            while parent.parent_id:
+                parent = parent.parent
+                if permission in parent.permissions:
+                    user_has_permission = True
+                    break
+            if user_has_permission:
+                break
+        
+        if not user_has_permission:
+            return False
+        
+        # If action is specified, check action permission
+        if action_name:
+            action = Action.query.filter_by(
+                name=action_name,
+                method=request.method if request else 'GET'
+            ).first()
+            
+            if not action or action not in permission.actions:
+                return False
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error checking permission access: {str(e)}")
+        return False
+
 def register_permission(name, description=None, actions=None, roles=None):
     """
     Register a new permission with optional actions and roles.
@@ -100,59 +160,6 @@ def init_default_actions():
         logger.error(f"Error initializing default actions: {str(e)}")
         raise
 
-def migrate_existing_mappings():
-    """Migrate existing PageRouteMapping entries to the new permission system."""
-    from app.models import PageRouteMapping, Role
-    
-    try:
-        # Get all existing mappings
-        mappings = PageRouteMapping.query.all()
-        
-        for mapping in mappings:
-            # Create permission for this route
-            permission_name = f"{mapping.route.replace('/', '_')}_access"
-            permission = Permission.query.filter_by(name=permission_name).first()
-            
-            if not permission:
-                permission = Permission(
-                    name=permission_name,
-                    description=f"Access to {mapping.page_name}",
-                    created_by='system'
-                )
-                db.session.add(permission)
-                
-                # Add default read action
-                read_action = Action.query.filter_by(name='read', method='GET').first()
-                if read_action:
-                    permission.actions.append(read_action)
-            
-            # Create route permission
-            route_perm = RoutePermission.query.filter_by(
-                route=mapping.route,
-                permission_id=permission.id
-            ).first()
-            
-            if not route_perm:
-                route_perm = RoutePermission(
-                    route=mapping.route,
-                    permission_id=permission.id,
-                    created_by='system'
-                )
-                db.session.add(route_perm)
-            
-            # Associate roles
-            for role in mapping.allowed_roles:
-                if permission not in role.permissions:
-                    role.permissions.append(permission)
-        
-        db.session.commit()
-        logger.info("Successfully migrated existing route mappings to permissions")
-        return True
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error migrating route mappings: {str(e)}")
-        return False
-
 def check_permission_access(permission_name, action_name=None):
     """
     Check if the current user has access to the specified permission and action.
@@ -169,7 +176,7 @@ def check_permission_access(permission_name, action_name=None):
     
     try:
         # Admin users always have access
-        if any(role.name == 'admin' for role in current_user.roles):
+        if any(role.name == 'Administrator' for role in current_user.roles):
             return True
         
         # Get the permission
@@ -226,6 +233,10 @@ def requires_permission(permission_name, *actions):
             if not current_user.is_authenticated:
                 return current_app.login_manager.unauthorized()
             
+            # Admin users always have access
+            if any(role.name == 'Administrator' for role in current_user.roles):
+                return f(*args, **kwargs)
+            
             # For each action, check permission
             for action in actions:
                 if not check_permission_access(permission_name, action):
@@ -258,7 +269,7 @@ def get_user_permissions():
         permissions = set()
         
         # Admin users have all permissions
-        if any(role.name == 'admin' for role in current_user.roles):
+        if any(role.name == 'Administrator' for role in current_user.roles):
             return Permission.query.all()
         
         # Get permissions from user's roles and their parent roles

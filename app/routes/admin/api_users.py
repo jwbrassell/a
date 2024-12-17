@@ -3,8 +3,10 @@ from flask import jsonify, request
 from flask_login import login_required
 from app.utils.enhanced_rbac import requires_permission
 from app.routes.admin import admin_bp as bp
-from app.models import User
+from app.models import User, Role
 from app.utils.activity_tracking import track_activity
+from datetime import datetime, timedelta
+from sqlalchemy import func
 
 @bp.route('/api/users')
 @login_required
@@ -171,4 +173,76 @@ def validate_email():
     return jsonify({
         'valid': True,
         'message': 'Email is available'
+    })
+
+@bp.route('/api/users/dashboard/activity')
+@login_required
+@requires_permission('admin_users_access', 'read')
+def get_dashboard_activity():
+    """Get hourly user activity for the last 24 hours."""
+    # Get timestamp for 24 hours ago
+    day_ago = datetime.utcnow() - timedelta(days=1)
+    
+    # Query user activity by hour
+    hourly_activity = (
+        User.query
+        .with_entities(
+            func.date_trunc('hour', User.last_login).label('hour'),
+            func.count().label('count')
+        )
+        .filter(User.last_login >= day_ago)
+        .group_by(func.date_trunc('hour', User.last_login))
+        .order_by(func.date_trunc('hour', User.last_login))
+        .all()
+    )
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'hourly_activity': [
+                {'hour': h.hour.isoformat(), 'count': h.count}
+                for h in hourly_activity
+            ]
+        }
+    })
+
+@bp.route('/api/users/dashboard/stats')
+@login_required
+@requires_permission('admin_users_access', 'read')
+def get_dashboard_stats():
+    """Get user statistics including role distribution."""
+    # Get total users
+    total_users = User.query.count()
+    
+    # Get active users
+    active_users = User.query.filter_by(is_active=True).count()
+    
+    # Get new users in last 30 days
+    month_ago = datetime.utcnow() - timedelta(days=30)
+    new_users = User.query.filter(User.created_at >= month_ago).count()
+    
+    # Get inactive users
+    inactive_users = User.query.filter_by(is_active=False).count()
+    
+    # Get role distribution
+    role_counts = (
+        User.query
+        .join(User.roles)
+        .with_entities(Role.name, func.count(User.id).label('count'))
+        .group_by(Role.name)
+        .all()
+    )
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'total_users': total_users,
+            'active_users': active_users,
+            'new_users': new_users,
+            'inactive_users': inactive_users,
+            'role_distribution': [
+                {'role': r.name, 'count': r.count}
+                for r in role_counts
+            ]
+        }
     })
