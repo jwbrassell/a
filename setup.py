@@ -5,9 +5,8 @@ This script will:
 1. Create database and tables
 2. Initialize permissions
 3. Initialize role templates
-4. Initialize RBAC system
-5. Set up admin user with full access
-6. Start the Flask app
+4. Set up admin user with full access
+5. Start the Flask app
 """
 
 import os
@@ -138,10 +137,10 @@ def init_database(app):
             db.session.commit()
             logger.info("Default actions initialized successfully")
             
-            # Initialize permissions using init_permissions.py
+            # Initialize permissions
             logger.info("Initializing permissions...")
-            import init_permissions
-            init_permissions.init_permissions(app)
+            Permission.initialize_default_permissions()
+            logger.info("Default permissions initialized successfully")
             
             # Verify tables were created
             inspector = db.inspect(db.engine)

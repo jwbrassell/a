@@ -99,14 +99,13 @@
                     <div class="form-group" id="category_group" style="display: none;">
                         <label for="category_id">Category</label>
                         <select class="form-control" id="category_id" name="category_id">
-                            <option value="">Select Category</option>
-                            {% for category in categories %}
-                            <option value="{{ category.id }}" 
-                                    {{ 'selected' if mapping and mapping.category and mapping.category.id == category.id }}>
-                                {{ category.name }}
-                            </option>
-                            {% endfor %}
+                            {% if mapping and mapping.category %}
+                            <option value="{{ mapping.category.id }}" selected>{{ mapping.category.name }}</option>
+                            {% endif %}
                         </select>
+                        <small class="form-text text-muted">
+                            Type to search or create a new category
+                        </small>
                     </div>
                 </div>
             </div>
@@ -128,7 +127,7 @@
 
             <div class="form-group">
                 <label>Allowed Roles</label>
-                <select class="form-control select2" id="roles" name="roles" multiple>
+                <select class="form-control select2" id="roles" name="allowed_roles[]" multiple>
                     {% for role in roles %}
                     <option value="{{ role.id }}" 
                             {{ 'selected' if mapping and role in mapping.allowed_roles }}>
@@ -186,11 +185,73 @@ $(document).ready(function() {
         width: '100%'
     });
 
-    // Initialize category select
+    // Initialize category select with AJAX and tags
     $('#category_id').select2({
         theme: 'bootstrap4',
         width: '100%',
-        placeholder: 'Select a category'
+        placeholder: 'Select or create a category',
+        allowClear: true,
+        tags: true, // Allow creating new tags
+        ajax: {
+            url: "{{ url_for('admin.get_categories') }}",
+            dataType: 'json',
+            delay: 250,
+            processResults: function(data) {
+                return {
+                    results: data.map(function(item) {
+                        return {
+                            id: item.id,
+                            text: item.name,
+                            icon: item.icon
+                        };
+                    })
+                };
+            },
+            cache: true
+        },
+        templateResult: function(data) {
+            if (!data.id || data.isNew) {
+                return $(`<span><i class="fas fa-plus mr-2"></i>${data.text} (New)</span>`);
+            }
+            return $(`<span><i class="fas ${data.icon} mr-2"></i>${data.text}</span>`);
+        },
+        createTag: function(params) {
+            const term = $.trim(params.term);
+            if (term === '') return null;
+            
+            return {
+                id: term,
+                text: term,
+                isNew: true
+            };
+        }
+    }).on('select2:select', function(e) {
+        const data = e.params.data;
+        if (data.isNew) {
+            // Create new category via AJAX
+            $.ajax({
+                url: "{{ url_for('admin.create_category') }}",
+                method: 'POST',
+                data: {
+                    csrf_token: $('input[name="csrf_token"]').val(),
+                    name: data.text,
+                    icon: 'fa-folder'  // Default icon
+                },
+                success: function(response) {
+                    // Update the select with the new category ID
+                    const option = new Option(data.text, response.id, true, true);
+                    $('#category_id').append(option).trigger('change');
+                },
+                error: function() {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Failed to create new category',
+                        icon: 'error'
+                    });
+                    $('#category_id').val(null).trigger('change');
+                }
+            });
+        }
     });
 
     // Initialize route select with AJAX loading
@@ -293,7 +354,7 @@ $(document).ready(function() {
                 e.preventDefault();
                 Swal.fire({
                     title: 'Error',
-                    text: 'Please select a category',
+                    text: 'Please select or create a category',
                     icon: 'error'
                 });
                 return;

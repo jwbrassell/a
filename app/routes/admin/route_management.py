@@ -29,11 +29,24 @@ def new_route():
     """Create a new route mapping."""
     if request.method == 'POST':
         try:
+            # Handle new category creation if provided
+            category_id = request.form.get('category_id')
+            if category_id and not category_id.isdigit():
+                # This is a new category name
+                category = NavigationCategory(
+                    name=category_id,  # The ID contains the new name
+                    icon='fa-folder',  # Default icon
+                    created_by=current_user.username
+                )
+                db.session.add(category)
+                db.session.flush()  # Get the ID without committing
+                category_id = category.id
+
             mapping = PageRouteMapping(
                 route=request.form['route'],
                 page_name=request.form['page_name'],
                 description=request.form.get('description'),
-                category_id=request.form.get('category_id'),
+                category_id=category_id,
                 icon=request.form.get('icon', 'fa-link'),
                 weight=int(request.form.get('weight', 0)),
                 created_by=current_user.username
@@ -62,10 +75,23 @@ def edit_route(route_id):
     
     if request.method == 'POST':
         try:
+            # Handle new category creation if provided
+            category_id = request.form.get('category_id')
+            if category_id and not category_id.isdigit():
+                # This is a new category name
+                category = NavigationCategory(
+                    name=category_id,  # The ID contains the new name
+                    icon='fa-folder',  # Default icon
+                    created_by=current_user.username
+                )
+                db.session.add(category)
+                db.session.flush()  # Get the ID without committing
+                category_id = category.id
+
             mapping.route = request.form['route']
             mapping.page_name = request.form['page_name']
             mapping.description = request.form.get('description')
-            mapping.category_id = request.form.get('category_id')
+            mapping.category_id = category_id
             mapping.icon = request.form.get('icon', 'fa-link')
             mapping.weight = int(request.form.get('weight', 0))
             mapping.updated_by = current_user.username
@@ -129,3 +155,26 @@ def get_routes():
                 'methods': list(rule.methods)
             })
     return jsonify(routes)
+
+@bp.route('/routes/categories/create', methods=['POST'])
+@login_required
+@requires_permission('admin_routes_access', 'write')
+def create_category():
+    """Create a new category via AJAX."""
+    try:
+        category = NavigationCategory(
+            name=request.form['name'],
+            icon=request.form.get('icon', 'fa-folder'),
+            created_by=current_user.username
+        )
+        db.session.add(category)
+        db.session.commit()
+        return jsonify({
+            'id': category.id,
+            'name': category.name,
+            'icon': category.icon
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error creating category: {e}")
+        return jsonify({'error': 'Failed to create category'}), 400

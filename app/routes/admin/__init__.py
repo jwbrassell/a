@@ -18,6 +18,7 @@ def init_admin(app):
     from . import api_analytics  # noqa: F401
     from . import api_monitoring  # noqa: F401
     from . import api_users  # noqa: F401
+    from . import navigation_management  # noqa: F401
     
     # Initialize monitoring API routes
     from .api_monitoring import init_monitoring_api_routes
