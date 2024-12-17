@@ -1,7 +1,7 @@
 import logging
 from flask import request, current_app
 from flask_login import current_user
-from app import db
+from app.extensions import db
 from app.models import PageVisit
 
 class StaticFileFilter(logging.Filter):

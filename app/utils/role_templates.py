@@ -1,7 +1,7 @@
 """Role template management functionality."""
 
 from app.models import Role, Permission
-from app import db
+from app.extensions import db
 from typing import Dict, Any, List, Optional
 import logging
 

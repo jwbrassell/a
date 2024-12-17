@@ -8,6 +8,7 @@ def init_routes(app):
     # Import the routes module here to avoid circular imports
     from app.routes import routes
     from app.main import bp as auth_bp
+    from app.routes.admin import init_app as init_admin
     
     # Create and register the main blueprint
     main = Blueprint('main', __name__)
@@ -16,3 +17,6 @@ def init_routes(app):
     
     # Register the auth blueprint
     app.register_blueprint(auth_bp)
+    
+    # Initialize and register admin module
+    init_admin(app)

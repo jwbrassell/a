@@ -4,7 +4,7 @@ from flask import jsonify, request, current_app
 from flask_login import login_required, current_user
 from app.utils.enhanced_rbac import requires_permission
 from app.models import Role, User, Permission, UserActivity
-from app import db
+from app.extensions import db
 from datetime import datetime
 import logging
 from sqlalchemy import func

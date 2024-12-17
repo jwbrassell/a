@@ -1,6 +1,7 @@
 """Template filters for the Flask application."""
 
 import json
+from datetime import datetime
 from markupsafe import escape
 from flask import current_app, render_template_string
 from app.utils.route_manager import route_to_endpoint as convert_route
@@ -71,5 +72,6 @@ def init_app(app):
     def utility_processor():
         """Add utility functions to template context."""
         return {
-            'get_cached_imports': get_cached_imports
+            'get_cached_imports': get_cached_imports,
+            'now': datetime.utcnow()
         }

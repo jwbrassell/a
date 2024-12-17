@@ -70,3 +70,18 @@ app/static/uploads/documents/
 *.tmp
 *.temp
 *.bak
+
+# Vault
+vault-data/
+vault-data/*
+vault.log
+vault-audit.log
+vault-config.hcl
+vault-config.json
+vault-policy.hcl
+vault-token
+.vault-token
+config/vault-dev.hcl
+config/vault-prod.hcl
+config/vault-secure.hcl
+bin/vault

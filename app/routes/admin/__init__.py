@@ -19,12 +19,17 @@ def init_admin(app):
     from . import api_monitoring  # noqa: F401
     from . import api_users  # noqa: F401
     from . import navigation_management  # noqa: F401
+    from . import vault_management  # noqa: F401
     
     # Initialize monitoring API routes
     from .api_monitoring import init_monitoring_api_routes
     init_monitoring_api_routes(admin_bp)
     
-    # Register the blueprint
+    # Register vault blueprint at app level instead of admin level
+    from .vault_management import vault_bp
+    app.register_blueprint(vault_bp)
+    
+    # Register the admin blueprint
     app.register_blueprint(admin_bp)
 
 # Register error handlers
@@ -42,3 +47,8 @@ def handle_not_found(error):
 def handle_server_error(error):
     """Handle 500 errors."""
     return render_template('500.html'), 500
+
+# Initialize admin module
+def init_app(app):
+    """Initialize admin module with app context."""
+    init_admin(app)

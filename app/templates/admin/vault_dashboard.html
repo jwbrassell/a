@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Vault Management Dashboard</h1>
+                </div>
+                <div class="col-sm-6">
+                    <div class="float-sm-right">
+                        <a href="{{ url_for('vault.vault_status') }}" class="btn btn-info">
+                            <i class="fas fa-chart-line"></i> View Detailed Status
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Status Overview -->
+            <div class="row">
+                <div class="col-lg-3 col-6">
+                    <div class="small-box {% if vault_available %}{% if report and report.overall_status == 'healthy' %}bg-success{% elif report and report.overall_status == 'warning' %}bg-warning{% else %}bg-danger{% endif %}{% else %}bg-danger{% endif %}">
+                        <div class="inner">
+                            <h3>Status</h3>
+                            <p>{% if vault_available %}{{ report.overall_status|upper if report else 'ERROR' }}{% else %}OFFLINE{% endif %}</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box {% if vault_available %}{% if report and report.certificate_status.warning_level == 'ok' %}bg-success{% elif report and report.certificate_status.warning_level == 'warning' %}bg-warning{% else %}bg-danger{% endif %}{% else %}bg-secondary{% endif %}">
+                        <div class="inner">
+                            <h3>{% if vault_available %}{{ report.certificate_status.days_until_expiry if report else 'N/A' }}{% else %}N/A{% endif %}</h3>
+                            <p>Days Until Certificate Expiry</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-certificate"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box {% if vault_available %}bg-info{% else %}bg-secondary{% endif %}">
+                        <div class="inner">
+                            <h3>LDAP</h3>
+                            <p>
+                                {% if vault_available %}
+                                    {% if ldap_configured %}
+                                        Configured
+                                    {% else %}
+                                        Not Configured
+                                    {% endif %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box {% if vault_available %}{% if report and report.file_permissions.permissions_valid %}bg-success{% else %}bg-warning{% endif %}{% else %}bg-secondary{% endif %}">
+                        <div class="inner">
+                            <h3>Permissions</h3>
+                            <p>
+                                {% if vault_available %}
+                                    {% if report and report.file_permissions.permissions_valid %}
+                                        Valid
+                                    {% else %}
+                                        Issues Found
+                                    {% endif %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if not vault_available %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="alert alert-danger">
+                        <h5><i class="icon fas fa-ban"></i> Vault Unavailable!</h5>
+                        {{ vault_error if vault_error else 'The Vault service is currently offline or inaccessible.' }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Policy Management -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Policy Management</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="showCreatePolicyModal()">
+                                    Create Policy
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <ul class="nav nav-tabs" id="policyTabs" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active" id="role-policies-tab" data-toggle="tab" href="#role-policies">
+                                        Role Policies
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="blueprint-policies-tab" data-toggle="tab" href="#blueprint-policies">
+                                        Blueprint Policies
+                                    </a>
+                                </li>
+                            </ul>
+                            <div class="tab-content mt-3">
+                                <div class="tab-pane fade show active" id="role-policies">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Role</th>
+                                                    <th>Paths</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="rolePoliciesList">
+                                                <!-- Populated by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="blueprint-policies">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Blueprint</th>
+                                                    <th>Paths</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="blueprintPoliciesList">
+                                                <!-- Populated by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secrets Management -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Secrets Management</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="showCreateSecretModal()">
+                                    Create Secret
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Path</th>
+                                            <th>Last Modified</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="secretsList">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{# Include Modal Templates #}
+{% include 'admin/modals/policy_modal.html' %}
+{% include 'admin/modals/ldap_modal.html' %}
+{% include 'admin/modals/secret_modal.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='src/highcharts/highcharts.js') }}"></script>
+<script>
+    window.vault_available = {% if vault_available %}true{% else %}false{% endif %};
+</script>
+<script src="{{ url_for('static', filename='src/js/vault_dashboard.js') }}"></script>
+{% endblock %}

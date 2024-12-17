@@ -3,7 +3,7 @@
 from datetime import datetime
 from flask import request, current_app
 from flask_login import current_user
-from app import db
+from app.extensions import db
 from app.models import UserActivity, PageVisit
 from app.logging_utils import log_error
 

@@ -6,7 +6,7 @@ from flask import current_app, request, render_template, flash
 from flask_login import current_user
 from werkzeug.exceptions import Forbidden
 from app.models import PageRouteMapping
-from app import db
+from app.extensions import db
 from app.utils.route_manager import route_to_endpoint
 
 def check_route_access():

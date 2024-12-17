@@ -7,7 +7,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-from app import db
+from app.extensions import db
 from app.models import User, UserActivity, UserPreference
 from app.forms import LoginForm
 from app.mock_ldap import authenticate_ldap
@@ -20,6 +20,11 @@ logger = logging.getLogger(__name__)
 
 def init_routes(bp):
     """Initialize routes with blueprint"""
+    
+    # Add template context processor
+    @bp.context_processor
+    def inject_now():
+        return {'now': datetime.utcnow()}
     
     def log_activity(user, activity):
         """Log user activity to database."""

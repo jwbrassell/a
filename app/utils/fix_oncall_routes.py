@@ -3,7 +3,7 @@
 import click
 from flask.cli import with_appcontext
 from app.models import PageRouteMapping, Role, NavigationCategory
-from app import db
+from app.extensions import db
 from sqlalchemy import text, or_
 
 @click.command('fix-oncall-routes')

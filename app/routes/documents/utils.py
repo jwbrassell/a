@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List, Union
 from flask import current_app
 from werkzeug.utils import secure_filename
-from app import db
+from app.extensions import db
 from app.models.documents import Document, DocumentCache, DocumentCategory
 
 # Try to import pdfkit, but don't fail if it's not available

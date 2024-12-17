@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request
 from flask_login import login_required, current_user
 from app.utils.enhanced_rbac import requires_permission
 from app.models import User, Role
-from app import db
+from app.extensions import db
 from app.routes.admin import admin_bp as bp
 from datetime import datetime
 import logging

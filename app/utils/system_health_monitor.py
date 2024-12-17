@@ -6,7 +6,7 @@ from datetime import datetime
 import logging
 from app.models.metrics import Metric
 from app.utils.alert_service import alert_service
-from app import db
+from app.extensions import db
 
 logger = logging.getLogger(__name__)
 

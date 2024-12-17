@@ -1,4 +1,4 @@
-from app import db
+from app.extensions import db
 from app.models import Role, PageRouteMapping
 from flask import current_app
 import logging

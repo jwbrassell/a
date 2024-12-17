@@ -4,7 +4,7 @@ import csv
 from io import StringIO
 from typing import Dict, List, Any, Tuple
 from app.models import User, Role
-from app import db
+from app.extensions import db
 from werkzeug.security import generate_password_hash
 import logging
 from datetime import datetime

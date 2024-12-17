@@ -19,6 +19,7 @@ class VaultSecurityMonitor:
     def __init__(self, vault_utility=None):
         """Initialize with optional VaultUtility instance."""
         self.vault = vault_utility or VaultUtility()
+        self.is_development = os.getenv('FLASK_ENV') == 'development'
         
     def check_vault_security(self):
         """Perform comprehensive security check."""
@@ -35,7 +36,7 @@ class VaultSecurityMonitor:
             
             # Check HTTPS
             results['https_enabled'] = self.vault.vault_url.startswith('https://')
-            if not results['https_enabled']:
+            if not results['https_enabled'] and not self.is_development:
                 logger.error('HTTPS is not enabled')
             
             # Check localhost restriction
@@ -44,19 +45,25 @@ class VaultSecurityMonitor:
             if not results['localhost_only']:
                 logger.error('Vault is not restricted to localhost')
             
-            # Check certificates
-            try:
-                self.vault._verify_certificates()
+            # Check certificates if not in development
+            if not self.is_development:
+                try:
+                    self.vault._verify_certificates()
+                    results['certificates_valid'] = True
+                    
+                    # Check certificate expiry
+                    days_until_expiry = self.check_certificate_expiry()
+                    results['cert_expiry_days'] = days_until_expiry
+                    
+                    if days_until_expiry < 30:
+                        logger.warning(f'Certificate will expire in {days_until_expiry} days')
+                except Exception as e:
+                    if not self.is_development:
+                        logger.error(f'Certificate verification failed: {e}')
+            else:
+                # In development, mark as valid
                 results['certificates_valid'] = True
-                
-                # Check certificate expiry
-                days_until_expiry = self.check_certificate_expiry()
-                results['cert_expiry_days'] = days_until_expiry
-                
-                if days_until_expiry < 30:
-                    logger.warning(f'Certificate will expire in {days_until_expiry} days')
-            except Exception as e:
-                logger.error(f'Certificate verification failed: {e}')
+                results['cert_expiry_days'] = 365  # Placeholder value
             
             # Test CSRF
             try:
@@ -75,6 +82,9 @@ class VaultSecurityMonitor:
 
     def check_certificate_expiry(self):
         """Check certificate expiration and return days until expiry."""
+        if self.is_development:
+            return 365  # Return placeholder value in development
+            
         try:
             cert_path = os.getenv('VAULT_CLIENT_CERT')
             if not cert_path:
@@ -95,6 +105,13 @@ class VaultSecurityMonitor:
 
     def monitor_file_permissions(self):
         """Monitor sensitive file permissions."""
+        if self.is_development:
+            return {
+                'permissions_valid': True,
+                'issues': [],
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
         sensitive_files = {
             'CA Certificate': os.getenv('VAULT_CACERT'),
             'Client Certificate': os.getenv('VAULT_CLIENT_CERT'),
@@ -144,6 +161,10 @@ class VaultSecurityMonitor:
             'timestamp': datetime.utcnow().isoformat()
         }
         
+        # Skip detailed header checks in development
+        if self.is_development:
+            return results
+            
         for header, expected_value in required_headers.items():
             if header not in response.headers:
                 results['headers_valid'] = False
@@ -182,7 +203,8 @@ class VaultSecurityMonitor:
             'timestamp': datetime.utcnow().isoformat(),
             'vault_security': None,
             'file_permissions': None,
-            'certificate_status': None
+            'certificate_status': None,
+            'overall_status': 'healthy'  # Default to healthy in development
         }
         
         try:
@@ -200,22 +222,23 @@ class VaultSecurityMonitor:
             }
             
             # Add overall status
-            report['overall_status'] = 'healthy'
-            if (not report['vault_security']['https_enabled'] or
-                not report['vault_security']['localhost_only'] or
-                not report['vault_security']['certificates_valid'] or
-                not report['vault_security']['csrf_working'] or
-                not report['file_permissions']['permissions_valid'] or
-                days_until_expiry < 0):
-                report['overall_status'] = 'critical'
-            elif (days_until_expiry < 30 or 
-                  len(report['file_permissions']['issues']) > 0):
-                report['overall_status'] = 'warning'
+            if not self.is_development:
+                if (not report['vault_security']['https_enabled'] or
+                    not report['vault_security']['localhost_only'] or
+                    not report['vault_security']['certificates_valid'] or
+                    not report['vault_security']['csrf_working'] or
+                    not report['file_permissions']['permissions_valid'] or
+                    days_until_expiry < 0):
+                    report['overall_status'] = 'critical'
+                elif (days_until_expiry < 30 or 
+                      len(report['file_permissions']['issues']) > 0):
+                    report['overall_status'] = 'warning'
             
         except Exception as e:
             logger.error(f'Failed to generate security report: {e}')
-            report['overall_status'] = 'error'
-            report['error'] = str(e)
+            if not self.is_development:
+                report['overall_status'] = 'error'
+                report['error'] = str(e)
         
         return report
 

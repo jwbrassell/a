@@ -1,258 +1,207 @@
-{% extends 'base.html' %}
-
-{% block title %}Vault Status{% endblock %}
-
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
-<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
-<li class="breadcrumb-item active">Vault Status</li>
-{% endblock %}
+{% extends "base.html" %}
 
 {% block page_content %}
-<div class="container-fluid">
-    <!-- Status Overview -->
-    <div class="row">
-        <div class="col-lg-3 col-6">
-            <div class="small-box {% if status.status == 'healthy' %}bg-success{% elif status.status == 'degraded' %}bg-warning{% else %}bg-danger{% endif %}">
-                <div class="inner">
-                    <h3>{{ status.status|title }}</h3>
-                    <p>Overall Status</p>
-                </div>
-                <div class="icon">
-                    <i class="fas {% if status.status == 'healthy' %}fa-check-circle{% elif status.status == 'degraded' %}fa-exclamation-triangle{% else %}fa-times-circle{% endif %}"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-6">
-            <div class="small-box {% if not status.sealed %}bg-success{% else %}bg-danger{% endif %}">
-                <div class="inner">
-                    <h3>{{ 'Unsealed' if not status.sealed else 'Sealed' }}</h3>
-                    <p>Seal Status</p>
-                </div>
-                <div class="icon">
-                    <i class="fas {% if not status.sealed %}fa-unlock{% else %}fa-lock{% endif %}"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-6">
-            <div class="small-box {% if status.initialized %}bg-success{% else %}bg-danger{% endif %}">
-                <div class="inner">
-                    <h3>{{ 'Yes' if status.initialized else 'No' }}</h3>
-                    <p>Initialized</p>
-                </div>
-                <div class="icon">
-                    <i class="fas {% if status.initialized %}fa-check{% else %}fa-times{% endif %}"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-6">
-            <div class="small-box bg-info">
-                <div class="inner">
-                    <h3>{{ status.version if status.version else 'Unknown' }}</h3>
-                    <p>Version</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-code-branch"></i>
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Vault Status & Performance</h1>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="row">
-        <!-- System Health Chart -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">System Health</h3>
-                </div>
-                <div class="card-body">
-                    <div id="systemChart" style="height: 300px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Secret Engines Chart -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Secret Engines</h3>
-                </div>
-                <div class="card-body">
-                    <div id="secretEnginesChart" style="height: 300px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- System Information -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">System Information</h3>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <table class="table">
-                                <tr>
-                                    <th style="width: 30%">Cluster Name</th>
-                                    <td>{{ status.cluster_name }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Cluster ID</th>
-                                    <td>{{ status.cluster_id }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Server Time (UTC)</th>
-                                    <td>{{ status.server_time_utc }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Last Check</th>
-                                    <td>{{ status.last_check }}</td>
-                                </tr>
-                            </table>
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Health Status -->
+            <div class="row">
+                <div class="col-lg-3 col-6">
+                    <div class="small-box {% if vault_available %}{% if report and report.overall_status == 'healthy' %}bg-success{% elif report and report.overall_status == 'warning' %}bg-warning{% else %}bg-danger{% endif %}{% else %}bg-danger{% endif %}">
+                        <div class="inner">
+                            <h3>Health</h3>
+                            <p>{% if vault_available %}{{ report.overall_status|upper if report else 'ERROR' }}{% else %}OFFLINE{% endif %}</p>
                         </div>
-                        <div class="col-md-6">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Path</th>
-                                        <th>Type</th>
-                                        <th>Version</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for path, details in summary.mounts.items() %}
-                                    <tr>
-                                        <td>{{ path }}</td>
-                                        <td><span class="badge bg-primary">{{ details.type }}</span></td>
-                                        <td>{{ details.options.version if details.options and details.options.version else 'N/A' }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                        <div class="icon">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box {% if vault_available %}{% if report and report.certificate_status.warning_level == 'ok' %}bg-success{% elif report and report.certificate_status.warning_level == 'warning' %}bg-warning{% else %}bg-danger{% endif %}{% else %}bg-secondary{% endif %}">
+                        <div class="inner">
+                            <h3>{% if vault_available %}{{ report.certificate_status.days_until_expiry if report else 'N/A' }}{% else %}N/A{% endif %}</h3>
+                            <p>Days Until Certificate Expiry</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-certificate"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box {% if vault_available %}{% if report and report.vault_security.https_enabled %}bg-success{% else %}bg-warning{% endif %}{% else %}bg-secondary{% endif %}">
+                        <div class="inner">
+                            <h3>Security</h3>
+                            <p>{% if vault_available %}{% if report and report.vault_security.https_enabled %}HTTPS Enabled{% else %}HTTPS Disabled{% endif %}{% else %}N/A{% endif %}</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box {% if vault_available %}{% if report and report.file_permissions.permissions_valid %}bg-success{% else %}bg-warning{% endif %}{% else %}bg-secondary{% endif %}">
+                        <div class="inner">
+                            <h3>Access</h3>
+                            <p>{% if vault_available %}{% if report and report.file_permissions.permissions_valid %}Valid{% else %}Issues Found{% endif %}{% else %}N/A{% endif %}</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Response Time Trends</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="responseTimeChart" style="height: 300px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Request Volume</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="requestVolumeChart" style="height: 300px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Details -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Security Status Details</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <th style="width: 200px;">HTTPS Status</th>
+                                            <td>
+                                                {% if report and report.vault_security.https_enabled %}
+                                                <span class="badge badge-success">Enabled</span>
+                                                {% else %}
+                                                <span class="badge badge-danger">Disabled</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Certificate Status</th>
+                                            <td>
+                                                {% if report and report.certificate_status.status == 'valid' %}
+                                                <span class="badge badge-success">Valid</span>
+                                                {% else %}
+                                                <span class="badge badge-danger">Invalid</span>
+                                                {% endif %}
+                                                {% if report and report.certificate_status.days_until_expiry %}
+                                                (Expires in {{ report.certificate_status.days_until_expiry }} days)
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>File Permissions</th>
+                                            <td>
+                                                {% if report and report.file_permissions.permissions_valid %}
+                                                <span class="badge badge-success">Valid</span>
+                                                {% else %}
+                                                <span class="badge badge-warning">Issues Found</span>
+                                                <ul class="mt-2 mb-0">
+                                                    {% for issue in report.file_permissions.issues %}
+                                                    <li>{{ issue }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>CSRF Protection</th>
+                                            <td>
+                                                {% if report and report.vault_security.csrf_working %}
+                                                <span class="badge badge-success">Active</span>
+                                                {% else %}
+                                                <span class="badge badge-danger">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Tokens -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Active Token Usage</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="tokenUsageChart" style="height: 300px;"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Error Log -->
-    {% if status.errors %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card card-danger">
-                <div class="card-header">
-                    <h3 class="card-title">Errors</h3>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-striped">
-                        <tbody>
-                            {% for error in status.errors %}
-                            <tr>
-                                <td><i class="fas fa-exclamation-circle text-danger"></i> {{ error }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
+    </section>
 </div>
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
+<script src="{{ url_for('static', filename='src/highcharts/highcharts.js') }}"></script>
 <script>
-    // Auto-refresh the page every 30 seconds
-    setTimeout(function() {
-        location.reload();
-    }, 30000);
-
-    // System Health Chart
-    Highcharts.chart('systemChart', {
-        chart: {
-            type: 'gauge',
-            plotBackgroundColor: null,
-            plotBackgroundImage: null,
-            plotBorderWidth: 0,
-            plotShadow: false
-        },
-        title: {
-            text: 'System Health'
-        },
-        pane: {
-            startAngle: -150,
-            endAngle: 150
-        },
-        yAxis: {
-            min: 0,
-            max: 100,
-            title: {
-                text: 'Health %'
-            },
-            plotBands: [{
-                from: 0,
-                to: 60,
-                color: '#DF5353'
-            }, {
-                from: 60,
-                to: 80,
-                color: '#DDDF0D'
-            }, {
-                from: 80,
-                to: 100,
-                color: '#55BF3B'
-            }]
-        },
-        series: [{
-            name: 'Health',
-            data: [{{ '100' if status.status == 'healthy' else '70' if status.status == 'degraded' else '30' }}],
-            tooltip: {
-                valueSuffix: ' %'
-            }
-        }]
-    });
-
-    // Secret Engines Chart
-    Highcharts.chart('secretEnginesChart', {
-        chart: {
-            type: 'pie'
-        },
-        title: {
-            text: 'Secret Engines Distribution'
-        },
-        plotOptions: {
-            pie: {
-                allowPointSelect: true,
-                cursor: 'pointer',
-                depth: 35,
-                dataLabels: {
-                    enabled: true,
-                    format: '{point.name}'
-                }
-            }
-        },
-        series: [{
-            type: 'pie',
-            name: 'Count',
-            data: [
-                {% for path, details in summary.mounts.items() %}
-                {
-                    name: '{{ details.type }}',
-                    y: 1
-                },
-                {% endfor %}
-            ]
-        }]
-    });
+    {% if vault_available %}
+    window.vault_available = true;
+    {% else %}
+    window.vault_available = false;
+    {% endif %}
 </script>
+<script src="{{ url_for('static', filename='src/js/vault_status.js') }}"></script>
 {% endblock %}

@@ -2,7 +2,7 @@ from functools import wraps
 from datetime import datetime
 from flask import request, current_app
 from flask_login import current_user
-from app import db
+from app.extensions import db
 from app.models import UserActivity
 from app.models.analytics import FeatureUsage, ResourceUtilization
 from app.logging_utils import log_error

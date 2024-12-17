@@ -2,11 +2,11 @@
 """
 Setup script to initialize the application.
 This script will:
-1. Create database and tables
-2. Initialize permissions
-3. Initialize role templates
-4. Set up admin user with full access
-5. Start the Flask app
+1. Setup Vault if not running
+2. Create database and tables
+3. Initialize permissions
+4. Initialize role templates
+5. Set up admin user with full access
 """
 
 import os
@@ -16,6 +16,7 @@ import shutil
 from pathlib import Path
 from flask import Flask
 from app.extensions import db
+from app.utils.vault_setup import setup_vault
 
 # Configure logging
 logging.basicConfig(
@@ -312,11 +313,11 @@ def main():
     app = create_app()
 
     steps = [
+        ("Setting up Vault", setup_vault),
         ("Removing existing database", remove_database),
         ("Initializing database", lambda: init_database(app)),
         ("Initializing roles", lambda: init_roles(app)),
-        ("Setting up admin user", lambda: setup_admin(app)),
-        ("Starting application", lambda: app.run(host='0.0.0.0', port=5000, debug=True))
+        ("Setting up admin user", lambda: setup_admin(app))
     ]
 
     for step_name, step_func in steps:
@@ -325,6 +326,13 @@ def main():
         if not success:
             logger.error(f"Setup failed at step: {step_name}")
             sys.exit(1)
+
+    logger.info("\n=== Setup Complete ===")
+    logger.info("The application has been successfully configured and is ready to run.")
+    logger.info("To start the application, run: python app.py")
+    logger.info("\nDefault admin credentials:")
+    logger.info("Username: admin")
+    logger.info("Password: admin")
 
 if __name__ == '__main__':
     main()

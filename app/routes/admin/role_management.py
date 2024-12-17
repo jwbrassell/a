@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
 from app.utils.enhanced_rbac import requires_permission, has_permission
 from app.models import Role, User, Permission, UserActivity
-from app import db
+from app.extensions import db
 from app.routes.admin import admin_bp as bp
 from datetime import datetime, timedelta
 import logging

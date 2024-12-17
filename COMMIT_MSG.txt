@@ -8,6 +8,10 @@ feat(admin): enhance monitoring system with real-time updates and historical dat
 - Initialize metrics collector with proper app context handling
 - Update frontend to refresh data every minute automatically
 - Add Highcharts integration for better data visualization
+- Fix vault metrics endpoint permissions and policy handling
+- Add proper policy parsing for both JSON and HCL formats
+- Improve vault middleware logging for better debugging
+- Update vault policies to use correct role names
 
 The monitoring system now provides:
 - Real-time system metrics updated every minute
@@ -15,3 +19,5 @@ The monitoring system now provides:
 - Proper error handling and logging
 - Improved UI with interactive charts
 - Background collection with proper database storage
+- Secure access to vault metrics with proper role-based permissions
+- Better policy management and permission validation

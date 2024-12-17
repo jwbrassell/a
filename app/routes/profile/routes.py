@@ -3,7 +3,7 @@
 from flask import render_template, request, flash, redirect, url_for, current_app, jsonify, send_file
 from flask_login import login_required, current_user
 from app.routes.profile import profile_bp as bp, allowed_file, DEFAULT_AVATARS
-from app import db
+from app.extensions import db
 from app.utils.activity_tracking import track_activity
 from app.models import UserActivity, User
 from app.utils.cache_manager import cached, cache
