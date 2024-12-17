@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const body = document.body;
     const navbar = document.querySelector('.main-header.navbar');
     const icon = darkModeToggle.querySelector('i');
-    const html = document.documentElement;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     
     function enableDarkMode() {
@@ -12,7 +11,6 @@ document.addEventListener('DOMContentLoaded', function() {
         navbar.classList.add('navbar-dark', 'bg-dark');
         icon.classList.remove('fa-moon');
         icon.classList.add('fa-sun');
-        html.setAttribute('data-bs-theme', 'dark');
     }
 
     function disableDarkMode() {
@@ -21,7 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
         navbar.classList.add('navbar-light', 'navbar-white');
         icon.classList.remove('fa-sun');
         icon.classList.add('fa-moon');
-        html.setAttribute('data-bs-theme', 'light');
     }
     
     darkModeToggle.addEventListener('click', function(e) {

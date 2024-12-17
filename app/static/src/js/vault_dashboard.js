@@ -194,8 +194,13 @@ function savePolicy() {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    fetch('/api/vault/policies', {
-        method: 'POST',
+    // Use the appropriate endpoint based on policy type
+    const endpoint = type === 'blueprint' ? 
+        `/api/vault/policies` : 
+        `/api/vault/policies`;
+
+    fetch(endpoint, {
+        method: currentPolicyName ? 'PUT' : 'POST',
         headers: { 
             'Content-Type': 'application/json',
             'X-CSRF-Token': csrfToken

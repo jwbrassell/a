@@ -14,6 +14,7 @@ from app.models.documents import (
     DocumentCache,
     document_tag_association
 )
+from app.models.dispatch import DispatchSettings, DispatchHistory
 
 __all__ = [
     'Permission',
@@ -34,5 +35,8 @@ __all__ = [
     'DocumentChange',
     'DocumentShare',
     'DocumentCache',
-    'document_tag_association'
+    'document_tag_association',
+    # Dispatch models
+    'DispatchSettings',
+    'DispatchHistory'
 ]

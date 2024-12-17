@@ -107,17 +107,21 @@ class Config:
             # Content Security Policy
             csp = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "  # Consider removing unsafe-inline/eval if possible
-                "style-src 'self' 'unsafe-inline'; "  # Consider removing unsafe-inline if possible
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                "style-src 'self' 'unsafe-inline'; "
                 "img-src 'self' data: https:; "
                 "font-src 'self'; "
-                "connect-src 'self'; "
+                "connect-src 'self' http: https:; "
                 "frame-ancestors 'self'; "
                 "form-action 'self'; "
                 "base-uri 'self'; "
                 "object-src 'none'"
             )
             response.headers['Content-Security-Policy'] = csp
+            
+            # Set correct MIME type for JavaScript files
+            if response.mimetype == 'application/javascript' or response.content_type == 'application/javascript':
+                response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
             
             # Enhanced cache headers for static files
             if 'static' in request.path:

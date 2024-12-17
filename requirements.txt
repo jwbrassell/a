@@ -30,3 +30,4 @@ hvac
 cryptography
 python-dateutil
 requests
+email-validator

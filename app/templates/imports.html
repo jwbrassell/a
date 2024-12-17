@@ -3,8 +3,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='src/fontawesome/css/all.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/adminlte.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='src/css/theme.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/dataTables.bootstrap5.min.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/buttons.bootstrap5.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/dataTables.bootstrap4.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/buttons.bootstrap4.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='src/bootstrap-colorpicker/css/bootstrap-colorpicker.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='src/bootstrap-slider/css/bootstrap-slider.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='src/bootstrap-switch/css/bootstrap3/bootstrap-switch.min.css') }}">
@@ -19,22 +19,25 @@
 <script src="{{ url_for('static', filename='src/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ url_for('static', filename='dist/js/adminlte.min.js') }}"></script>
 
-<!-- Highcharts -->
+<!-- Highcharts Core -->
 <script src="{{ url_for('static', filename='src/highcharts/highcharts.js') }}"></script>
 <script src="{{ url_for('static', filename='src/highcharts/highcharts-more.js') }}"></script>
-<script src="{{ url_for('static', filename='src/highcharts/modules/gauge.js') }}"></script>
-<script src="{{ url_for('static', filename='src/highcharts/modules/solid-gauge.js') }}"></script>
+
+<!-- Highcharts Modules -->
+<script src="{{ url_for('static', filename='src/highcharts/modules/data.js') }}"></script>
 <script src="{{ url_for('static', filename='src/highcharts/modules/exporting.js') }}"></script>
 <script src="{{ url_for('static', filename='src/highcharts/modules/export-data.js') }}"></script>
 <script src="{{ url_for('static', filename='src/highcharts/modules/accessibility.js') }}"></script>
+<script src="{{ url_for('static', filename='src/highcharts/modules/gauge.js') }}"></script>
+<script src="{{ url_for('static', filename='src/highcharts/modules/solid-gauge.js') }}"></script>
 
 <!-- Navigation -->
 <script src="{{ url_for('static', filename='src/js/navigation.js') }}"></script>
 <script src="{{ url_for('static', filename='src/datatables/js/jquery.dataTables.min.js') }}"></script>
-<script src="{{ url_for('static', filename='src/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/dataTables.bootstrap4.min.js') }}"></script>
 <!-- DataTables Buttons -->
 <script src="{{ url_for('static', filename='src/datatables/js/dataTables.buttons.min.js') }}"></script>
-<script src="{{ url_for('static', filename='src/datatables/js/buttons.bootstrap5.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/buttons.bootstrap4.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/jszip/jszip.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/pdfmake/pdfmake.min.js') }}"></script>
 <script src="{{ url_for('static', filename='src/pdfmake/vfs_fonts.js') }}"></script>
@@ -67,20 +70,14 @@ toastr.options = {
 };
 </script>
 
-<!-- Initialize Bootstrap 5 Tooltips and Popovers -->
+<!-- Initialize Bootstrap 4 Tooltips and Popovers -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize all tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+    $('[data-toggle="tooltip"]').tooltip();
 
     // Initialize all popovers
-    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl);
-    });
+    $('[data-toggle="popover"]').popover();
 
     // Initialize TinyMCE for rich text editors
     tinymce.init({

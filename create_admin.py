@@ -20,7 +20,8 @@ def create_admin_user():
         if not admin_role:
             admin_role = Role(
                 name='admin',
-                description='Administrator role with full access'
+                description='Administrator role with full access',
+                created_by='system'  # Added this line
             )
             db.session.add(admin_role)
         

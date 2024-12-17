@@ -242,9 +242,12 @@ def list_secrets():
         secrets = vault_util.list_secrets()
         accessible_secrets = []
         
-        for secret in secrets:
-            if policy_enforcer._check_path_permission(f"kvv2/data/{secret['path']}", "read"):
-                accessible_secrets.append(secret)
+        for secret_path in secrets:  # secrets is now a list of strings
+            if policy_enforcer._check_path_permission(f"kvv2/data/{secret_path}", "read"):
+                accessible_secrets.append({
+                    'path': secret_path,
+                    'readable': True
+                })
                 
         return jsonify(accessible_secrets)
     except VaultError as e:
@@ -272,7 +275,7 @@ def create_secret(secret_path):
         if not g.vault_available:
             return jsonify({'error': 'Vault unavailable'}), 503
         data = request.get_json()
-        vault_util.create_secret(secret_path, data)
+        vault_util.store_secret(secret_path, data)  # Changed from create_secret to store_secret
         return jsonify({'message': 'Secret created successfully'})
     except VaultError as e:
         return jsonify({'error': str(e)}), 500
@@ -286,7 +289,7 @@ def update_secret(secret_path):
         if not g.vault_available:
             return jsonify({'error': 'Vault unavailable'}), 503
         data = request.get_json()
-        vault_util.update_secret(secret_path, data)
+        vault_util.store_secret(secret_path, data)  # Using store_secret for consistency
         return jsonify({'message': 'Secret updated successfully'})
     except VaultError as e:
         return jsonify({'error': str(e)}), 500

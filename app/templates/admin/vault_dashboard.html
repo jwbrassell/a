@@ -276,7 +276,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='src/highcharts/highcharts.js') }}"></script>
+{{ super() }}
 <script>
     window.vault_available = {% if vault_available %}true{% else %}false{% endif %};
 </script>

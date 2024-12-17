@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#requestModal">
+            Create New Dispatch Request
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Request History</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Subject</th>
+                                <th>Priority</th>
+                                <th>Team</th>
+                                <th>Requester</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in history %}
+                            <tr>
+                                <td>{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <a href="#" class="view-message" 
+                                       data-bs-toggle="modal" 
+                                       data-bs-target="#messageModal"
+                                       data-subject="{{ entry.subject }}"
+                                       data-message="{{ entry.message }}">
+                                        {{ entry.subject }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ priorities[entry.priority] }}">
+                                        {{ entry.priority }}
+                                    </span>
+                                </td>
+                                <td>{{ entry.team }}</td>
+                                <td>{{ entry.requester.username }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request Modal -->
+<div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="requestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="requestModalLabel">Dispatch Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="dispatchForm">
+                    {{ form.csrf_token }}
+                    
+                    <!-- Row 1: Dispatch Request and Subject -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h4>Dispatch Request</h4>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                {{ form.subject.label(class_="form-label") }}
+                                {{ form.subject(class="form-control", required=true) }}
+                                {% if form.subject.errors %}
+                                    {% for error in form.subject.errors %}
+                                        <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Team and Priority -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.team.label(class_="form-label") }}
+                                {{ form.team(class="form-control", required=true) }}
+                                {% if form.team.errors %}
+                                    {% for error in form.team.errors %}
+                                        <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.priority.label(class_="form-label") }}
+                                {{ form.priority(class="form-control", required=true) }}
+                                {% if form.priority.errors %}
+                                    {% for error in form.priority.errors %}
+                                        <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Ticket Numbers -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.ticket_number.label(class_="form-label") }}
+                                {{ form.ticket_number(class="form-control", required=true) }}
+                                {% if form.ticket_number.errors %}
+                                    {% for error in form.ticket_number.errors %}
+                                        <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.ticket_number_2.label(class_="form-label") }}
+                                {{ form.ticket_number_2(class="form-control") }}
+                                {% if form.ticket_number_2.errors %}
+                                    {% for error in form.ticket_number_2.errors %}
+                                        <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: RMA Section -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                {{ form.rma_required(class="form-check-input") }}
+                                {{ form.rma_required.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        <div class="col-md-4 rma-fields" style="display: none;">
+                            <div class="form-group">
+                                {{ form.bridge_info.label(class_="form-label") }}
+                                {{ form.bridge_info(class="form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-4 rma-fields" style="display: none;">
+                            <div class="form-group">
+                                {{ form.rma_notes.label(class_="form-label") }}
+                                {{ form.rma_notes(class="form-control") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Due Date and Hostname -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.due_date.label(class_="form-label") }}
+                                {{ form.due_date(class="form-control", type="date", required=true) }}
+                                {% if form.due_date.errors %}
+                                    {% for error in form.due_date.errors %}
+                                        <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.hostname.label(class_="form-label") }}
+                                {{ form.hostname(class="form-control", required=true) }}
+                                {% if form.hostname.errors %}
+                                    {% for error in form.hostname.errors %}
+                                        <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 6: Description -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="form-group">
+                                {{ form.message.label(class_="form-label") }}
+                                {{ form.message(class="form-control", rows=5, required=true) }}
+                                {% if form.message.errors %}
+                                    {% for error in form.message.errors %}
+                                        <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Message Modal -->
+<div class="modal fade" id="messageModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="message-content"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#history-table').DataTable({
+        "order": [[0, "desc"]],
+        "pageLength": 10
+    });
+
+    // Handle message view modal
+    $('.view-message').click(function() {
+        const subject = $(this).data('subject');
+        const message = $(this).data('message');
+        
+        $('#messageModal .modal-title').text(subject);
+        $('#messageModal .message-content').text(message);
+    });
+
+    // Handle RMA checkbox
+    $('#rma_required').change(function() {
+        if ($(this).is(':checked')) {
+            $('.rma-fields').show();
+        } else {
+            $('.rma-fields').hide();
+            // Clear RMA fields when unchecked
+            $('#bridge_info').val('');
+            $('#rma_notes').val('');
+        }
+    });
+
+    // Handle form submission
+    $('#dispatchForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = new FormData(this);
+        
+        // Submit form via AJAX
+        $.ajax({
+            url: '{{ url_for("dispatch.dispatch_request") }}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                // Close modal
+                $('#requestModal').modal('hide');
+                
+                // Reload page to show updated history
+                location.reload();
+            },
+            error: function(xhr, status, error) {
+                // Show error message
+                alert('Error submitting request: ' + error);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -50,6 +50,17 @@ def create_app(config_class=Config):
     from app.routes.profile import init_profile
     init_profile(app)
 
+    # Initialize dispatch routes
+    with app.app_context():
+        try:
+            from app.utils.add_dispatch_routes import add_dispatch_routes
+            if add_dispatch_routes():
+                app.logger.info("Dispatch routes initialized successfully")
+            else:
+                app.logger.warning("Failed to initialize dispatch routes")
+        except Exception as e:
+            app.logger.error(f"Error initializing dispatch routes: {e}")
+
     # Initialize Vault policies after blueprints are registered
     with app.app_context():
         try:

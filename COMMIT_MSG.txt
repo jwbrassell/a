@@ -1,3 +1,32 @@
+feat(dispatch): enhance request form with modal interface and additional fields
+
+- Add modal-based interface for creating dispatch requests
+- Implement new form fields for better request tracking:
+  * Ticket numbers (primary and secondary)
+  * RMA handling with conditional fields
+    - RMA requirement checkbox
+    - Bridge information field
+    - RMA notes field
+  * Due date selection
+  * Hostname field
+- Update database schema to store new request information
+- Enhance email notifications with comprehensive request details
+- Improve form validation and error handling
+- Add AJAX-based form submission for better user experience
+- Update history table to show request details
+- Add proper form field validation with clear error messages
+
+The dispatch request system now provides:
+- Clean modal interface for request creation
+- Comprehensive request information capture
+- Better tracking with ticket numbers and due dates
+- Specialized RMA handling when required
+- Improved email notifications with all request details
+- Real-time form validation and submission
+- Enhanced request history display
+- Proper data persistence with updated database schema
+
+Previous commit:
 feat(admin): enhance monitoring system with real-time updates and historical data
 
 - Add background metrics collection running every minute
