@@ -15,6 +15,7 @@ from vault_utility import VaultUtility
 from app.utils.vault_defaults import initialize_vault_structure
 from app.utils.cache_manager import cached
 from app.utils.alert_service import alert_service
+from app.utils.metrics_collector import metrics_collector
 
 def create_app(config_name=None, skip_session=False):
     app = Flask(__name__)
@@ -62,6 +63,13 @@ def create_app(config_name=None, skip_session=False):
 
     # Initialize Alert Service
     alert_service.init_app(app)
+
+    # Initialize Metrics Collector with app context
+    with app.app_context():
+        metrics_collector.init_app(app)
+        # Ensure metrics table exists
+        from app.models.metrics import Metric
+        db.create_all()
 
     # Initialize Login Manager
     login_manager = LoginManager()

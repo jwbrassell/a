@@ -20,6 +20,8 @@ export class Admin {
      * @param {Object} options - Dashboard options
      */
     initMonitoringDashboard(options = {}) {
+        console.log('Initializing monitoring dashboard...');
+        
         // Initialize charts
         this.charts.initializeMonitoringCharts({
             systemMetrics: 'systemMetricsChart',
@@ -28,34 +30,8 @@ export class Admin {
             responseTimes: 'responseTimesChart'
         });
 
-        // Start data refresh
-        this.startDataRefresh(options.refreshInterval || 30000);
-    }
-
-    /**
-     * Initialize users dashboard
-     * @param {Object} options - Dashboard options
-     */
-    initUsersDashboard(options = {}) {
-        // Initialize DataTable
-        this.utils.initDataTable('#usersTable', {
-            responsive: true,
-            lengthChange: true,
-            autoWidth: false,
-            buttons: ["copy", "csv", "excel", "pdf", "print"]
-        });
-
-        // Initialize tooltips
-        this.utils.initTooltips();
-
-        // Initialize charts
-        this.charts.initializeUsersDashboard({
-            userActivity: 'userActivityChart',
-            roleDistribution: 'roleDistributionChart'
-        });
-
-        // Start data refresh
-        this.startDataRefresh(options.refreshInterval || 30000);
+        // Start data refresh - default to 60 seconds (1 minute) to match metrics collection
+        this.startDataRefresh(options.refreshInterval || 60000);
     }
 
     /**
@@ -63,9 +39,18 @@ export class Admin {
      * @param {number} interval - Refresh interval in milliseconds
      */
     startDataRefresh(interval) {
-        this.refreshInterval = setInterval(() => this.refreshData(), interval);
+        console.log('Starting data refresh with interval:', interval);
+        
+        // Clear any existing interval
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
+
         // Initial refresh
         this.refreshData();
+
+        // Set up periodic refresh
+        this.refreshInterval = setInterval(() => this.refreshData(), interval);
     }
 
     /**
@@ -83,111 +68,102 @@ export class Admin {
      */
     async refreshData() {
         try {
-            // Fetch user activity data
-            const activityData = await this.utils.fetchWithCache('/admin/api/users/dashboard/activity');
+            console.log('Refreshing dashboard data...');
+            
+            // Fetch system resources
+            const resourcesResponse = await fetch('/admin/monitoring/api/system-resources');
+            console.log('System resources response:', resourcesResponse);
+            const resourcesData = await resourcesResponse.json();
+            console.log('System resources data:', resourcesData);
+            
+            if (resourcesData.success) {
+                // Update system metrics charts
+                this.charts.updateSystemCharts(resourcesData.data);
+                // Update CPU and memory details
+                this.ui.updateCpuDetails(resourcesData.data.current);
+                this.ui.updateMemoryDetails(resourcesData.data.current);
+                this.ui.updateNetworkDetails(resourcesData.data.current);
+            }
+
+            // Fetch performance metrics
+            const performanceResponse = await fetch('/admin/monitoring/api/performance');
+            console.log('Performance response:', performanceResponse);
+            const performanceData = await performanceResponse.json();
+            console.log('Performance data:', performanceData);
+            
+            if (performanceData.success) {
+                this.charts.updatePerformanceCharts(performanceData.data);
+                this.ui.updateProcessDetails(performanceData.data.current);
+            }
+
+            // Fetch health status
+            const healthResponse = await fetch('/admin/monitoring/api/health');
+            console.log('Health response:', healthResponse);
+            const healthData = await healthResponse.json();
+            console.log('Health data:', healthData);
+            
+            if (healthData.success) {
+                this.ui.updateHealthStatus(healthData.data.current);
+            }
+
+            // Fetch user activity
+            const activityResponse = await fetch('/admin/monitoring/api/user-activity');
+            console.log('Activity response:', activityResponse);
+            const activityData = await activityResponse.json();
+            console.log('Activity data:', activityData);
+            
             if (activityData.success) {
                 this.charts.updateUserActivityChart(activityData.data);
             }
 
-            // Fetch user stats including role distribution
-            const statsData = await this.utils.fetchWithCache('/admin/api/users/dashboard/stats');
-            if (statsData.success) {
-                this.charts.updateRoleDistributionChart(statsData.data);
-                this.ui.updateUserStats(statsData.data);
-            }
-
-            // Update table data
-            await this.refreshTableData();
-
         } catch (error) {
             console.error('Error refreshing data:', error);
-            this.utils.showNotification('Failed to refresh dashboard data', 'error');
+            this.ui.showNotification('Failed to refresh dashboard data', 'error');
         }
     }
 
     /**
-     * Refresh users table data
+     * Handle alert actions
      */
-    async refreshTableData() {
+    async handleAlertAction(action, alertId = null, data = {}) {
         try {
-            const response = await this.utils.fetchWithCache('/admin/api/users');
-            if (response.results) {
-                const table = $('#usersTable').DataTable();
-                table.clear();
-                table.rows.add(response.results);
-                table.draw();
-            }
-        } catch (error) {
-            console.error('Error refreshing table:', error);
-        }
-    }
-
-    /**
-     * Handle user management actions
-     */
-    async handleUserAction(action, userId = null, data = {}) {
-        try {
-            let endpoint = '/admin/api/users';
+            let endpoint = '/admin/monitoring/api/alerts';
             let method = 'POST';
 
-            if (action === 'import') {
-                // Handle file import
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.csv';
-                fileInput.click();
-                
-                fileInput.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        
-                        const response = await fetch('/admin/api/users/import', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        
-                        const result = await response.json();
-                        if (result.success) {
-                            this.utils.showNotification('Users imported successfully', 'success');
-                            this.refreshData();
-                        } else {
-                            throw new Error(result.error || 'Import failed');
-                        }
-                    }
-                };
-                return;
-            }
-
-            if (action === 'export') {
-                window.location.href = '/admin/api/users/export';
-                return;
-            }
-
-            if (userId) {
-                endpoint += `/${userId}/${action}`;
+            if (action === 'create') {
+                const form = document.getElementById('newAlertForm');
+                const formData = new FormData(form);
+                data = Object.fromEntries(formData.entries());
+            } else if (alertId) {
+                endpoint += `/${alertId}`;
                 method = action === 'delete' ? 'DELETE' : 'PUT';
             }
 
-            const response = await this.utils.fetchWithCache(endpoint, {
+            const response = await fetch(endpoint, {
                 method,
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
-            }, false);
+            });
 
-            if (response.success) {
-                this.utils.showNotification('Action completed successfully', 'success');
+            const result = await response.json();
+
+            if (result.success) {
+                this.ui.showNotification('Alert action completed successfully', 'success');
                 // Refresh data after successful action
                 this.refreshData();
-                return response;
+                // Close modal if it exists
+                const modal = bootstrap.Modal.getInstance(document.getElementById('newAlertModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                return result;
             } else {
-                throw new Error(response.error || 'Action failed');
+                throw new Error(result.error || 'Alert action failed');
             }
         } catch (error) {
-            this.utils.showNotification(error.message, 'error');
+            this.ui.showNotification(error.message, 'error');
             throw error;
         }
     }

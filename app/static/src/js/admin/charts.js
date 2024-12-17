@@ -17,10 +17,14 @@ export class AdminCharts {
         return Highcharts.chart(containerId, {
             chart: { 
                 type: 'line',
-                backgroundColor: 'transparent'
+                backgroundColor: 'transparent',
+                zoomType: 'x'
             },
             title: { text: null },
-            xAxis: { type: 'datetime' },
+            xAxis: { 
+                type: 'datetime',
+                title: { text: 'Time' }
+            },
             yAxis: { 
                 title: { text: 'Percentage' },
                 min: 0,
@@ -35,6 +39,18 @@ export class AdminCharts {
                 { name: 'CPU', data: [] },
                 { name: 'Memory', data: [] }
             ],
+            tooltip: {
+                shared: true,
+                crosshairs: true,
+                xDateFormat: '%Y-%m-%d %H:%M:%S'
+            },
+            plotOptions: {
+                series: {
+                    marker: {
+                        enabled: false
+                    }
+                }
+            },
             credits: { enabled: false }
         });
     }
@@ -48,10 +64,14 @@ export class AdminCharts {
         return Highcharts.chart(containerId, {
             chart: { 
                 type: 'area',
-                backgroundColor: 'transparent'
+                backgroundColor: 'transparent',
+                zoomType: 'x'
             },
             title: { text: null },
-            xAxis: { type: 'datetime' },
+            xAxis: { 
+                type: 'datetime',
+                title: { text: 'Time' }
+            },
             yAxis: { 
                 title: { text: 'MB/s' },
                 min: 0
@@ -65,6 +85,19 @@ export class AdminCharts {
                 { name: 'Upload', data: [] },
                 { name: 'Download', data: [] }
             ],
+            tooltip: {
+                shared: true,
+                crosshairs: true,
+                xDateFormat: '%Y-%m-%d %H:%M:%S'
+            },
+            plotOptions: {
+                area: {
+                    marker: {
+                        enabled: false
+                    },
+                    fillOpacity: 0.3
+                }
+            },
             credits: { enabled: false }
         });
     }
@@ -78,7 +111,8 @@ export class AdminCharts {
         return Highcharts.chart(containerId, {
             chart: { 
                 type: 'column',
-                backgroundColor: 'transparent'
+                backgroundColor: 'transparent',
+                zoomType: 'x'
             },
             title: { text: null },
             xAxis: { 
@@ -100,48 +134,11 @@ export class AdminCharts {
                 data: [],
                 color: '#3498db'
             }],
-            credits: { enabled: false }
-        });
-    }
-
-    /**
-     * Initialize a role distribution chart
-     * @param {string} containerId - The ID of the container element
-     * @returns {Highcharts.Chart}
-     */
-    initRoleDistributionChart(containerId) {
-        return Highcharts.chart(containerId, {
-            chart: {
-                type: 'pie',
-                backgroundColor: 'transparent'
-            },
-            title: { text: null },
-            tooltip: {
-                pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
-            },
             plotOptions: {
-                pie: {
-                    allowPointSelect: true,
-                    cursor: 'pointer',
-                    dataLabels: {
-                        enabled: true,
-                        format: '<b>{point.name}</b>: {point.percentage:.1f} %',
-                        style: {
-                            color: '#333333'
-                        }
-                    },
-                    showInLegend: true
+                column: {
+                    pointPadding: 0.2,
+                    borderWidth: 0
                 }
-            },
-            series: [{
-                name: 'Users',
-                colorByPoint: true,
-                data: []
-            }],
-            legend: {
-                align: 'right',
-                verticalAlign: 'middle',
-                layout: 'vertical'
             },
             credits: { enabled: false }
         });
@@ -156,17 +153,39 @@ export class AdminCharts {
         return Highcharts.chart(containerId, {
             chart: { 
                 type: 'line',
-                backgroundColor: 'transparent'
+                backgroundColor: 'transparent',
+                zoomType: 'x'
             },
             title: { text: null },
-            xAxis: { type: 'datetime' },
-            yAxis: { title: { text: 'Milliseconds' } },
+            xAxis: { 
+                type: 'datetime',
+                title: { text: 'Time' }
+            },
+            yAxis: { 
+                title: { text: 'Milliseconds' },
+                min: 0
+            },
             legend: {
                 align: 'right',
                 verticalAlign: 'top',
                 layout: 'vertical'
             },
-            series: [{ name: 'Average Response Time', data: [] }],
+            series: [{ 
+                name: 'Average Response Time', 
+                data: [] 
+            }],
+            tooltip: {
+                crosshairs: true,
+                shared: true,
+                xDateFormat: '%Y-%m-%d %H:%M:%S'
+            },
+            plotOptions: {
+                series: {
+                    marker: {
+                        enabled: false
+                    }
+                }
+            },
             credits: { enabled: false }
         });
     }
@@ -183,49 +202,79 @@ export class AdminCharts {
     }
 
     /**
-     * Initialize all charts for the users dashboard
-     * @param {Object} containerIds - Object containing chart container IDs
-     */
-    initializeUsersDashboard(containerIds) {
-        if (containerIds.userActivity) {
-            this.charts.userActivity = this.initUserActivityChart(containerIds.userActivity);
-        }
-        if (containerIds.roleDistribution) {
-            this.charts.roleDistribution = this.initRoleDistributionChart(containerIds.roleDistribution);
-        }
-    }
-
-    /**
      * Update system metrics chart with new data
      * @param {Object} data - System metrics data
      */
     updateSystemCharts(data) {
-        const now = Date.now();
-        
+        if (!data) return;
+
         if (this.charts.systemMetrics) {
-            this.charts.systemMetrics.series[0].addPoint(
-                [now, data.cpu.percent], 
-                true, 
-                this.charts.systemMetrics.series[0].data.length > 50
-            );
-            this.charts.systemMetrics.series[1].addPoint(
-                [now, data.memory.percent], 
-                true, 
-                this.charts.systemMetrics.series[1].data.length > 50
-            );
+            // Update CPU data
+            if (data.historical?.cpu) {
+                const cpuData = data.historical.cpu.map(point => [
+                    new Date(point.timestamp).getTime(),
+                    point.value
+                ]);
+                this.charts.systemMetrics.series[0].setData(cpuData);
+            }
+
+            // Update Memory data
+            if (data.historical?.memory) {
+                const memoryData = data.historical.memory.map(point => [
+                    new Date(point.timestamp).getTime(),
+                    point.value
+                ]);
+                this.charts.systemMetrics.series[1].setData(memoryData);
+            }
+
+            // Add current point if available
+            if (data.current) {
+                const now = Date.now();
+                if (data.current.cpu?.percent !== undefined) {
+                    this.charts.systemMetrics.series[0].addPoint(
+                        [now, data.current.cpu.percent],
+                        true,
+                        false
+                    );
+                }
+                if (data.current.memory?.percent !== undefined) {
+                    this.charts.systemMetrics.series[1].addPoint(
+                        [now, data.current.memory.percent],
+                        true,
+                        false
+                    );
+                }
+            }
         }
 
-        if (this.charts.networkMetrics) {
-            this.charts.networkMetrics.series[0].addPoint(
-                [now, data.network.upload_speed_mb], 
-                true, 
-                this.charts.networkMetrics.series[0].data.length > 50
-            );
-            this.charts.networkMetrics.series[1].addPoint(
-                [now, data.network.download_speed_mb], 
-                true, 
-                this.charts.networkMetrics.series[1].data.length > 50
-            );
+        if (this.charts.networkMetrics && data.historical) {
+            // Convert bytes to MB/s for historical network data
+            const networkSentData = data.historical.network_sent?.map(point => [
+                new Date(point.timestamp).getTime(),
+                point.value / (1024 * 1024)
+            ]) || [];
+            const networkRecvData = data.historical.network_recv?.map(point => [
+                new Date(point.timestamp).getTime(),
+                point.value / (1024 * 1024)
+            ]) || [];
+
+            this.charts.networkMetrics.series[0].setData(networkSentData);
+            this.charts.networkMetrics.series[1].setData(networkRecvData);
+
+            // Add current point if available
+            if (data.current?.network) {
+                const now = Date.now();
+                this.charts.networkMetrics.series[0].addPoint(
+                    [now, data.current.network.upload_speed_mb],
+                    true,
+                    false
+                );
+                this.charts.networkMetrics.series[1].addPoint(
+                    [now, data.current.network.download_speed_mb],
+                    true,
+                    false
+                );
+            }
         }
     }
 
@@ -234,13 +283,16 @@ export class AdminCharts {
      * @param {Object} data - Performance metrics data
      */
     updatePerformanceCharts(data) {
-        if (!data.metrics || !this.charts.responseTimes) return;
+        if (!data || !this.charts.responseTimes) return;
         
-        const points = data.metrics.map(m => [
-            new Date(m.timestamp).getTime(),
-            m.response_time
-        ]);
-        this.charts.responseTimes.series[0].setData(points);
+        // Update with historical data
+        if (data.historical) {
+            const points = data.historical.map(point => [
+                new Date(point.timestamp).getTime(),
+                point.value
+            ]);
+            this.charts.responseTimes.series[0].setData(points);
+        }
     }
 
     /**
@@ -248,26 +300,12 @@ export class AdminCharts {
      * @param {Object} data - User activity data
      */
     updateUserActivityChart(data) {
-        if (!data.hourly_activity || !this.charts.userActivity) return;
+        if (!data?.hourly_activity || !this.charts.userActivity) return;
         
         const points = data.hourly_activity.map(h => [
             new Date(h.hour).getTime(),
             h.count
         ]);
         this.charts.userActivity.series[0].setData(points);
-    }
-
-    /**
-     * Update role distribution chart with new data
-     * @param {Object} data - Role distribution data
-     */
-    updateRoleDistributionChart(data) {
-        if (!data.role_distribution || !this.charts.roleDistribution) return;
-        
-        const points = data.role_distribution.map(r => ({
-            name: r.role,
-            y: r.count
-        }));
-        this.charts.roleDistribution.series[0].setData(points);
     }
 }

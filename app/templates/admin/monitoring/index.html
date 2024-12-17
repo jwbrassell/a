@@ -191,6 +191,11 @@
 
 {% block scripts %}
 {{ super() }}
+<!-- Include Highcharts -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+
 <script type="module">
     import { Admin } from "{{ url_for('static', filename='src/js/admin/main.js') }}";
 
@@ -199,9 +204,9 @@
         const admin = new Admin();
         window.admin = admin; // Make available globally for event handlers
         
-        // Initialize monitoring dashboard
+        // Initialize monitoring dashboard with 1-minute refresh interval
         admin.initMonitoringDashboard({
-            refreshInterval: 30000 // 30 seconds
+            refreshInterval: 60000 // 60 seconds = 1 minute
         });
     });
 </script>

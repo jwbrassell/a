@@ -3,11 +3,11 @@
 from flask import jsonify, request, current_app
 from flask_login import login_required, current_user
 from app.utils.enhanced_rbac import requires_permission
-from app.extensions import cache
+from app.extensions import cache, db
 from app.utils.alert_service import alert_service
-from app.models.metrics import MetricAlert
-import psutil
+from app.models.metrics import MetricAlert, Metric
 from datetime import datetime, timedelta
+import psutil
 import logging
 from app.models.activity import UserActivity
 from sqlalchemy import func, extract
@@ -63,9 +63,16 @@ def get_network_status(upload_speed, download_speed):
     else:
         return 'error', utilization
 
-def cache_key_with_user():
-    """Generate a cache key that includes the user ID."""
-    return f'user_{current_user.id}'
+def get_historical_metrics(metric_name: str, hours: int = 24) -> list:
+    """Get historical metrics for the specified name and time range."""
+    since = datetime.utcnow() - timedelta(hours=hours)
+    metrics = Metric.query.filter(
+        Metric.name == metric_name,
+        Metric.timestamp >= since
+    ).order_by(Metric.timestamp.asc()).all()
+    
+    logger.debug(f"Retrieved {len(metrics)} historical metrics for {metric_name}")
+    return [{'timestamp': m.timestamp.isoformat(), 'value': m.value} for m in metrics]
 
 def init_monitoring_api_routes(bp):
     """Initialize monitoring API routes."""
@@ -73,11 +80,11 @@ def init_monitoring_api_routes(bp):
     @bp.route('/monitoring/api/system-resources')
     @login_required
     @requires_permission('admin_monitoring_access', 'read')
-    @cache.memoize(timeout=10)  # Cache for 10 seconds per user
     def get_system_resources():
-        """Get system resource usage."""
+        """Get system resource usage with historical data."""
         try:
-            # Get CPU and memory usage
+            logger.debug("Fetching system resources...")
+            # Get current metrics
             cpu_percent = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
             
@@ -93,44 +100,57 @@ def init_monitoring_api_routes(bp):
             # Get memory details
             swap = psutil.swap_memory()
             
+            # Get historical data for the last 24 hours
+            historical_data = {
+                'cpu': get_historical_metrics('system_cpu_percent'),
+                'memory': get_historical_metrics('system_memory_percent'),
+                'disk': get_historical_metrics('system_disk_percent'),
+                'network_sent': get_historical_metrics('system_network_bytes_sent'),
+                'network_recv': get_historical_metrics('system_network_bytes_recv')
+            }
+            
+            logger.debug("Successfully retrieved system resources and historical data")
+            
             return jsonify({
                 'success': True,
                 'data': {
-                    'cpu': {
-                        'percent': cpu_percent,
-                        'per_core': cpu_per_core,
-                        'count': psutil.cpu_count(),
-                        'count_logical': psutil.cpu_count(logical=True)
+                    'current': {
+                        'cpu': {
+                            'percent': cpu_percent,
+                            'per_core': cpu_per_core,
+                            'count': psutil.cpu_count(),
+                            'count_logical': psutil.cpu_count(logical=True)
+                        },
+                        'memory': {
+                            'total': memory.total,
+                            'available': memory.available,
+                            'used': memory.used,
+                            'free': memory.free,
+                            'percent': memory.percent,
+                            'swap_total': swap.total,
+                            'swap_used': swap.used,
+                            'swap_free': swap.free,
+                            'swap_percent': swap.percent
+                        },
+                        'disk': {
+                            'total': disk.total,
+                            'used': disk.used,
+                            'free': disk.free,
+                            'percent': disk.percent
+                        },
+                        'network': {
+                            'upload_speed': upload_speed,
+                            'download_speed': download_speed,
+                            'upload_speed_mb': upload_speed / (1024 * 1024),
+                            'download_speed_mb': download_speed / (1024 * 1024)
+                        }
                     },
-                    'memory': {
-                        'total': memory.total,
-                        'available': memory.available,
-                        'used': memory.used,
-                        'free': memory.free,
-                        'percent': memory.percent,
-                        'swap_total': swap.total,
-                        'swap_used': swap.used,
-                        'swap_free': swap.free,
-                        'swap_percent': swap.percent
-                    },
-                    'disk': {
-                        'total': disk.total,
-                        'used': disk.used,
-                        'free': disk.free,
-                        'percent': disk.percent
-                    },
-                    'network': {
-                        'upload_speed': upload_speed,
-                        'download_speed': download_speed,
-                        'upload_speed_mb': upload_speed / (1024 * 1024),
-                        'download_speed_mb': download_speed / (1024 * 1024)
-                    }
+                    'historical': historical_data
                 }
             })
             
         except Exception as e:
             logger.error(f"Error getting system resources: {e}")
-            cache.delete_memoized(get_system_resources)
             return jsonify({
                 'success': False,
                 'error': str(e)
@@ -225,10 +245,10 @@ def init_monitoring_api_routes(bp):
     @bp.route('/monitoring/api/performance')
     @login_required
     @requires_permission('admin_monitoring_access', 'read')
-    @cache.memoize(timeout=30)  # Cache for 30 seconds per user
     def get_performance_metrics():
-        """Get application performance metrics."""
+        """Get application performance metrics with historical data."""
         try:
+            logger.debug("Fetching performance metrics...")
             # Get process information
             process = psutil.Process()
             process_info = {
@@ -239,38 +259,21 @@ def init_monitoring_api_routes(bp):
                 'connections': len(process.connections())
             }
             
-            # Get performance data for the last hour
-            now = datetime.utcnow()
-            data_points = []
+            # Get historical response time data
+            historical_data = get_historical_metrics('request_duration_seconds')
             
-            # Cache key for performance data
-            cache_key = f'perf_data_{current_user.id}'
-            cached_data = cache.get(cache_key)
-            
-            if cached_data:
-                data_points = cached_data
-            else:
-                for i in range(60):  # Last hour of data
-                    timestamp = now - timedelta(minutes=i)
-                    data_points.append({
-                        'timestamp': timestamp.isoformat(),
-                        'response_time': 100 + (i % 20),  # Mock response time in ms
-                        'requests_per_second': 50 + (i % 10)
-                    })
-                # Cache the performance data for 5 minutes
-                cache.set(cache_key, data_points, timeout=300)
+            logger.debug("Successfully retrieved performance metrics")
             
             return jsonify({
                 'success': True,
                 'data': {
-                    'metrics': data_points,
-                    'process': process_info
+                    'current': process_info,
+                    'historical': historical_data
                 }
             })
             
         except Exception as e:
             logger.error(f"Error getting performance metrics: {e}")
-            cache.delete_memoized(get_performance_metrics)
             return jsonify({
                 'success': False,
                 'error': str(e)
@@ -279,10 +282,11 @@ def init_monitoring_api_routes(bp):
     @bp.route('/monitoring/api/health')
     @login_required
     @requires_permission('admin_monitoring_access', 'read')
-    @cache.memoize(timeout=15)  # Cache for 15 seconds per user
     def get_health_status():
-        """Get system health status."""
+        """Get system health status with historical data."""
         try:
+            logger.debug("Fetching health status...")
+            # Get current metrics
             cpu_percent = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
@@ -306,45 +310,56 @@ def init_monitoring_api_routes(bp):
                 else:
                     return 'error'
             
+            # Get historical health data
+            historical_data = {
+                'cpu': get_historical_metrics('system_cpu_percent'),
+                'memory': get_historical_metrics('system_memory_percent'),
+                'disk': get_historical_metrics('system_disk_percent')
+            }
+            
+            logger.debug("Successfully retrieved health status")
+            
             return jsonify({
                 'success': True,
                 'data': {
-                    'components': {
-                        'cpu': {
-                            'status': get_status(cpu_percent),
-                            'value': cpu_percent
+                    'current': {
+                        'components': {
+                            'cpu': {
+                                'status': get_status(cpu_percent),
+                                'value': cpu_percent
+                            },
+                            'memory': {
+                                'status': get_status(memory.percent),
+                                'value': memory.percent
+                            },
+                            'disk': {
+                                'status': get_status(disk.percent),
+                                'value': disk.percent
+                            },
+                            'network': {
+                                'status': network_status,
+                                'value': min(network_utilization, 100)
+                            }
                         },
-                        'memory': {
-                            'status': get_status(memory.percent),
-                            'value': memory.percent
-                        },
-                        'disk': {
-                            'status': get_status(disk.percent),
-                            'value': disk.percent
-                        },
-                        'network': {
-                            'status': network_status,
-                            'value': min(network_utilization, 100)
+                        'system': {
+                            'load_average': {
+                                '1min': load_avg[0],
+                                '5min': load_avg[1],
+                                '15min': load_avg[2]
+                            },
+                            'uptime': {
+                                'days': uptime.days,
+                                'hours': uptime.seconds // 3600,
+                                'minutes': (uptime.seconds % 3600) // 60
+                            }
                         }
                     },
-                    'system': {
-                        'load_average': {
-                            '1min': load_avg[0],
-                            '5min': load_avg[1],
-                            '15min': load_avg[2]
-                        },
-                        'uptime': {
-                            'days': uptime.days,
-                            'hours': uptime.seconds // 3600,
-                            'minutes': (uptime.seconds % 3600) // 60
-                        }
-                    }
+                    'historical': historical_data
                 }
             })
             
         except Exception as e:
             logger.error(f"Error getting health status: {e}")
-            cache.delete_memoized(get_health_status)
             return jsonify({
                 'success': False,
                 'error': str(e)
@@ -353,22 +368,12 @@ def init_monitoring_api_routes(bp):
     @bp.route('/monitoring/api/user-activity')
     @login_required
     @requires_permission('admin_monitoring_access', 'read')
-    @cache.memoize(timeout=60)  # Cache for 1 minute per user
     def get_user_activity():
         """Get recent user activity data."""
         try:
+            logger.debug("Fetching user activity...")
             # Get activity from the last 24 hours
             since = datetime.utcnow() - timedelta(hours=24)
-            
-            # Cache key for activity data
-            cache_key = f'user_activity_{current_user.id}'
-            cached_data = cache.get(cache_key)
-            
-            if cached_data:
-                return jsonify({
-                    'success': True,
-                    'data': cached_data
-                })
             
             # Query recent activities
             activities = UserActivity.query.filter(
@@ -396,8 +401,7 @@ def init_monitoring_api_routes(bp):
                 } for hour, count in hourly_counts]
             }
             
-            # Cache the activity data
-            cache.set(cache_key, data, timeout=60)
+            logger.debug("Successfully retrieved user activity")
             
             return jsonify({
                 'success': True,
@@ -406,20 +410,9 @@ def init_monitoring_api_routes(bp):
             
         except Exception as e:
             logger.error(f"Error getting user activity: {e}")
-            cache.delete_memoized(get_user_activity)
             return jsonify({
                 'success': False,
                 'error': str(e)
             }), 500
-
-    def invalidate_monitoring_cache():
-        """Invalidate all monitoring-related caches."""
-        cache.delete_memoized(get_system_resources)
-        cache.delete_memoized(get_performance_metrics)
-        cache.delete_memoized(get_health_status)
-        cache.delete_memoized(get_user_activity)
-
-    # Add cache invalidation to the blueprint
-    bp.invalidate_monitoring_cache = invalidate_monitoring_cache
 
     return bp

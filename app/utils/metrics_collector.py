@@ -6,11 +6,12 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from sqlalchemy import func
-from flask import current_app, request
+from flask import current_app
 from app.extensions import db, cache_manager
 from app.utils.websocket_service import monitoring_ns
 from dataclasses import dataclass
 import json
+import threading
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -30,12 +31,15 @@ class MetricsCollector:
     def __init__(self, app=None):
         """Initialize metrics collector."""
         self.app = app
+        self._collection_thread = None
+        self._stop_collection = False
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app):
         """Initialize with Flask application."""
         self.app = app
+        app.logger.info("Initializing MetricsCollector...")
         
         # Register before_request handler
         app.before_request(self._before_request)
@@ -46,13 +50,16 @@ class MetricsCollector:
         # Start background collection if enabled
         if app.config.get('METRICS_ENABLED', True):
             self._start_background_collection()
+            app.logger.info("Started background metrics collection")
 
     def _before_request(self):
         """Handle before request metrics collection."""
+        from flask import request
         request.start_time = time.time()
 
     def _after_request(self, response):
         """Handle after request metrics collection."""
+        from flask import request
         if hasattr(request, 'start_time'):
             duration = time.time() - request.start_time
             endpoint = request.endpoint or 'unknown'
@@ -83,22 +90,35 @@ class MetricsCollector:
         
         return response
 
-    def _start_background_collection(self):
-        """Start background metric collection."""
-        from threading import Thread
-        import time
-
-        def collect_background_metrics():
-            while True:
-                try:
+    def _collect_metrics(self):
+        """Background metrics collection function."""
+        logger.info("Starting metrics collection thread")
+        while not self._stop_collection:
+            try:
+                with self.app.app_context():
+                    logger.debug("Collecting metrics...")
                     self.collect_system_metrics()
                     self.collect_application_metrics()
-                    time.sleep(60)  # Collect every minute
-                except Exception as e:
-                    logger.error(f"Error collecting background metrics: {e}")
+                    logger.debug("Metrics collection completed")
+            except Exception as e:
+                logger.error(f"Error in metrics collection thread: {e}")
+            time.sleep(60)  # Collect every minute
 
-        thread = Thread(target=collect_background_metrics, daemon=True)
-        thread.start()
+    def _start_background_collection(self):
+        """Start background metric collection."""
+        if self._collection_thread is None or not self._collection_thread.is_alive():
+            self._stop_collection = False
+            self._collection_thread = threading.Thread(target=self._collect_metrics, daemon=True)
+            self._collection_thread.start()
+            logger.info("Background metrics collection thread started")
+
+    def stop_collection(self):
+        """Stop background metric collection."""
+        logger.info("Stopping metrics collection...")
+        self._stop_collection = True
+        if self._collection_thread:
+            self._collection_thread.join(timeout=5)
+            logger.info("Metrics collection stopped")
 
     def record_metric(self, name: str, value: float, tags: Dict[str, str] = None,
                      metric_type: str = 'gauge', timestamp: datetime = None) -> None:
@@ -117,6 +137,8 @@ class MetricsCollector:
             db.session.add(metric)
             db.session.commit()
             
+            logger.debug(f"Recorded metric: {name}={value}")
+            
             # Update real-time cache
             cache_key = f"metric:{name}:{json.dumps(tags or {})}"
             cache_data = {
@@ -124,50 +146,20 @@ class MetricsCollector:
                 'timestamp': metric.timestamp.isoformat(),
                 'type': metric_type
             }
-            cache_manager.memory_cache.set(cache_key, cache_data, timeout=300)  # Cache for 5 minutes
+            if hasattr(cache_manager, 'memory_cache'):
+                cache_manager.memory_cache.set(cache_key, cache_data, timeout=300)
             
-            # Emit real-time update via WebSocket
-            monitoring_ns.emit_metric_update(
-                metric_name=name,
-                value=value,
-                tags=tags
-            )
+            # Emit real-time update via WebSocket if available
+            if hasattr(monitoring_ns, 'emit_metric_update'):
+                monitoring_ns.emit_metric_update(
+                    metric_name=name,
+                    value=value,
+                    tags=tags
+                )
             
         except Exception as e:
             logger.error(f"Error recording metric {name}: {e}")
             db.session.rollback()
-
-    def get_metric(self, name: str, tags: Dict[str, str] = None,
-                  start_time: datetime = None, end_time: datetime = None) -> List[MetricPoint]:
-        """Get metric values for a given time range."""
-        try:
-            from app.models.metrics import Metric
-            
-            query = Metric.query.filter_by(name=name)
-            
-            if tags:
-                query = query.filter(Metric.tags.contains(json.dumps(tags)))
-            
-            if start_time:
-                query = query.filter(Metric.timestamp >= start_time)
-            
-            if end_time:
-                query = query.filter(Metric.timestamp <= end_time)
-            
-            return [
-                MetricPoint(
-                    name=m.name,
-                    value=m.value,
-                    timestamp=m.timestamp,
-                    tags=json.loads(m.tags),
-                    metric_type=m.metric_type
-                )
-                for m in query.order_by(Metric.timestamp.desc()).all()
-            ]
-            
-        except Exception as e:
-            logger.error(f"Error getting metric {name}: {e}")
-            return []
 
     def collect_system_metrics(self):
         """Collect system-level metrics."""
@@ -176,6 +168,7 @@ class MetricsCollector:
             cpu_percent = psutil.cpu_percent(interval=1)
             self.record_metric('system_cpu_percent', cpu_percent, 
                              tags={'type': 'system'})
+            logger.debug(f"Collected CPU metrics: {cpu_percent}%")
             
             # Memory metrics
             memory = psutil.virtual_memory()
@@ -183,6 +176,7 @@ class MetricsCollector:
                              tags={'type': 'system'})
             self.record_metric('system_memory_percent', memory.percent,
                              tags={'type': 'system'})
+            logger.debug(f"Collected memory metrics: {memory.percent}%")
             
             # Disk metrics
             disk = psutil.disk_usage('/')
@@ -190,6 +184,7 @@ class MetricsCollector:
                              tags={'type': 'system'})
             self.record_metric('system_disk_percent', disk.percent,
                              tags={'type': 'system'})
+            logger.debug(f"Collected disk metrics: {disk.percent}%")
             
             # Network metrics
             net_io = psutil.net_io_counters()
@@ -197,6 +192,7 @@ class MetricsCollector:
                              tags={'type': 'system'})
             self.record_metric('system_network_bytes_recv', net_io.bytes_recv,
                              tags={'type': 'system'})
+            logger.debug("Collected network metrics")
             
         except Exception as e:
             logger.error(f"Error collecting system metrics: {e}")
@@ -205,108 +201,39 @@ class MetricsCollector:
         """Collect application-level metrics."""
         try:
             # Active sessions
-            from flask_login import current_user
-            active_sessions = len(cache_manager.memory_cache.cache._cache)
-            self.record_metric('app_active_sessions', active_sessions,
-                             tags={'type': 'application'})
+            if hasattr(cache_manager, 'memory_cache'):
+                active_sessions = len(cache_manager.memory_cache.cache._cache)
+                self.record_metric('app_active_sessions', active_sessions,
+                                 tags={'type': 'application'})
+                logger.debug(f"Collected active sessions: {active_sessions}")
             
             # Database connections
-            if hasattr(db.engine, 'pool'):
+            if hasattr(db, 'engine') and hasattr(db.engine, 'pool'):
                 connections = db.engine.pool.checkedin() + db.engine.pool.checkedout()
                 self.record_metric('app_db_connections', connections,
                                  tags={'type': 'application'})
+                logger.debug(f"Collected DB connections: {connections}")
             
             # Cache metrics
-            cache_stats = cache_manager.get_cache_stats()
-            self.record_metric('app_cache_hits', 
-                             cache_stats['memory_cache']['hits'],
-                             tags={'type': 'application', 'cache': 'memory'})
-            self.record_metric('app_cache_misses',
-                             cache_stats['memory_cache']['misses'],
-                             tags={'type': 'application', 'cache': 'memory'})
+            if hasattr(cache_manager, 'get_cache_stats'):
+                cache_stats = cache_manager.get_cache_stats()
+                if 'memory_cache' in cache_stats:
+                    self.record_metric('app_cache_hits', 
+                                     cache_stats['memory_cache']['hits'],
+                                     tags={'type': 'application', 'cache': 'memory'})
+                    self.record_metric('app_cache_misses',
+                                     cache_stats['memory_cache']['misses'],
+                                     tags={'type': 'application', 'cache': 'memory'})
+                    logger.debug("Collected cache metrics")
             
             # Error rates (from logging handler)
             error_count = getattr(current_app, 'error_count', 0)
             self.record_metric('app_error_count', error_count,
                              tags={'type': 'application'})
+            logger.debug(f"Collected error count: {error_count}")
             
         except Exception as e:
             logger.error(f"Error collecting application metrics: {e}")
-
-    def get_system_health(self) -> Dict[str, Any]:
-        """Get overall system health metrics."""
-        try:
-            health = {
-                'status': 'healthy',
-                'timestamp': datetime.utcnow().isoformat(),
-                'components': {}
-            }
-            
-            # Check CPU usage
-            cpu_percent = psutil.cpu_percent(interval=1)
-            health['components']['cpu'] = {
-                'status': 'healthy' if cpu_percent < 80 else 'warning',
-                'value': cpu_percent
-            }
-            
-            # Check memory usage
-            memory = psutil.virtual_memory()
-            health['components']['memory'] = {
-                'status': 'healthy' if memory.percent < 80 else 'warning',
-                'value': memory.percent
-            }
-            
-            # Check disk usage
-            disk = psutil.disk_usage('/')
-            health['components']['disk'] = {
-                'status': 'healthy' if disk.percent < 80 else 'warning',
-                'value': disk.percent
-            }
-            
-            # Check database
-            try:
-                db.session.execute('SELECT 1')
-                health['components']['database'] = {
-                    'status': 'healthy',
-                    'value': 100
-                }
-            except Exception as e:
-                health['components']['database'] = {
-                    'status': 'error',
-                    'value': 0,
-                    'error': str(e)
-                }
-            
-            # Check cache
-            try:
-                cache_manager.memory_cache.set('health_check', 1)
-                cache_manager.memory_cache.get('health_check')
-                health['components']['cache'] = {
-                    'status': 'healthy',
-                    'value': 100
-                }
-            except Exception as e:
-                health['components']['cache'] = {
-                    'status': 'error',
-                    'value': 0,
-                    'error': str(e)
-                }
-            
-            # Update overall status
-            if any(c['status'] == 'error' for c in health['components'].values()):
-                health['status'] = 'error'
-            elif any(c['status'] == 'warning' for c in health['components'].values()):
-                health['status'] = 'warning'
-            
-            return health
-            
-        except Exception as e:
-            logger.error(f"Error getting system health: {e}")
-            return {
-                'status': 'error',
-                'timestamp': datetime.utcnow().isoformat(),
-                'error': str(e)
-            }
 
 # Initialize metrics collector
 metrics_collector = MetricsCollector()

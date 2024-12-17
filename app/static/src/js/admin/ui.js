@@ -1,121 +1,11 @@
 /**
  * Admin UI Module
- * Handles UI components and their updates
+ * Handles UI updates and interactions for admin pages
  */
 
 export class AdminUI {
-    /**
-     * Update system details section
-     * @param {Object} data - System metrics data
-     */
-    updateSystemDetails(data) {
-        // CPU Details
-        const cpuDetails = document.getElementById('cpuDetails');
-        if (cpuDetails) {
-            cpuDetails.innerHTML = this.generateCpuDetailsHtml(data.cpu);
-        }
-
-        // Memory Details
-        const memoryDetails = document.getElementById('memoryDetails');
-        if (memoryDetails) {
-            memoryDetails.innerHTML = this.generateMemoryDetailsHtml(data.memory);
-        }
-
-        // Network Details
-        const networkDetails = document.getElementById('networkDetails');
-        if (networkDetails) {
-            networkDetails.innerHTML = this.generateNetworkDetailsHtml(data.network);
-        }
-    }
-
-    /**
-     * Update system information
-     * @param {Object} data - System information data
-     */
-    updateSystemInfo(data) {
-        // Update uptime
-        const uptimeInfo = document.getElementById('uptimeInfo');
-        if (uptimeInfo) {
-            const valueElement = uptimeInfo.querySelector('.system-info-value');
-            if (valueElement) {
-                valueElement.textContent = `${data.uptime.days}d ${data.uptime.hours}h ${data.uptime.minutes}m`;
-            }
-        }
-
-        // Update load averages
-        ['1', '5', '15'].forEach(minutes => {
-            const element = document.getElementById(`loadAvg${minutes}`);
-            if (element) {
-                const valueElement = element.querySelector('.system-info-value');
-                if (valueElement) {
-                    valueElement.textContent = data.load_average[`${minutes}min`].toFixed(2);
-                }
-            }
-        });
-    }
-
-    /**
-     * Update process details
-     * @param {Object} data - Process data
-     */
-    updateProcessDetails(data) {
-        const processDetails = document.getElementById('processDetails');
-        if (processDetails) {
-            processDetails.innerHTML = this.generateProcessDetailsHtml(data);
-        }
-    }
-
-    /**
-     * Update user activity details
-     * @param {Object} data - User activity data
-     */
-    updateUserActivityDetails(data) {
-        const userActivityDetails = document.getElementById('userActivityDetails');
-        if (userActivityDetails) {
-            userActivityDetails.innerHTML = this.generateUserActivityDetailsHtml(data);
-        }
-    }
-
-    /**
-     * Update user statistics
-     * @param {Object} data - User statistics data
-     */
-    updateUserStats(data) {
-        // Update total users box
-        const totalUsersBox = document.getElementById('totalUsersBox');
-        if (totalUsersBox) {
-            const valueElement = totalUsersBox.querySelector('.info-box-number');
-            if (valueElement) {
-                valueElement.textContent = data.total_users;
-            }
-        }
-
-        // Update active users box
-        const activeUsersBox = document.getElementById('activeUsersBox');
-        if (activeUsersBox) {
-            const valueElement = activeUsersBox.querySelector('.info-box-number');
-            if (valueElement) {
-                valueElement.textContent = data.active_users;
-            }
-        }
-
-        // Update new users box
-        const newUsersBox = document.getElementById('newUsersBox');
-        if (newUsersBox) {
-            const valueElement = newUsersBox.querySelector('.info-box-number');
-            if (valueElement) {
-                valueElement.textContent = data.new_users;
-            }
-        }
-
-        // Update inactive users box
-        const inactiveUsersBox = document.getElementById('inactiveUsersBox');
-        if (inactiveUsersBox) {
-            const valueElement = inactiveUsersBox.querySelector('.info-box-number');
-            if (valueElement) {
-                valueElement.textContent = data.inactive_users;
-            }
-        }
+    constructor() {
+        this.healthComponents = ['cpu', 'memory', 'disk', 'network'];
     }
 
     /**
@@ -123,215 +13,171 @@ export class AdminUI {
      * @param {Object} data - Health status data
      */
     updateHealthStatus(data) {
-        if (!data.components) return;
-        
-        Object.entries(data.components).forEach(([component, status]) => {
-            const element = document.querySelector(`[data-component="${component}"]`);
-            if (element) {
-                // Update indicator class
-                element.className = `health-indicator health-${status.status}`;
-                
-                // Update progress bar if exists
-                const progressBar = element.closest('.info-box')?.querySelector('.progress-bar');
-                if (progressBar) {
-                    progressBar.style.width = `${status.value}%`;
-                    progressBar.className = `progress-bar bg-${status.status}`;
-                }
-                
-                // Update value display if exists
-                const valueElement = element.closest('.info-box')?.querySelector('.info-box-number');
-                if (valueElement) {
-                    valueElement.textContent = `${status.value}%`;
+        if (!data?.components) return;
+
+        // Update component status boxes
+        for (const component of this.healthComponents) {
+            if (data.components[component]) {
+                const status = data.components[component];
+                const box = document.querySelector(`.component-${component}`);
+                if (box) {
+                    // Update value
+                    const valueEl = box.querySelector('.info-box-number');
+                    if (valueEl) {
+                        valueEl.textContent = `${status.value.toFixed(1)}%`;
+                    }
+
+                    // Update status color
+                    box.className = box.className.replace(/bg-\w+/, `bg-${status.status}`);
                 }
             }
-        });
+        }
+
+        // Update system information
+        if (data.system) {
+            // Update uptime
+            const uptimeEl = document.getElementById('uptimeInfo');
+            if (uptimeEl && data.system.uptime) {
+                const { days, hours, minutes } = data.system.uptime;
+                uptimeEl.textContent = `${days}d ${hours}h ${minutes}m`;
+            }
+
+            // Update load averages
+            if (data.system.load_average) {
+                const loadAvg = data.system.load_average;
+                const loadAvg1El = document.getElementById('loadAvg1');
+                const loadAvg5El = document.getElementById('loadAvg5');
+                const loadAvg15El = document.getElementById('loadAvg15');
+
+                if (loadAvg1El) loadAvg1El.textContent = loadAvg['1min'].toFixed(2);
+                if (loadAvg5El) loadAvg5El.textContent = loadAvg['5min'].toFixed(2);
+                if (loadAvg15El) loadAvg15El.textContent = loadAvg['15min'].toFixed(2);
+            }
+        }
     }
 
     /**
-     * Generate CPU details HTML
-     * @param {Object} cpu - CPU metrics data
-     * @returns {string} Generated HTML
+     * Update CPU details
+     * @param {Object} data - CPU metrics data
      */
-    generateCpuDetailsHtml(cpu) {
-        return `
-            <div class="detail-item">
-                <span class="detail-label">Physical Cores:</span>
-                <span class="detail-value">${cpu.count}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Logical Cores:</span>
-                <span class="detail-value">${cpu.count_logical}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Per-Core Usage:</span>
-                <span class="detail-value">
-                    ${cpu.per_core.map((usage, index) => `
-                        <span class="core-usage">
-                            Core ${index + 1}: ${usage.toFixed(1)}%
-                            <div class="progress inline-progress">
-                                <div class="progress-bar bg-info" style="width: ${usage}%"></div>
-                            </div>
-                        </span>
-                    `).join('')}
-                </span>
-            </div>
-        `;
+    updateCpuDetails(data) {
+        if (!data?.cpu) return;
+
+        const detailsEl = document.getElementById('cpuDetails');
+        if (!detailsEl) return;
+
+        const { count, count_logical, per_core } = data.cpu;
+        const details = [
+            `Physical Cores: ${count}`,
+            `Logical Cores: ${count_logical}`,
+            'Per Core Usage:',
+            ...per_core.map((usage, i) => `Core ${i + 1}: ${usage.toFixed(1)}%`)
+        ];
+
+        detailsEl.innerHTML = details.join('<br>');
     }
 
     /**
-     * Generate memory details HTML
-     * @param {Object} memory - Memory metrics data
-     * @returns {string} Generated HTML
+     * Update memory details
+     * @param {Object} data - Memory metrics data
      */
-    generateMemoryDetailsHtml(memory) {
-        const totalMemoryGB = (memory.total / (1024 * 1024 * 1024)).toFixed(2);
-        const usedMemoryGB = (memory.used / (1024 * 1024 * 1024)).toFixed(2);
-        const availableMemoryGB = (memory.available / (1024 * 1024 * 1024)).toFixed(2);
-        const swapUsedGB = (memory.swap_used / (1024 * 1024 * 1024)).toFixed(2);
-        
-        return `
-            <div class="detail-item">
-                <span class="detail-label">Total Memory:</span>
-                <span class="detail-value">${totalMemoryGB} GB</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Used Memory:</span>
-                <div class="memory-stat">
-                    <span>${usedMemoryGB} GB</span>
-                    <div class="progress">
-                        <div class="progress-bar bg-warning" style="width: ${memory.percent}%"></div>
-                    </div>
-                    <span>${memory.percent}%</span>
-                </div>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Available Memory:</span>
-                <span class="detail-value">${availableMemoryGB} GB</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Swap Used:</span>
-                <div class="memory-stat">
-                    <span>${swapUsedGB} GB</span>
-                    <div class="progress">
-                        <div class="progress-bar bg-info" style="width: ${memory.swap_percent}%"></div>
-                    </div>
-                    <span>${memory.swap_percent}%</span>
-                </div>
-            </div>
-        `;
+    updateMemoryDetails(data) {
+        if (!data?.memory) return;
+
+        const detailsEl = document.getElementById('memoryDetails');
+        if (!detailsEl) return;
+
+        const { total, used, free, swap_total, swap_used } = data.memory;
+        const details = [
+            `Total: ${this.formatBytes(total)}`,
+            `Used: ${this.formatBytes(used)}`,
+            `Free: ${this.formatBytes(free)}`,
+            'Swap:',
+            `  Total: ${this.formatBytes(swap_total)}`,
+            `  Used: ${this.formatBytes(swap_used)}`
+        ];
+
+        detailsEl.innerHTML = details.join('<br>');
     }
 
     /**
-     * Generate network details HTML
-     * @param {Object} network - Network metrics data
-     * @returns {string} Generated HTML
+     * Update network details
+     * @param {Object} data - Network metrics data
      */
-    generateNetworkDetailsHtml(network) {
-        const uploadSpeed = network.upload_speed_mb;
-        const downloadSpeed = network.download_speed_mb;
-        const totalSpeed = uploadSpeed + downloadSpeed;
-        const baseSpeed = 100; // 100 Mbps base speed
-        const utilization = Math.min((totalSpeed / baseSpeed) * 100, 100);
+    updateNetworkDetails(data) {
+        if (!data?.network) return;
 
-        return `
-            <div class="detail-item">
-                <span class="detail-label">Network Utilization:</span>
-                <div class="network-stat">
-                    <span class="speed-value">${utilization.toFixed(1)}%</span>
-                    <div class="progress">
-                        <div class="progress-bar ${utilization > 85 ? 'bg-danger' : utilization > 70 ? 'bg-warning' : 'bg-success'}" 
-                             style="width: ${utilization}%"></div>
-                    </div>
-                    <span class="speed-total">${totalSpeed.toFixed(2)} / ${baseSpeed} Mbps</span>
-                </div>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Upload Speed:</span>
-                <div class="network-stat">
-                    <span class="speed-value">${uploadSpeed.toFixed(2)} MB/s</span>
-                    <div class="progress">
-                        <div class="progress-bar bg-success" style="width: ${(uploadSpeed / baseSpeed) * 100}%"></div>
-                    </div>
-                    <span class="speed-total">${(uploadSpeed / baseSpeed * 100).toFixed(1)}% of capacity</span>
-                </div>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Download Speed:</span>
-                <div class="network-stat">
-                    <span class="speed-value">${downloadSpeed.toFixed(2)} MB/s</span>
-                    <div class="progress">
-                        <div class="progress-bar bg-info" style="width: ${(downloadSpeed / baseSpeed) * 100}%"></div>
-                    </div>
-                    <span class="speed-total">${(downloadSpeed / baseSpeed * 100).toFixed(1)}% of capacity</span>
-                </div>
-            </div>
-        `;
+        const detailsEl = document.getElementById('networkDetails');
+        if (!detailsEl) return;
+
+        const { upload_speed_mb, download_speed_mb } = data.network;
+        const details = [
+            `Upload: ${upload_speed_mb.toFixed(2)} MB/s`,
+            `Download: ${download_speed_mb.toFixed(2)} MB/s`
+        ];
+
+        detailsEl.innerHTML = details.join('<br>');
     }
 
     /**
-     * Generate process details HTML
-     * @param {Object} process - Process metrics data
-     * @returns {string} Generated HTML
+     * Update process details
+     * @param {Object} data - Process metrics data
      */
-    generateProcessDetailsHtml(process) {
-        return `
-            <div class="detail-item">
-                <span class="detail-label">Process CPU Usage:</span>
-                <span class="detail-value">${process.cpu_percent.toFixed(1)}%</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Process Memory:</span>
-                <span class="detail-value">${this.formatBytes(process.memory_info.rss)}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Threads:</span>
-                <span class="detail-value">${process.num_threads}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Open Files:</span>
-                <span class="detail-value">${process.open_files}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Active Connections:</span>
-                <span class="detail-value">${process.connections}</span>
-            </div>
-        `;
-    }
+    updateProcessDetails(data) {
+        if (!data) return;
 
-    /**
-     * Generate user activity details HTML
-     * @param {Object} data - User activity data
-     * @returns {string} Generated HTML
-     */
-    generateUserActivityDetailsHtml(data) {
-        const recentActions = data.recent_actions?.slice(0, 5) || [];
-        
-        return `
-            <div class="detail-item">
-                <span class="detail-label">Recent Actions:</span>
-                <span class="detail-value">${recentActions.length}</span>
-            </div>
-            ${recentActions.map(action => `
-                <div class="detail-item">
-                    <span class="detail-label">${new Date(action.timestamp).toLocaleTimeString()}</span>
-                    <span class="detail-value">${action.action} by ${action.details}</span>
-                </div>
-            `).join('')}
-        `;
+        const detailsEl = document.getElementById('processDetails');
+        if (!detailsEl) return;
+
+        const details = [
+            `CPU Usage: ${data.cpu_percent.toFixed(1)}%`,
+            `Memory Usage: ${this.formatBytes(data.memory_info.rss)}`,
+            `Threads: ${data.num_threads}`,
+            `Open Files: ${data.open_files}`,
+            `Connections: ${data.connections}`
+        ];
+
+        detailsEl.innerHTML = details.join('<br>');
     }
 
     /**
      * Format bytes to human readable string
      * @param {number} bytes - Number of bytes
-     * @param {number} decimals - Number of decimal places
      * @returns {string} Formatted string
      */
-    formatBytes(bytes, decimals = 2) {
-        if (bytes === 0) return '0 Bytes';
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
         const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+    }
+
+    /**
+     * Show notification
+     * @param {string} message - Notification message
+     * @param {string} type - Notification type (success, error, warning, info)
+     */
+    showNotification(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast bg-${type} text-white`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="toast-body">
+                ${message}
+            </div>
+        `;
+
+        const container = document.getElementById('toast-container') || document.body;
+        container.appendChild(toast);
+
+        // Initialize Bootstrap toast
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+
+        // Remove after hiding
+        toast.addEventListener('hidden.bs.toast', () => {
+            toast.remove();
+        });
     }
 }

@@ -6,7 +6,7 @@ from app.routes.admin import admin_bp as bp
 from app.models import User, Role
 from app.utils.activity_tracking import track_activity
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 @bp.route('/api/users')
 @login_required
@@ -27,7 +27,7 @@ def get_users():
         query = query.filter(
             (User.username.ilike(f'%{search}%')) |
             (User.email.ilike(f'%{search}%')) |
-            (User.full_name.ilike(f'%{search}%'))
+            (User.name.ilike(f'%{search}%'))
         )
     
     # Filter by role if provided
@@ -48,11 +48,11 @@ def get_users():
     return jsonify({
         'results': [{
             'id': user.id,
-            'text': f'{user.username} ({user.full_name})' if user.full_name else user.username,
+            'text': f'{user.username} ({user.name})' if user.name else user.username,
             'username': user.username,
             'email': user.email,
-            'full_name': user.full_name,
-            'avatar_url': user.avatar_url,
+            'name': user.name,
+            'avatar_url': user.get_avatar_url(),
             'roles': [{'id': role.id, 'name': role.name} for role in user.roles]
         } for user in users],
         'total': len(users)
@@ -69,8 +69,8 @@ def get_user(user_id):
         'id': user.id,
         'username': user.username,
         'email': user.email,
-        'full_name': user.full_name,
-        'avatar_url': user.avatar_url,
+        'name': user.name,
+        'avatar_url': user.get_avatar_url(),
         'roles': [{
             'id': role.id,
             'name': role.name,
@@ -101,7 +101,7 @@ def search_users():
         query = query.filter(
             (User.username.ilike(f'%{term}%')) |
             (User.email.ilike(f'%{term}%')) |
-            (User.full_name.ilike(f'%{term}%'))
+            (User.name.ilike(f'%{term}%'))
         )
     
     # Get paginated results
@@ -112,8 +112,8 @@ def search_users():
     return jsonify({
         'results': [{
             'id': user.id,
-            'text': f'{user.username} ({user.full_name})' if user.full_name else user.username,
-            'avatar_url': user.avatar_url,
+            'text': f'{user.username} ({user.name})' if user.name else user.username,
+            'avatar_url': user.get_avatar_url(),
             'email': user.email
         } for user in users],
         'pagination': {
@@ -183,16 +183,16 @@ def get_dashboard_activity():
     # Get timestamp for 24 hours ago
     day_ago = datetime.utcnow() - timedelta(days=1)
     
-    # Query user activity by hour
+    # Query user activity by hour using SQLite's strftime
     hourly_activity = (
         User.query
         .with_entities(
-            func.date_trunc('hour', User.last_login).label('hour'),
+            func.strftime('%Y-%m-%d %H:00:00', User.last_login).label('hour'),
             func.count().label('count')
         )
         .filter(User.last_login >= day_ago)
-        .group_by(func.date_trunc('hour', User.last_login))
-        .order_by(func.date_trunc('hour', User.last_login))
+        .group_by(func.strftime('%Y-%m-%d %H:00:00', User.last_login))
+        .order_by(text('hour'))
         .all()
     )
     
@@ -200,7 +200,10 @@ def get_dashboard_activity():
         'success': True,
         'data': {
             'hourly_activity': [
-                {'hour': h.hour.isoformat(), 'count': h.count}
+                {
+                    'hour': h.hour,
+                    'count': h.count
+                }
                 for h in hourly_activity
             ]
         }

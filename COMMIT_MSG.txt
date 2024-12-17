@@ -1,48 +1,17 @@
-Core Application Setup and Database Initialization
+feat(admin): enhance monitoring system with real-time updates and historical data
 
-Changes:
-1. Removed plugin dependencies from app/__init__.py while keeping Vault integration
-2. Updated core routes to work without plugins
-3. Set up database migrations:
-   - Created initial migration with all models
-   - Applied migrations to create database schema
+- Add background metrics collection running every minute
+- Store system metrics (CPU, Memory, Disk, Network) in database
+- Update monitoring dashboard to show historical trends
+- Add detailed logging for better debugging
+- Improve API endpoints to return both current and historical data
+- Initialize metrics collector with proper app context handling
+- Update frontend to refresh data every minute automatically
+- Add Highcharts integration for better data visualization
 
-4. Enhanced init_db.py:
-   - Added all roles matching mock LDAP users
-   - Created default users with appropriate roles
-   - Set up basic permissions and role assignments
-
-5. Modified application to work without Vault in development:
-   - Added fallback for secret key
-   - Graceful handling of Vault connection failure
-   - Warning log instead of error for Vault absence
-
-6. Added dynamic user selection functionality:
-   - Created reusable UserSelect component (user-select.js)
-   - Added API endpoints for user search and selection (api_users.py)
-   - Implemented in role management for member assignment
-   - Support for filtering by role and exclusions
-   - Real-time search with Select2 integration
-   - Proper handling of user avatars and display names
-
-Available Test Users:
-- admin: Admin User (admin, user roles)
-- manager: Team Manager (manager, user roles)
-- developer: Development User (developer, user roles)
-- support: Support User (support, user roles)
-- operator: Operations User (operator, user roles)
-- security: Security User (security, user roles)
-- netadmin: Network Admin User (netadmin, user roles)
-- devops: DevOps User (devops, user roles)
-- helpdesk: Helpdesk User (helpdesk, user roles)
-- demo: Demo User (user role only)
-
-All users have password: test123
-
-Core functionality is now working:
-- Authentication system (LDAP mock)
-- User management
-- Role-based access control
-- Navigation system
-- Basic templates and UI
-- Dynamic user selection and management
+The monitoring system now provides:
+- Real-time system metrics updated every minute
+- Historical data tracking over 24 hours
+- Proper error handling and logging
+- Improved UI with interactive charts
+- Background collection with proper database storage

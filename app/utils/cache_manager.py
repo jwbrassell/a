@@ -19,12 +19,17 @@ class CacheManager:
     
     def __init__(self, app=None):
         """Initialize cache manager with optional Flask app."""
+        self.memory_cache = None
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app):
         """Initialize cache with Flask application."""
-        # No need to initialize cache here as it's done at the extension level
+        # Initialize memory cache
+        self.memory_cache = Cache(app, config={
+            'CACHE_TYPE': 'SimpleCache',
+            'CACHE_DEFAULT_TIMEOUT': 300
+        })
 
     def warm_cache(self):
         """Warm up the cache with frequently accessed data."""
@@ -32,12 +37,12 @@ class CacheManager:
             # Warm up navigation data
             from app.models.navigation import Navigation
             nav_data = Navigation.get_all()
-            cache.set('navigation:all', nav_data, timeout=3600)
+            self.memory_cache.set('navigation:all', nav_data, timeout=3600)
             
             # Warm up frequently accessed static data
             from app.models import Role
             roles = Role.query.all()
-            cache.set('roles:all', roles, timeout=3600)
+            self.memory_cache.set('roles:all', roles, timeout=3600)
             
             logger.info("Cache warming completed successfully")
         except Exception as e:
@@ -45,6 +50,8 @@ class CacheManager:
 
     def clear_all(self):
         """Clear all caches."""
+        if self.memory_cache:
+            self.memory_cache.clear()
         cache.clear()
 
     def clear_pattern(self, pattern: str):
@@ -54,8 +61,22 @@ class CacheManager:
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
+        memory_stats = {
+            'hits': 0,
+            'misses': 0,
+            'size': 0
+        }
+        
+        if self.memory_cache:
+            memory_stats = {
+                'size': len(getattr(self.memory_cache.cache, '_cache', {})),
+                'hits': getattr(self.memory_cache.cache, '_hits', 0),
+                'misses': getattr(self.memory_cache.cache, '_misses', 0)
+            }
+        
         return {
-            'cache': {
+            'memory_cache': memory_stats,
+            'flask_cache': {
                 'size': len(getattr(cache.cache, '_cache', {})),
                 'hits': getattr(cache.cache, '_hits', 0),
                 'misses': getattr(cache.cache, '_misses', 0)
@@ -64,8 +85,11 @@ class CacheManager:
 
     def update_performance_metrics(self, endpoint: str, duration: float):
         """Update performance metrics for an endpoint."""
+        if not self.memory_cache:
+            return
+            
         metrics_key = f'metrics:{endpoint}'
-        current_metrics = cache.get(metrics_key) or {
+        current_metrics = self.memory_cache.get(metrics_key) or {
             'count': 0,
             'total_duration': 0,
             'avg_duration': 0,
@@ -87,20 +111,23 @@ class CacheManager:
             duration
         )
         
-        cache.set(metrics_key, current_metrics, timeout=3600)
+        self.memory_cache.set(metrics_key, current_metrics, timeout=3600)
 
     def get_performance_metrics(self, endpoint: Optional[str] = None) -> Dict[str, Any]:
         """Get performance metrics for an endpoint or all endpoints."""
+        if not self.memory_cache:
+            return {}
+            
         if endpoint:
             metrics_key = f'metrics:{endpoint}'
-            return cache.get(metrics_key) or {}
+            return self.memory_cache.get(metrics_key) or {}
         
         all_metrics = {}
-        cache_dict = getattr(cache.cache, '_cache', {})
+        cache_dict = getattr(self.memory_cache.cache, '_cache', {})
         for key in cache_dict:
             if key.startswith('metrics:'):
                 endpoint = key.split(':', 1)[1]
-                all_metrics[endpoint] = cache.get(key) or {}
+                all_metrics[endpoint] = self.memory_cache.get(key) or {}
         return all_metrics
 
 # Initialize cache manager
