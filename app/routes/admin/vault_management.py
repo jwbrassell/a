@@ -7,7 +7,11 @@ from vault_utility import VaultUtility, VaultError
 from datetime import datetime, timedelta
 import json
 
+# API Blueprint
 vault_bp = Blueprint('vault', __name__, url_prefix='/api/vault')
+# Dashboard Blueprint
+vault_dashboard_bp = Blueprint('vault_dashboard', __name__, url_prefix='/admin/vault')
+
 vault_monitor = VaultSecurityMonitor()
 vault_util = VaultUtility()
 policy_manager = VaultPolicyManager(vault_util)
@@ -27,10 +31,11 @@ def requires_vault_metrics_access(f):
         "read"
     )(f)
 
-@vault_bp.route('/admin/vault')
+# Dashboard Routes
+@vault_dashboard_bp.route('/')
 @login_required
 @requires_vault_admin
-def vault_dashboard():
+def dashboard():
     """Display vault management dashboard."""
     try:
         context = {
@@ -57,6 +62,26 @@ def vault_dashboard():
         current_app.logger.error(f"Failed to load vault dashboard: {e}")
         return render_template('admin/vault_dashboard.html', error=str(e))
 
+@vault_dashboard_bp.route('/status')
+@login_required
+@requires_vault_admin
+def status():
+    """Display vault status page."""
+    try:
+        context = {
+            'vault_available': g.get('vault_available', False),
+            'vault_error': g.get('vault_error', None)
+        }
+        
+        if context['vault_available']:
+            context['report'] = vault_monitor.generate_security_report()
+            
+        return render_template('admin/vault_status.html', **context)
+    except Exception as e:
+        current_app.logger.error(f"Failed to load vault status: {e}")
+        return render_template('admin/vault_status.html', error=str(e))
+
+# API Routes
 @vault_bp.route('/health')
 @login_required
 @requires_vault_admin

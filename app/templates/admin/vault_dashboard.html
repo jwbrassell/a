@@ -10,7 +10,7 @@
                 </div>
                 <div class="col-sm-6">
                     <div class="float-sm-right">
-                        <a href="{{ url_for('vault.vault_status') }}" class="btn btn-info">
+                        <a href="{{ url_for('vault_dashboard.status') }}" class="btn btn-info">
                             <i class="fas fa-chart-line"></i> View Detailed Status
                         </a>
                     </div>
@@ -21,6 +21,41 @@
 
     <section class="content">
         <div class="container-fluid">
+            <!-- Quick Actions -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Quick Actions</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 col-sm-6">
+                                    <a href="{{ url_for('vault_dashboard.status') }}" class="btn btn-lg btn-block btn-outline-info">
+                                        <i class="fas fa-tachometer-alt"></i> Performance Metrics
+                                    </a>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <button onclick="showCreatePolicyModal()" class="btn btn-lg btn-block btn-outline-primary">
+                                        <i class="fas fa-shield-alt"></i> Manage Policies
+                                    </button>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <button onclick="showCreateSecretModal()" class="btn btn-lg btn-block btn-outline-success">
+                                        <i class="fas fa-key"></i> Manage Secrets
+                                    </button>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <button onclick="showLDAPConfigModal()" class="btn btn-lg btn-block btn-outline-warning">
+                                        <i class="fas fa-users"></i> LDAP Configuration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Status Overview -->
             <div class="row">
                 <div class="col-lg-3 col-6">
@@ -32,6 +67,9 @@
                         <div class="icon">
                             <i class="fas fa-shield-alt"></i>
                         </div>
+                        <a href="{{ url_for('vault_dashboard.status') }}" class="small-box-footer">
+                            More info <i class="fas fa-arrow-circle-right"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -44,6 +82,9 @@
                         <div class="icon">
                             <i class="fas fa-certificate"></i>
                         </div>
+                        <a href="{{ url_for('vault_dashboard.status') }}#security" class="small-box-footer">
+                            More info <i class="fas fa-arrow-circle-right"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -66,6 +107,9 @@
                         <div class="icon">
                             <i class="fas fa-users"></i>
                         </div>
+                        <a href="#" onclick="showLDAPConfigModal(); return false;" class="small-box-footer">
+                            Configure <i class="fas fa-arrow-circle-right"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -88,6 +132,9 @@
                         <div class="icon">
                             <i class="fas fa-key"></i>
                         </div>
+                        <a href="{{ url_for('vault_dashboard.status') }}#permissions" class="small-box-footer">
+                            More info <i class="fas fa-arrow-circle-right"></i>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -194,6 +241,25 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Overview -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Performance Overview</h3>
+                            <div class="card-tools">
+                                <a href="{{ url_for('vault_dashboard.status') }}" class="btn btn-tool">
+                                    <i class="fas fa-external-link-alt"></i> Detailed View
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="performanceChart" style="height: 300px;"></div>
                         </div>
                     </div>
                 </div>

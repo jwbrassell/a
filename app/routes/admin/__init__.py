@@ -25,9 +25,10 @@ def init_admin(app):
     from .api_monitoring import init_monitoring_api_routes
     init_monitoring_api_routes(admin_bp)
     
-    # Register vault blueprint at app level instead of admin level
-    from .vault_management import vault_bp
-    app.register_blueprint(vault_bp)
+    # Register vault blueprints
+    from .vault_management import vault_bp, vault_dashboard_bp
+    app.register_blueprint(vault_bp)  # API routes at /api/vault/*
+    app.register_blueprint(vault_dashboard_bp)  # Dashboard routes at /admin/vault/*
     
     # Register the admin blueprint
     app.register_blueprint(admin_bp)

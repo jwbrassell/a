@@ -30,57 +30,34 @@ function initCharts() {
             const requests = data.map(d => d.requests_per_second);
             const tokens = data.map(d => d.active_tokens);
 
-            // Response Time Chart
-            Highcharts.chart('responseTimeChart', {
+            // Performance Overview Chart
+            Highcharts.chart('performanceChart', {
                 chart: { type: 'spline' },
                 title: { text: null },
                 xAxis: {
                     categories: timestamps,
                     labels: { rotation: -45 }
                 },
-                yAxis: {
-                    title: { text: 'Response Time (ms)' }
+                yAxis: [{
+                    title: { text: 'Response Time (ms)' },
+                    opposite: true
+                }, {
+                    title: { text: 'Requests/Second' }
+                }],
+                tooltip: {
+                    shared: true,
+                    crosshairs: true
                 },
                 series: [{
                     name: 'Response Time',
                     data: responseTimes,
-                    color: '#00c0ef'
-                }]
-            });
-
-            // Requests Chart
-            Highcharts.chart('requestsChart', {
-                chart: { type: 'spline' },
-                title: { text: null },
-                xAxis: {
-                    categories: timestamps,
-                    labels: { rotation: -45 }
-                },
-                yAxis: {
-                    title: { text: 'Requests/Second' }
-                },
-                series: [{
+                    color: '#00c0ef',
+                    yAxis: 0
+                }, {
                     name: 'Requests/Second',
                     data: requests,
-                    color: '#00a65a'
-                }]
-            });
-
-            // Token Usage Chart
-            Highcharts.chart('tokenUsageChart', {
-                chart: { type: 'spline' },
-                title: { text: null },
-                xAxis: {
-                    categories: timestamps,
-                    labels: { rotation: -45 }
-                },
-                yAxis: {
-                    title: { text: 'Active Tokens' }
-                },
-                series: [{
-                    name: 'Active Tokens',
-                    data: tokens,
-                    color: '#f39c12'
+                    color: '#00a65a',
+                    yAxis: 1
                 }]
             });
         })
@@ -305,12 +282,12 @@ function deletePolicy(name) {
         .catch(error => alert('Error deleting policy: ' + error));
 }
 
-function showLdapConfigModal() {
+function showLDAPConfigModal() {
     document.getElementById('ldapForm').reset();
     $('#ldapModal').modal('show');
 }
 
-function saveLdapConfig() {
+function saveLDAPConfig() {
     const data = {
         url: document.getElementById('ldapUrlInput').value,
         binddn: document.getElementById('bindDn').value,
