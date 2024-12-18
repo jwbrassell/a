@@ -12,7 +12,7 @@
     {{ get_cached_imports()|safe }}
 
     <style>
-        #page-loader {
+        #page-loader, #ajax-loader {
             position: fixed;
             top: 0;
             left: 0;
@@ -26,8 +26,17 @@
             transition: opacity 0.3s;
         }
 
-        .dark-mode #page-loader {
+        #ajax-loader {
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 9998;
+        }
+
+        .dark-mode #page-loader, .dark-mode #ajax-loader {
             background: rgba(0, 0, 0, 0.8);
+        }
+
+        .dark-mode #ajax-loader {
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .loader-spinner {
@@ -43,6 +52,14 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Ensure modals stay above loaders */
+        .modal {
+            z-index: 10000;
+        }
+        .modal-backdrop {
+            z-index: 9999;
+        }
     </style>
 
     {% block head %}{% endblock %}
@@ -51,6 +68,11 @@
 <body class="hold-transition sidebar-mini layout-fixed {% if current_user.is_authenticated and current_user.get_preference('theme') == 'dark' %}dark-mode{% endif %}">
     <!-- Page Loader -->
     <div id="page-loader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- AJAX Loader -->
+    <div id="ajax-loader">
         <div class="loader-spinner"></div>
     </div>
 
@@ -229,9 +251,18 @@
     {% block scripts %}{% endblock %}
     <script src="{{ url_for('static', filename='src/js/theme.js') }}"></script>
     <script>
+        // Global AJAX loader management
+        window.showAjaxLoader = function() {
+            document.getElementById('ajax-loader').style.display = 'flex';
+        };
+        
+        window.hideAjaxLoader = function() {
+            document.getElementById('ajax-loader').style.display = 'none';
+        };
+
         // Page transition handling
         document.addEventListener('DOMContentLoaded', function() {
-            const loader = document.getElementById('page-loader');
+            const pageLoader = document.getElementById('page-loader');
             
             // Show loader before page navigation
             document.addEventListener('click', function(e) {
@@ -240,27 +271,33 @@
                     !target.href.includes('javascript:') && 
                     target.getAttribute('target') !== '_blank' &&
                     !target.classList.contains('no-loader')) {
-                    loader.style.display = 'flex';
+                    pageLoader.style.display = 'flex';
                 }
             });
 
             // Show loader on form submissions except AJAX forms
             document.addEventListener('submit', function(e) {
                 if (e.target.tagName === 'FORM' && !e.target.classList.contains('ajax-form')) {
-                    loader.style.display = 'flex';
+                    pageLoader.style.display = 'flex';
                 }
             });
 
             // Hide loader when page is fully loaded
             window.addEventListener('load', function() {
-                loader.style.display = 'none';
+                pageLoader.style.display = 'none';
             });
 
             // Hide loader if navigation is cancelled
             window.addEventListener('pageshow', function(e) {
                 if (e.persisted) {
-                    loader.style.display = 'none';
+                    pageLoader.style.display = 'none';
                 }
+            });
+
+            // Add global AJAX error handler
+            window.addEventListener('unhandledrejection', function(event) {
+                hideAjaxLoader();
+                console.error('Unhandled promise rejection:', event.reason);
             });
         });
     </script>

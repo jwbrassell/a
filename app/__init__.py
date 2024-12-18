@@ -1,12 +1,24 @@
-from flask import Flask
+from flask import Flask, request, send_from_directory
 from config import Config
 from app.utils.vault_middleware import init_vault_middleware
 from app.utils.vault_defaults import initialize_vault_policies
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import mimetypes
 
 def create_app(config_class=Config):
+    # Ensure correct MIME types are set
+    mimetypes.add_type('text/css', '.css')
+    mimetypes.add_type('application/javascript', '.js')
+    mimetypes.add_type('text/css', '.min.css')
+    mimetypes.add_type('application/javascript', '.min.js')
+    mimetypes.add_type('application/x-font-woff', '.woff')
+    mimetypes.add_type('application/x-font-woff2', '.woff2')
+    mimetypes.add_type('application/x-font-ttf', '.ttf')
+    mimetypes.add_type('application/x-font-otf', '.otf')
+    mimetypes.add_type('image/svg+xml', '.svg')
+    
     app = Flask(__name__)
     
     # Configure app
@@ -28,6 +40,17 @@ def create_app(config_class=Config):
     
     # Initialize Vault middleware
     vault_enforcer = init_vault_middleware(app)
+
+    # Custom static file handler
+    @app.route('/static/<path:filename>')
+    def custom_static(filename):
+        response = send_from_directory(app.static_folder, filename)
+        if filename.endswith(('.css', '.min.css')):
+            response.headers['Content-Type'] = 'text/css; charset=utf-8'
+        elif filename.endswith(('.js', '.min.js')):
+            response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+        response.headers['Cache-Control'] = 'public, max-age=31536000'
+        return response
     
     # Setup logging
     if not app.debug and not app.testing:
@@ -71,6 +94,17 @@ def create_app(config_class=Config):
                 app.logger.warning("Failed to initialize handoff routes")
         except Exception as e:
             app.logger.error(f"Error initializing handoff routes: {e}")
+
+    # Initialize on-call routes
+    with app.app_context():
+        try:
+            from app.utils.add_oncall_routes import add_oncall_routes
+            if add_oncall_routes():
+                app.logger.info("On-call routes initialized successfully")
+            else:
+                app.logger.warning("Failed to initialize on-call routes")
+        except Exception as e:
+            app.logger.error(f"Error initializing on-call routes: {e}")
 
     # Initialize Vault policies after blueprints are registered
     with app.app_context():

@@ -104,13 +104,13 @@ class Config:
             response.headers['X-XSS-Protection'] = '1; mode=block'
             response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
             
-            # Content Security Policy
+            # Content Security Policy with explicit CSS allowance
             csp = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-                "style-src 'self' 'unsafe-inline'; "
+                "style-src 'self' 'unsafe-inline' http: https:; "  # Allow CSS from any source
                 "img-src 'self' data: https:; "
-                "font-src 'self'; "
+                "font-src 'self' data:; "
                 "connect-src 'self' http: https:; "
                 "frame-ancestors 'self'; "
                 "form-action 'self'; "
@@ -119,8 +119,10 @@ class Config:
             )
             response.headers['Content-Security-Policy'] = csp
             
-            # Set correct MIME type for JavaScript files
-            if response.mimetype == 'application/javascript' or response.content_type == 'application/javascript':
+            # Set correct MIME types for static files
+            if request.path.endswith('.css'):
+                response.headers['Content-Type'] = 'text/css; charset=utf-8'
+            elif request.path.endswith('.js'):
                 response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
             
             # Enhanced cache headers for static files

@@ -1,12 +1,18 @@
-refactor: simplify handoff creation and improve UI
+fix: oncall auto-schedule upload template mismatch
 
-- Remove workcenter dropdown from index page since it's determined by user
-- Make from_shift column nullable and set default value to "Self"
-- Fix closed handoffs not appearing in table
-- Improve error handling in form submission
-- Add loading state to submit button
-- Simplify routes to use user's current workcenter
+Fixed issue with oncall auto-schedule upload where template requirements didn't match the selected mode:
 
-These changes streamline the handoff creation process by removing unnecessary
-UI elements and making the workflow more intuitive. The form now properly
-handles errors and provides better feedback to users.
+- Added separate template download links for manual and auto-generate modes
+- Updated auto_generate checkbox handler to toggle visibility of appropriate template
+- Ensured auto_generate parameter is properly set as 'true'/'false' in form data
+- Added template visibility reset when upload modal is closed
+
+Manual mode:
+- Shows template with week, name, phone columns
+- Requires all three columns in CSV
+
+Auto-generate mode:
+- Shows template with only name, phone columns
+- Only requires these two columns for fair schedule generation
+
+This prevents the "Missing required fields" error when using auto-generate mode with the correct template.

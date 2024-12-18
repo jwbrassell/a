@@ -5,7 +5,10 @@ from datetime import datetime
 from markupsafe import escape
 from flask import current_app, render_template_string
 from app.utils.route_manager import route_to_endpoint as convert_route
-from app.utils.cache_manager import cached
+from app.utils.navigation_manager import NavigationManager
+
+# Create a single instance of NavigationManager
+navigation_manager = NavigationManager()
 
 def init_app(app):
     """Initialize template filters.
@@ -61,9 +64,8 @@ def init_app(app):
             current_app.logger.warning(f"Error checking route existence for {route}: {str(e)}")
             return False
 
-    @cached(timeout=3600, key_prefix='cached_imports')  # Cache for 1 hour
     def get_cached_imports():
-        """Cache the imports template."""
+        """Get the imports template."""
         return render_template_string("""
             {% include 'imports.html' %}
         """)
@@ -73,5 +75,6 @@ def init_app(app):
         """Add utility functions to template context."""
         return {
             'get_cached_imports': get_cached_imports,
-            'now': datetime.utcnow()
+            'now': datetime.utcnow(),
+            'navigation_manager': navigation_manager
         }

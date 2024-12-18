@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}On-Call Schedule{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    /* Calendar Styles */
+    .calendar-day {
+        height: 120px;
+        padding: 10px !important;
+        vertical-align: top !important;
+    }
+
+    .calendar-day.disabled {
+        background-color: #f8f9fa;
+    }
+
+    .calendar-day.today {
+        background-color: rgba(0,0,0,.05);
+    }
+
+    .calendar-day .date {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .calendar-day .event {
+        padding: 5px;
+        margin-bottom: 5px;
+        border-radius: 3px;
+        font-size: 0.85em;
+        word-break: break-word;
+    }
+
+    /* Team Colors */
+    .bg-primary { background-color: var(--bs-primary) !important; }
+    .bg-secondary { background-color: var(--bs-secondary) !important; }
+    .bg-success { background-color: var(--bs-success) !important; }
+    .bg-danger { background-color: var(--bs-danger) !important; }
+    .bg-warning { background-color: var(--bs-warning) !important; }
+    .bg-info { background-color: var(--bs-info) !important; }
+
+    /* Holiday Events */
+    .holiday-event {
+        border-radius: 0;
+        opacity: 0.3;
+    }
+
+    /* Modal Fixes */
+    .modal-backdrop {
+        z-index: 1050;
+    }
+    .modal {
+        z-index: 1055;
+    }
+    
+    /* Loading States */
+    .btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+    }
+
+    /* Calendar Navigation */
+    #current-month {
+        min-width: 200px;
+    }
+
+    /* Responsive Calendar */
+    @media (max-width: 768px) {
+        .calendar-day {
+            height: auto;
+            min-height: 100px;
+        }
+        
+        .calendar-day .event {
+            font-size: 0.75em;
+        }
+    }
+
+    /* Dark Mode Adjustments */
+    [data-bs-theme="dark"] .calendar-day.disabled {
+        background-color: rgba(0,0,0,.2);
+    }
+
+    [data-bs-theme="dark"] .calendar-day.today {
+        background-color: rgba(255,255,255,.05);
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="sticky-top mb-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Current On-Call</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="btn-group w-100 mb-3">
+                                <button class="btn btn-info">
+                                    <i class="fas fa-user me-2"></i>
+                                    <span id="current-name">No one currently on call</span>
+                                </button>
+                                <button class="btn btn-outline-info">
+                                    <i class="fas fa-phone me-1"></i>
+                                    <span id="current-phone">-</span>
+                                </button>
+                            </div>
+                            <div class="form-group">
+                                <label for="team-filter">Filter by Team</label>
+                                <select class="form-control" id="team-filter">
+                                    <option value="">All Teams</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    {% if is_admin %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Upload Schedule</h3>
+                        </div>
+                        <div class="card-body">
+                            {% if teams %}
+                            <button type="button" class="btn btn-primary btn-block mb-3" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                <i class="fas fa-upload me-2"></i>Upload Schedule
+                            </button>
+                            <a href="{{ url_for('static', filename='templates/oncall_template.csv') }}" class="btn btn-secondary btn-block mb-3" id="manual-template">
+                                <i class="fas fa-download me-2"></i>Download Manual Template
+                            </a>
+                            <a href="{{ url_for('static', filename='templates/oncall_auto_template.csv') }}" class="btn btn-secondary btn-block mb-3" id="auto-template" style="display: none;">
+                                <i class="fas fa-download me-2"></i>Download Auto-Generate Template
+                            </a>
+                            <button type="button" class="btn btn-success btn-block mb-3" data-bs-toggle="modal" data-bs-target="#holidayModal">
+                                <i class="fas fa-calendar me-2"></i>Manage Holidays
+                            </button>
+                            {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Please create a team first before uploading a schedule.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h3 class="card-title">Teams</h3>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#teamModal">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush" id="team-list">
+                                {% for team in teams %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-circle text-{{ team.color }} me-2"></i>
+                                        {{ team.name }}
+                                    </div>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="editTeam({{ team.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" onclick="deleteTeam({{ team.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% if not teams %}
+                                <div class="list-group-item text-center text-muted">
+                                    No teams created yet
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="btn-group">
+                                <button type="button" id="prev-month" class="btn btn-default">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <button type="button" id="current-month" class="btn btn-default">
+                                    December 2024
+                                </button>
+                                <button type="button" id="next-month" class="btn btn-default">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <button type="button" id="today" class="btn btn-default">Today</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered mb-0" id="calendar-table">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center" style="width: 14.28%">Sun</th>
+                                        <th class="text-center" style="width: 14.28%">Mon</th>
+                                        <th class="text-center" style="width: 14.28%">Tue</th>
+                                        <th class="text-center" style="width: 14.28%">Wed</th>
+                                        <th class="text-center" style="width: 14.28%">Thu</th>
+                                        <th class="text-center" style="width: 14.28%">Fri</th>
+                                        <th class="text-center" style="width: 14.28%">Sat</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="calendar-body">
+                                    <!-- Calendar rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% if is_admin %}
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="upload-form" class="ajax-form" method="POST" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-upload me-2"></i>Upload Schedule
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="team" class="form-label">Team</label>
+                        <select class="form-control" id="team" name="team" required>
+                            {% for team in teams %}
+                            <option value="{{ team.id }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="year" class="form-label">Year</label>
+                        <input type="number" class="form-control" id="year" name="year" 
+                            value="{{ now.year }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="auto_generate" name="auto_generate">
+                            <label class="form-check-label" for="auto_generate">
+                                Auto-generate schedule
+                            </label>
+                            <small class="form-text text-muted d-block">
+                                Upload a CSV with just names and phone numbers to auto-generate a fair schedule
+                            </small>
+                        </div>
+                        <label for="file" class="form-label">CSV File</label>
+                        <input type="file" class="form-control" id="file" name="file" 
+                            accept=".csv" required>
+                        <div class="form-text" id="csv-help-text">
+                            Required columns: week, name, phone
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="upload-button">
+                        <i class="fas fa-upload me-2"></i>Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Holiday Modal -->
+<div class="modal fade" id="holidayModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar me-2"></i>Manage Holidays
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="holiday-form" class="ajax-form" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="holiday-file" class="form-label">Upload Holidays CSV</label>
+                        <input type="file" class="form-control" id="holiday-file" name="file" 
+                            accept=".csv" required>
+                        <div class="form-text">
+                            Required columns: name, date (YYYY-MM-DD)
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('static', filename='templates/holidays_template.csv') }}" class="btn btn-secondary">
+                            <i class="fas fa-download me-2"></i>Download Template
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Upload Holidays
+                        </button>
+                    </div>
+                </form>
+                <hr>
+                <div id="current-holidays" class="mt-3">
+                    <h6>Current Holidays</h6>
+                    <div class="list-group" id="holiday-list">
+                        <!-- Holidays will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Team Modal -->
+<div class="modal fade" id="teamModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="team-form" class="ajax-form">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-users me-2"></i><span id="team-modal-title">Add Team</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="team-id">
+                    <div class="mb-3">
+                        <label for="team-name" class="form-label">Team Name</label>
+                        <input type="text" class="form-control" id="team-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Team Color</label>
+                        <div class="btn-group w-100" role="group">
+                            {% for color in ['primary', 'secondary', 'success', 'danger', 'warning', 'info'] %}
+                            <input type="radio" class="btn-check" name="team-color" id="color-{{ color }}" 
+                                   value="{{ color }}" {% if color == 'primary' %}checked{% endif %}>
+                            <label class="btn btn-outline-{{ color }}" for="color-{{ color }}">
+                                <i class="fas fa-circle"></i>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='src/js/oncall.js') }}"></script>
+{% endblock %}
