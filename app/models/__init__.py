@@ -15,6 +15,7 @@ from app.models.documents import (
     document_tag_association
 )
 from app.models.dispatch import DispatchSettings, DispatchHistory
+from app.models.handoffs import HandoffSettings, Handoff
 
 __all__ = [
     'Permission',
@@ -38,5 +39,8 @@ __all__ = [
     'document_tag_association',
     # Dispatch models
     'DispatchSettings',
-    'DispatchHistory'
+    'DispatchHistory',
+    # Handoff models
+    'HandoffSettings',
+    'Handoff'
 ]

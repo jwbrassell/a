@@ -61,6 +61,17 @@ def create_app(config_class=Config):
         except Exception as e:
             app.logger.error(f"Error initializing dispatch routes: {e}")
 
+    # Initialize handoff routes
+    with app.app_context():
+        try:
+            from app.utils.add_handoff_routes import add_handoff_routes
+            if add_handoff_routes():
+                app.logger.info("Handoff routes initialized successfully")
+            else:
+                app.logger.warning("Failed to initialize handoff routes")
+        except Exception as e:
+            app.logger.error(f"Error initializing handoff routes: {e}")
+
     # Initialize Vault policies after blueprints are registered
     with app.app_context():
         try:

@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Create Handoff</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.csrf_token }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.workcenter.label(class="form-label") }}
+                                {{ form.workcenter(class="form-select") }}
+                                {% if form.workcenter.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.workcenter.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.assigned_to.label(class="form-label") }}
+                                {{ form.assigned_to(class="form-select") }}
+                                {% if form.assigned_to.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.assigned_to.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.ticket.label(class="form-label") }}
+                                {{ form.ticket(class="form-control") }}
+                                {% if form.ticket.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.ticket.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.ticket.description %}
+                                <div class="form-text">{{ form.ticket.description }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.hostname.label(class="form-label") }}
+                                {{ form.hostname(class="form-control") }}
+                                {% if form.hostname.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.hostname.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.hostname.description %}
+                                <div class="form-text">{{ form.hostname.description }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.priority.label(class="form-label") }}
+                                {{ form.priority(class="form-select") }}
+                                {% if form.priority.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.priority.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.kirke.label(class="form-label") }}
+                                {{ form.kirke(class="form-control") }}
+                                {% if form.kirke.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.kirke.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.kirke.description %}
+                                <div class="form-text">{{ form.kirke.description }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.from_shift.label(class="form-label") }}
+                                {{ form.from_shift(class="form-select") }}
+                                {% if form.from_shift.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.from_shift.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.to_shift.label(class="form-label") }}
+                                {{ form.to_shift(class="form-select") }}
+                                {% if form.to_shift.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.to_shift.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.due_date.label(class="form-label") }}
+                                {{ form.due_date(class="form-control", type="datetime-local") }}
+                                {% if form.due_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.due_date.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.due_date.description %}
+                                <div class="form-text">{{ form.due_date.description }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.has_bridge(class="form-check-input") }}
+                                    {{ form.has_bridge.label(class="form-check-label") }}
+                                    {% if form.has_bridge.description %}
+                                    <div class="form-text">{{ form.has_bridge.description }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3" id="bridge-link-container" style="display: none;">
+                                {{ form.bridge_link.label(class="form-label") }}
+                                {{ form.bridge_link(class="form-control") }}
+                                {% if form.bridge_link.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.bridge_link.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.bridge_link.description %}
+                                <div class="form-text">{{ form.bridge_link.description }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows=5) }}
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.description.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% if form.description.description %}
+                        <div class="form-text">{{ form.description.description }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('handoffs.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Handoffs
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Handoff
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Handle bridge link visibility
+    $('#has_bridge').change(function() {
+        $('#bridge-link-container').toggle(this.checked);
+    });
+    
+    // Show/hide bridge link field based on initial value
+    if ($('#has_bridge').is(':checked')) {
+        $('#bridge-link-container').show();
+    }
+
+    // Handle workcenter change
+    $('#workcenter').change(function() {
+        const workcenter_id = $(this).val();
+        
+        // Get shifts
+        $.get(`/handoffs/api/shifts?workcenter=${workcenter_id}`, function(data) {
+            const shifts = data.shifts;
+            
+            // Update from_shift select
+            $('#from_shift').empty();
+            shifts.forEach(shift => {
+                $('#from_shift').append(new Option(shift, shift));
+            });
+            
+            // Update to_shift select
+            $('#to_shift').empty();
+            shifts.forEach(shift => {
+                $('#to_shift').append(new Option(shift, shift));
+            });
+        });
+        
+        // Get priorities
+        $.get(`/handoffs/admin/api/priorities?workcenter=${workcenter_id}`, function(data) {
+            const priorities = Object.keys(data.priorities || {});
+            
+            // Update priority select
+            $('#priority').empty();
+            priorities.forEach(priority => {
+                $('#priority').append(new Option(priority, priority));
+            });
+        });
+        
+        // Update assigned_to options
+        $.get(`/handoffs/api/members?workcenter=${workcenter_id}`, function(data) {
+            const members = data.members;
+            
+            // Update assigned_to select
+            $('#assigned_to').empty();
+            members.forEach(member => {
+                $('#assigned_to').append(new Option(member.username, member.id));
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -10,6 +10,7 @@ def init_routes(app):
     from app.main import bp as auth_bp
     from app.routes.admin import init_app as init_admin
     from app.routes.dispatch import dispatch
+    from app.routes.handoffs import handoffs
     
     # Create and register the main blueprint
     main = Blueprint('main', __name__)
@@ -24,3 +25,6 @@ def init_routes(app):
 
     # Register the dispatch blueprint
     app.register_blueprint(dispatch)
+
+    # Register the handoffs blueprint
+    app.register_blueprint(handoffs)

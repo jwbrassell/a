@@ -1,0 +1,644 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.card-body {
+    position: relative;
+}
+
+.table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 10px;
+}
+
+.table-controls-right {
+    display: flex;
+    gap: 10px;
+}
+
+.dataTables_filter {
+    margin: 0;
+    order: 1;
+}
+
+.dt-buttons {
+    margin: 0;
+    order: 2;
+}
+
+.dataTables_filter input {
+    margin-left: 0.5em;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+}
+
+.dt-buttons .btn {
+    margin-left: 5px;
+}
+
+/* Hide default DataTables elements we don't want */
+.dataTables_length {
+    display: none;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.workcenter-select {
+    min-width: 200px;
+}
+
+/* Modal styles */
+.modal-xl {
+    max-width: 90%;
+}
+</style>
+{% endblock %}
+
+{% block page_content %}
+<!-- Priority Cards Row -->
+<div class="row mb-4">
+    {% for priority, color in priorities.items() %}
+    <div class="col-lg-4">
+        <div class="small-box bg-{{ color }}">
+            <div class="inner">
+                {% set count = handoffs|selectattr('status', 'ne', 'Completed')|selectattr('priority', 'eq', priority)|list|length %}
+                <h3>{{ count }}</h3>
+                <p>{{ priority }} Priority Handoffs</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Create Button Row -->
+<div class="row mb-4">
+    <div class="col-12">
+        <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#createHandoffModal">
+            <i class="fas fa-plus"></i> Create New Handoff
+        </button>
+    </div>
+</div>
+
+<!-- Open Handoffs Table -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Open Handoffs</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="open-handoffs-table">
+                        <thead>
+                            <tr>
+                                <th>Created</th>
+                                <th>Created By</th>
+                                <th>Ticket</th>
+                                <th>Priority</th>
+                                <th>From Shift</th>
+                                <th>To Shift</th>
+                                <th>Assigned To</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for handoff in handoffs %}
+                            {% if handoff.status != 'Completed' %}
+                            <tr class="{{ 'table-danger' if handoff.is_overdue }}">
+                                <td>{{ handoff.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ handoff.created_by.username }}</td>
+                                <td>{{ handoff.ticket }}</td>
+                                <td>
+                                    <span class="badge bg-{{ priorities[handoff.priority] }}">
+                                        {{ handoff.priority }}
+                                    </span>
+                                </td>
+                                <td>{{ handoff.from_shift }}</td>
+                                <td>{{ handoff.to_shift }}</td>
+                                <td>{{ handoff.assigned_to.username }}</td>
+                                <td>{{ handoff.due_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ handoff.status }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-info view-handoff" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#handoffModal"
+                                                data-id="{{ handoff.id }}"
+                                                data-ticket="{{ handoff.ticket }}"
+                                                data-description="{{ handoff.description }}"
+                                                data-hostname="{{ handoff.hostname }}"
+                                                data-kirke="{{ handoff.kirke }}"
+                                                data-bridge="{{ handoff.bridge_link }}"
+                                                data-from-shift="{{ handoff.from_shift }}"
+                                                data-to-shift="{{ handoff.to_shift }}">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        {% if settings.allow_close_with_comment %}
+                                        <button class="btn btn-sm btn-success close-with-comment" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#closeModal"
+                                                data-id="{{ handoff.id }}">
+                                            <i class="fas fa-check-circle"></i> Close
+                                        </button>
+                                        {% endif %}
+                                        {% if handoff.has_bridge %}
+                                        <a href="{{ handoff.bridge_link }}" target="_blank" class="btn btn-sm btn-info">
+                                            <i class="fas fa-video"></i> Bridge
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Closed Handoffs Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Closed Handoffs</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="closed-handoffs-table">
+                        <thead>
+                            <tr>
+                                <th>Created</th>
+                                <th>Created By</th>
+                                <th>Closed</th>
+                                <th>Closed By</th>
+                                <th>Ticket</th>
+                                <th>Priority</th>
+                                <th>From Shift</th>
+                                <th>To Shift</th>
+                                <th>Assigned To</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for handoff in handoffs %}
+                            {% if handoff.status == 'Completed' %}
+                            <tr>
+                                <td>{{ handoff.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ handoff.created_by.username }}</td>
+                                <td>{{ handoff.completed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ handoff.closed_by.username }}</td>
+                                <td>{{ handoff.ticket }}</td>
+                                <td>
+                                    <span class="badge bg-{{ priorities[handoff.priority] }}">
+                                        {{ handoff.priority }}
+                                    </span>
+                                </td>
+                                <td>{{ handoff.from_shift }}</td>
+                                <td>{{ handoff.to_shift }}</td>
+                                <td>{{ handoff.assigned_to.username }}</td>
+                                <td>{{ handoff.due_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-info view-handoff" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#handoffModal"
+                                                data-id="{{ handoff.id }}"
+                                                data-ticket="{{ handoff.ticket }}"
+                                                data-description="{{ handoff.description }}"
+                                                data-hostname="{{ handoff.hostname }}"
+                                                data-kirke="{{ handoff.kirke }}"
+                                                data-bridge="{{ handoff.bridge_link }}"
+                                                data-from-shift="{{ handoff.from_shift }}"
+                                                data-to-shift="{{ handoff.to_shift }}"
+                                                data-close-comment="{{ handoff.close_comment }}">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        {% if handoff.has_bridge %}
+                                        <a href="{{ handoff.bridge_link }}" target="_blank" class="btn btn-sm btn-info">
+                                            <i class="fas fa-video"></i> Bridge
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Handoff Modal -->
+<div class="modal fade" id="createHandoffModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Handoff</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-handoff-form" method="POST" action="{{ url_for('handoffs.create') }}">
+                    {{ form.csrf_token }}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.ticket.label(class="form-label") }}
+                                {{ form.ticket(class="form-control") }}
+                                {% if form.ticket.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.ticket.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.ticket.description %}
+                                <div class="form-text">{{ form.ticket.description }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.hostname.label(class="form-label") }}
+                                {{ form.hostname(class="form-control") }}
+                                {% if form.hostname.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.hostname.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.hostname.description %}
+                                <div class="form-text">{{ form.hostname.description }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.priority.label(class="form-label") }}
+                                {{ form.priority(class="form-select") }}
+                                {% if form.priority.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.priority.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.kirke.label(class="form-label") }}
+                                {{ form.kirke(class="form-control") }}
+                                {% if form.kirke.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.kirke.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.kirke.description %}
+                                <div class="form-text">{{ form.kirke.description }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.to_shift.label(class="form-label") }}
+                                {{ form.to_shift(class="form-select") }}
+                                {% if form.to_shift.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.to_shift.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.due_date.label(class="form-label") }}
+                                {{ form.due_date(class="form-control", type="datetime-local") }}
+                                {% if form.due_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.due_date.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.due_date.description %}
+                                <div class="form-text">{{ form.due_date.description }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.has_bridge(class="form-check-input") }}
+                                    {{ form.has_bridge.label(class="form-check-label") }}
+                                    {% if form.has_bridge.description %}
+                                    <div class="form-text">{{ form.has_bridge.description }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3" id="bridge-link-container" style="display: none;">
+                                {{ form.bridge_link.label(class="form-label") }}
+                                {{ form.bridge_link(class="form-control") }}
+                                {% if form.bridge_link.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.bridge_link.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if form.bridge_link.description %}
+                                <div class="form-text">{{ form.bridge_link.description }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows=5) }}
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.description.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% if form.description.description %}
+                        <div class="form-text">{{ form.description.description }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Handoff
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Handoff Details Modal -->
+<div class="modal fade" id="handoffModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Handoff Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Ticket:</strong>
+                        <p id="modal-ticket"></p>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Hostname:</strong>
+                        <p id="modal-hostname"></p>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Kirke:</strong>
+                        <p id="modal-kirke"></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>From Shift:</strong>
+                        <p id="modal-from-shift"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>To Shift:</strong>
+                        <p id="modal-to-shift"></p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <div id="modal-description" class="mt-2"></div>
+                </div>
+                <div id="modal-close-comment-section" class="mb-3" style="display: none;">
+                    <strong>Close Comment:</strong>
+                    <div id="modal-close-comment" class="mt-2"></div>
+                </div>
+                <div id="modal-bridge-section" class="mb-3" style="display: none;">
+                    <strong>Bridge Link:</strong>
+                    <p><a id="modal-bridge" href="#" target="_blank"></a></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Close with Comment Modal -->
+<div class="modal fade" id="closeModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Close Handoff</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="close-form" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Close Comment</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3" 
+                                  {% if settings.require_close_comment %}required{% endif %}></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Close Handoff</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Common DataTable configuration
+    const commonConfig = {
+        dom: '<"table-controls"<"table-controls-left"l><"table-controls-right"fB>>rtip',
+        buttons: [
+            {
+                extend: 'copy',
+                className: 'btn btn-secondary'
+            },
+            {
+                extend: 'csv',
+                className: 'btn btn-secondary'
+            },
+            {
+                extend: 'excel',
+                className: 'btn btn-secondary'
+            },
+            {
+                extend: 'pdf',
+                className: 'btn btn-secondary'
+            },
+            {
+                extend: 'print',
+                className: 'btn btn-secondary'
+            }
+        ],
+        order: [[0, "desc"]],
+        pageLength: 10,
+        language: {
+            search: ""
+        },
+        initComplete: function () {
+            // Add placeholder to search input
+            $('.dataTables_filter input').attr('placeholder', 'Search...');
+        }
+    };
+
+    // Initialize Open Handoffs table
+    $('#open-handoffs-table').DataTable(commonConfig);
+
+    // Initialize Closed Handoffs table
+    $('#closed-handoffs-table').DataTable(commonConfig);
+
+    // Handle handoff details modal
+    $('.view-handoff').click(function() {
+        const ticket = $(this).data('ticket');
+        const description = $(this).data('description');
+        const hostname = $(this).data('hostname');
+        const kirke = $(this).data('kirke');
+        const bridge = $(this).data('bridge');
+        const fromShift = $(this).data('from-shift');
+        const toShift = $(this).data('to-shift');
+        const closeComment = $(this).data('close-comment');
+        
+        $('#modal-ticket').text(ticket);
+        $('#modal-hostname').text(hostname || 'N/A');
+        $('#modal-kirke').text(kirke || 'N/A');
+        $('#modal-description').html(description);
+        $('#modal-from-shift').text(fromShift);
+        $('#modal-to-shift').text(toShift);
+        
+        if (closeComment) {
+            $('#modal-close-comment').html(closeComment);
+            $('#modal-close-comment-section').show();
+        } else {
+            $('#modal-close-comment-section').hide();
+        }
+        
+        if (bridge) {
+            $('#modal-bridge').attr('href', bridge).text(bridge);
+            $('#modal-bridge-section').show();
+        } else {
+            $('#modal-bridge-section').hide();
+        }
+    });
+
+    // Handle close with comment modal
+    $('.close-with-comment').click(function() {
+        const handoffId = $(this).data('id');
+        $('#close-form').attr('action', `/handoffs/${handoffId}/close`);
+    });
+
+    // Handle bridge link visibility in create form
+    $('#has_bridge').change(function() {
+        $('#bridge-link-container').toggle(this.checked);
+    });
+    
+    // Show/hide bridge link field based on initial value
+    if ($('#has_bridge').is(':checked')) {
+        $('#bridge-link-container').show();
+    }
+
+    // Handle create handoff form submission
+    $('#create-handoff-form').on('submit', function(e) {
+        e.preventDefault();
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.html();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating...');
+        
+        $.ajax({
+            url: $(this).attr('action'),
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    window.location.reload();
+                } else {
+                    submitBtn.prop('disabled', false).html(originalText);
+                    if (response.errors) {
+                        let errorMessage = 'Please fix the following errors:\n';
+                        Object.entries(response.errors).forEach(([field, errors]) => {
+                            errorMessage += `\n${field}: ${errors.join(', ')}`;
+                        });
+                        alert(errorMessage);
+                    } else if (response.error) {
+                        alert(response.error);
+                    } else {
+                        alert('Please check the form for errors.');
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                submitBtn.prop('disabled', false).html(originalText);
+                alert('An error occurred while creating the handoff: ' + error);
+            }
+        });
+    });
+
+    // Handle workcenter change
+    $('#workcenter').change(function() {
+        const workcenter_id = $(this).val();
+        
+        // Get shifts
+        $.get(`/handoffs/api/shifts?workcenter=${workcenter_id}`, function(data) {
+            const shifts = data.shifts;
+            
+            // Update to_shift select
+            $('#to_shift').empty();
+            shifts.forEach(shift => {
+                $('#to_shift').append(new Option(shift, shift));
+            });
+        });
+        
+        // Get priorities
+        $.get(`/handoffs/admin/api/priorities?workcenter=${workcenter_id}`, function(data) {
+            const priorities = Object.keys(data.priorities || {});
+            
+            // Update priority select
+            $('#priority').empty();
+            priorities.forEach(priority => {
+                $('#priority').append(new Option(priority, priority));
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
