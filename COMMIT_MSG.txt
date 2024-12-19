@@ -1,12 +1,29 @@
-fix: Project creation error handling and status/priority colors
+feat(weblinks): improve table responsiveness and modal handling
 
-- Added proper error handling for missing or invalid status/priority values in create_project route
-- Updated Project model to include status_color and priority_color properties
-- Added default status and priority initialization in EmptyProject class
-- Modified project templates to use correct color properties for status and priority badges
-- Added Select2 initialization in project.js to display status/priority badges with correct colors
-- Added validation to ensure status and priority values exist in database
-- Added fallback to default values if status or priority not provided
-- Updated Project.to_dict() to include status_color and priority_color properties
+- Add automatic table column resizing
+  - Set explicit column widths (icon: 50px, title: 15%, url: 40%, tags: 20%, created_by: 10%, actions: 100px)
+  - Enable horizontal scrolling with scroll collapse
+  - Add window resize handler with debouncing
+  - Force column adjustments on resize
 
-This fixes the issue where project creation would fail when trying to serialize the EmptyProject class instance. The changes ensure that status and priority colors are properly handled throughout the application, from creation to display.
+- Update modal handling to Bootstrap 5
+  - Use proper Modal constructor
+  - Fix show/hide methods
+  - Initialize modals on document ready
+  - Improve modal content updates
+
+- Improve theme support
+  - Use Bootstrap CSS variables for colors
+  - Ensure consistent styling in light/dark modes
+  - Fix table borders and backgrounds
+
+- Fix history display
+  - Add better change formatting
+  - Improve layout with icons and timestamps
+  - Add scrollable container for long histories
+
+- General improvements
+  - Fix table overflow handling
+  - Add proper table-responsive wrapper
+  - Improve Select2 integration
+  - Fix icon preview updates

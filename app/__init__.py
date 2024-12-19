@@ -8,7 +8,13 @@ from logging.handlers import RotatingFileHandler
 import os
 import mimetypes
 
+# Import base models at module level
+from app.models import *
+
 def create_app(config_class=Config):
+    # Import weblinks models
+    from app.blueprints.weblinks.models import WebLink, Tag, WebLinkHistory
+
     # Ensure correct MIME types are set
     mimetypes.add_type('text/css', '.css')
     mimetypes.add_type('application/javascript', '.js')
@@ -124,6 +130,17 @@ def create_app(config_class=Config):
                 app.logger.warning("Failed to initialize on-call routes")
         except Exception as e:
             app.logger.error(f"Error initializing on-call routes: {e}")
+
+    # Initialize weblinks blueprint
+    with app.app_context():
+        try:
+            from app.blueprints.weblinks import init_app as init_weblinks
+            if init_weblinks(app):
+                app.logger.info("WebLinks blueprint initialized successfully")
+            else:
+                app.logger.warning("Failed to initialize weblinks blueprint")
+        except Exception as e:
+            app.logger.error(f"Error initializing weblinks blueprint: {e}")
 
     # Initialize Vault policies after blueprints are registered
     with app.app_context():
