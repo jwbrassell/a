@@ -2,6 +2,7 @@ from flask import Flask, request, send_from_directory
 from config import Config
 from app.utils.vault_middleware import init_vault_middleware
 from app.utils.vault_defaults import initialize_vault_policies
+from app.utils.init_db import init_database
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -65,6 +66,13 @@ def create_app(config_class=Config):
         app.logger.setLevel(logging.INFO)
         app.logger.info('Flask application startup')
 
+    # Initialize database
+    with app.app_context():
+        if init_database():
+            app.logger.info("Database initialized successfully")
+        else:
+            app.logger.error("Failed to initialize database")
+
     # Initialize routes
     from app.routes import init_routes
     init_routes(app)
@@ -72,6 +80,17 @@ def create_app(config_class=Config):
     # Initialize profile module
     from app.routes.profile import init_profile
     init_profile(app)
+
+    # Initialize projects blueprint
+    with app.app_context():
+        try:
+            from app.blueprints.projects import init_app as init_projects
+            if init_projects(app):
+                app.logger.info("Projects blueprint initialized successfully")
+            else:
+                app.logger.warning("Failed to initialize projects blueprint")
+        except Exception as e:
+            app.logger.error(f"Error initializing projects blueprint: {e}")
 
     # Initialize dispatch routes
     with app.app_context():

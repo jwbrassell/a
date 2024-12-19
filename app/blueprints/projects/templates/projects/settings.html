@@ -1,0 +1,854 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+<ol class="breadcrumb float-sm-right">
+    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('projects.index') }}">Projects</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('projects.view', project_id=project.id) }}">{{ project.name }}</a></li>
+    <li class="breadcrumb-item active">Settings</li>
+</ol>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.color-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Project Settings</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Project Details -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Project Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="project-details-form">
+                                <div class="form-group">
+                                    <label for="name">Project Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ project.name }}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <textarea id="description" name="description">{{ project.description }}</textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="status">Status</label>
+                                    <select class="form-control" id="status" name="status">
+                                        {% for status in statuses %}
+                                        <option value="{{ status.name }}" {% if project.status == status.name %}selected{% endif %}>
+                                            {{ status.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="priority">Priority</label>
+                                    <select class="form-control" id="priority" name="priority">
+                                        {% for priority in priorities %}
+                                        <option value="{{ priority.name }}" {% if project.priority == priority.name %}selected{% endif %}>
+                                            {{ priority.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Details</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Project Roles -->
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Project Roles</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="project-roles-form">
+                                <div class="form-group">
+                                    <label for="lead">Project Lead</label>
+                                    <select class="form-control select2" id="lead" name="lead_id">
+                                        <option value="">Select Lead</option>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}" {% if project.lead_id == user.id %}selected{% endif %}>{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="watchers">Watchers</label>
+                                    <select class="form-control select2" id="watchers" name="watchers[]" multiple>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}" {% if user in project.watchers %}selected{% endif %}>{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="stakeholders">Stakeholders</label>
+                                    <select class="form-control select2" id="stakeholders" name="stakeholders[]" multiple>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}" {% if user in project.stakeholders %}selected{% endif %}>{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="shareholders">Shareholders</label>
+                                    <select class="form-control select2" id="shareholders" name="shareholders[]" multiple>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}" {% if user in project.shareholders %}selected{% endif %}>{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-info">Save Roles</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Status Management -->
+                    {% if current_user.has_role('admin') %}
+                    <div class="card card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">Status Management</h3>
+                        </div>
+                        <div class="card-body">
+                            <!-- Status List -->
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Color</th>
+                                            <th>Usage</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="status-list">
+                                        {% for status in statuses %}
+                                        <tr>
+                                            <td>{{ status.name }}</td>
+                                            <td>
+                                                <span class="color-badge" style="background-color: {{ status.color|e }}">
+                                                    {{ status.color }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="status-usage" data-status="{{ status.name }}">
+                                                    Loading...
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-info edit-status" data-status="{{ status.name }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger delete-status" data-status="{{ status.name }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Add/Edit Status Form -->
+                            <form id="status-form" class="mt-3">
+                                <div class="form-group">
+                                    <label for="status-name">Status Name</label>
+                                    <input type="text" class="form-control" id="status-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="status-color">Color</label>
+                                    <input type="color" class="form-control" id="status-color" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Status</button>
+                                <button type="button" class="btn btn-secondary" id="cancel-status">Cancel</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Priority Management -->
+                    <div class="card card-info">
+                        <div class="card-header">
+                            <h3 class="card-title">Priority Management</h3>
+                        </div>
+                        <div class="card-body">
+                            <!-- Priority List -->
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Color</th>
+                                            <th>Usage</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="priority-list">
+                                        {% for priority in priorities %}
+                                        <tr>
+                                            <td>{{ priority.name }}</td>
+                                            <td>
+                                                <span class="color-badge" style="background-color: {{ priority.color|e }}">
+                                                    {{ priority.color }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="priority-usage" data-priority="{{ priority.name }}">
+                                                    Loading...
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-info edit-priority" data-priority="{{ priority.name }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger delete-priority" data-priority="{{ priority.name }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Add/Edit Priority Form -->
+                            <form id="priority-form" class="mt-3">
+                                <div class="form-group">
+                                    <label for="priority-name">Priority Name</label>
+                                    <input type="text" class="form-control" id="priority-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="priority-color">Color</label>
+                                    <input type="color" class="form-control" id="priority-color" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Priority</button>
+                                <button type="button" class="btn btn-secondary" id="cancel-priority">Cancel</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Notification Settings -->
+                    <div class="card card-success">
+                        <div class="card-header">
+                            <h3 class="card-title">Notification Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="notification-settings-form">
+                                <div class="form-group">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="notify_task_created" 
+                                               {% if project.notify_task_created %}checked{% endif %}>
+                                        <label class="custom-control-label" for="notify_task_created">
+                                            Notify when tasks are created
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="notify_task_completed"
+                                               {% if project.notify_task_completed %}checked{% endif %}>
+                                        <label class="custom-control-label" for="notify_task_completed">
+                                            Notify when tasks are completed
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="notify_comments"
+                                               {% if project.notify_comments %}checked{% endif %}>
+                                        <label class="custom-control-label" for="notify_comments">
+                                            Notify on new comments
+                                        </label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-success">Save Notification Settings</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="card card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title">Danger Zone</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <button onclick="archiveProject()" class="btn btn-warning btn-block">
+                                        <i class="fas fa-archive"></i> Archive Project
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button onclick="deleteProject()" class="btn btn-danger btn-block">
+                                        <i class="fas fa-trash"></i> Delete Project
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden div for flash messages -->
+<div id="flash-messages" data-messages="{{ get_flashed_messages(with_categories=true)|tojson|safe }}"></div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+
+    // Initialize description editor
+    $('#description').summernote({
+        height: 150,
+        toolbar: [
+            ['style', ['bold', 'italic', 'underline', 'clear']],
+            ['font', ['strikethrough']],
+            ['para', ['ul', 'ol']],
+            ['insert', ['link']],
+            ['view', ['fullscreen', 'codeview']]
+        ]
+    });
+
+    // Load usage statistics
+    function loadUsageStats() {
+        $.get("{{ url_for('projects.api.management_stats') }}", function(response) {
+            // Update status usage
+            $('.status-usage').each(function() {
+                const status = $(this).data('status');
+                const usage = response.status_usage[status];
+                if (usage) {
+                    $(this).text(`${usage.projects_count} projects, ${usage.tasks_count} tasks`);
+                } else {
+                    $(this).text('No usage');
+                }
+            });
+
+            // Update priority usage
+            $('.priority-usage').each(function() {
+                const priority = $(this).data('priority');
+                const usage = response.priority_usage[priority];
+                if (usage) {
+                    $(this).text(`${usage.projects_count} projects, ${usage.tasks_count} tasks`);
+                } else {
+                    $(this).text('No usage');
+                }
+            });
+        });
+    }
+
+    // Load initial usage stats
+    loadUsageStats();
+
+    // Project Details Form
+    $('#project-details-form').submit(function(e) {
+        e.preventDefault();
+        const formData = {
+            name: $('#name').val(),
+            description: $('#description').summernote('code'),
+            status: $('#status').val(),
+            priority: $('#priority').val()
+        };
+
+        // Show loading state
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.text();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+
+        $.ajax({
+            url: "{{ url_for('projects.api.update_project', project_id=project.id) }}",
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Project details updated successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating project details',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update project details. Please try again.'
+                });
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text(originalText);
+            }
+        });
+    });
+
+    // Status Management
+    let editingStatus = null;
+
+    $('#status-form').submit(function(e) {
+        e.preventDefault();
+        const name = $('#status-name').val();
+        const color = $('#status-color').val();
+
+        // Show loading state
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.text();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+
+        $.ajax({
+            url: "{{ url_for('projects.api.save_status') }}",
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ name, color }),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Status saved successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error saving status',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to save status. Please try again.'
+                });
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text(originalText);
+            }
+        });
+    });
+
+    // Edit status
+    $('.edit-status').click(function() {
+        const status = $(this).data('status');
+        editingStatus = status;
+
+        $.get("{{ url_for('projects.api.get_status') }}", { name: status }, function(response) {
+            if (response.success) {
+                $('#status-name').val(response.status.name);
+                $('#status-color').val(response.status.color);
+                $('#status-form button[type="submit"]').text('Update Status');
+            }
+        });
+    });
+
+    // Delete status
+    $('.delete-status').click(function() {
+        const status = $(this).data('status');
+
+        Swal.fire({
+            title: 'Delete Status?',
+            text: 'This action cannot be undone!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "{{ url_for('projects.api.delete_status') }}",
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ name: status }),
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Status deleted successfully',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error deleting status',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to delete status. Please try again.'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Priority Management
+    let editingPriority = null;
+
+    $('#priority-form').submit(function(e) {
+        e.preventDefault();
+        const name = $('#priority-name').val();
+        const color = $('#priority-color').val();
+
+        // Show loading state
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.text();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+
+        $.ajax({
+            url: "{{ url_for('projects.api.save_priority') }}",
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ name, color }),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Priority saved successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error saving priority',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to save priority. Please try again.'
+                });
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text(originalText);
+            }
+        });
+    });
+
+    // Edit priority
+    $('.edit-priority').click(function() {
+        const priority = $(this).data('priority');
+        editingPriority = priority;
+
+        $.get("{{ url_for('projects.api.get_priority') }}", { name: priority }, function(response) {
+            if (response.success) {
+                $('#priority-name').val(response.priority.name);
+                $('#priority-color').val(response.priority.color);
+                $('#priority-form button[type="submit"]').text('Update Priority');
+            }
+        });
+    });
+
+    // Delete priority
+    $('.delete-priority').click(function() {
+        const priority = $(this).data('priority');
+
+        Swal.fire({
+            title: 'Delete Priority?',
+            text: 'This action cannot be undone!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "{{ url_for('projects.api.delete_priority') }}",
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ name: priority }),
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Priority deleted successfully',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error deleting priority',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to delete priority. Please try again.'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Project Roles Form
+    $('#project-roles-form').submit(function(e) {
+        e.preventDefault();
+        const formData = {
+            lead_id: $('#lead').val(),
+            watchers: $('#watchers').val(),
+            stakeholders: $('#stakeholders').val(),
+            shareholders: $('#shareholders').val()
+        };
+
+        // Show loading state
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.text();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+
+        $.ajax({
+            url: "{{ url_for('projects.api.update_project_roles', project_id=project.id) }}",
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Project roles updated successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating project roles',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update project roles. Please try again.'
+                });
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text(originalText);
+            }
+        });
+    });
+
+    // Notification Settings Form
+    $('#notification-settings-form').submit(function(e) {
+        e.preventDefault();
+        const formData = {
+            notify_task_created: $('#notify_task_created').is(':checked'),
+            notify_task_completed: $('#notify_task_completed').is(':checked'),
+            notify_comments: $('#notify_comments').is(':checked')
+        };
+
+        // Show loading state
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.text();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+
+        $.ajax({
+            url: "{{ url_for('projects.api.update_project_notifications', project_id=project.id) }}",
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Notification settings updated successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating notification settings',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update notification settings. Please try again.'
+                });
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text(originalText);
+            }
+        });
+    });
+
+    // Handle flash messages
+    const flashMessages = JSON.parse($('#flash-messages').attr('data-messages') || '[]');
+    flashMessages.forEach(function(message) {
+        const [category, text] = message;
+        Swal.fire({
+            icon: category === 'success' ? 'success' : 'error',
+            title: text,
+            showConfirmButton: false,
+            timer: 3000
+        });
+    });
+
+    // Reset forms
+    $('#cancel-status').click(function() {
+        editingStatus = null;
+        $('#status-form')[0].reset();
+        $('#status-form button[type="submit"]').text('Save Status');
+    });
+
+    $('#cancel-priority').click(function() {
+        editingPriority = null;
+        $('#priority-form')[0].reset();
+        $('#priority-form button[type="submit"]').text('Save Priority');
+    });
+});
+
+// Danger zone functions
+function archiveProject() {
+    Swal.fire({
+        title: 'Archive Project?',
+        text: 'Are you sure you want to archive this project?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, archive it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{{ url_for('projects.api.archive_project', project_id=project.id) }}",
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Project archived successfully',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(function() {
+                            window.location.href = "{{ url_for('projects.index') }}";
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error archiving project',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to archive project. Please try again.'
+                    });
+                }
+            });
+        }
+    });
+}
+
+function deleteProject() {
+    Swal.fire({
+        title: 'Delete Project?',
+        text: 'This action cannot be undone!',
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{{ url_for('projects.api.delete_project', project_id=project.id) }}",
+                method: 'DELETE',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Project deleted successfully',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(function() {
+                            window.location.href = "{{ url_for('projects.index') }}";
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error deleting project',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to delete project. Please try again.'
+                    });
+                }
+            });
+        }
+    });
+}
+</script>
+{% endblock %}
+

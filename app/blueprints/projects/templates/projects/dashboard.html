@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+<!-- Previous HTML content remains the same until scripts block -->
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart data initialization
+var statusLabels = {{ status_labels|default([])|tojson|safe }};
+var statusData = {{ status_data|default([])|tojson|safe }};
+var priorityLabels = {{ priority_labels|default([])|tojson|safe }};
+var priorityData = {{ priority_data|default([])|tojson|safe }};
+var teamLabels = {{ team_labels|default([])|tojson|safe }};
+var teamData = {{ team_data|default([])|tojson|safe }};
+
+// Chart configurations remain the same...
+
+// Status Management
+function addStatus() {
+    $('#statusForm')[0].reset();
+    $('#statusModal').modal('show');
+}
+
+function editStatus(name) {
+    $.get("{{ url_for('projects.get_status') }}?name=" + encodeURIComponent(name), function(data) {
+        $('#statusForm input[name="name"]').val(data.name);
+        $('#statusForm select[name="color"]').val(data.color);
+        $('#statusModal').modal('show');
+    });
+}
+
+function saveStatus() {
+    var formData = new FormData($('#statusForm')[0]);
+    var data = {};
+    formData.forEach((value, key) => { data[key] = value; });
+    
+    $.ajax({
+        url: "{{ url_for('projects.save_status') }}",
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        headers: {
+            'X-CSRFToken': "{{ csrf_token() }}"
+        },
+        success: function(response) {
+            if (response.status === 'success') {
+                $('#statusModal').modal('hide');
+                location.reload();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response.message
+                });
+            }
+        }
+    });
+}
+
+function deleteStatus(name) {
+    Swal.fire({
+        title: 'Delete Status?',
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Delete'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{{ url_for('projects.delete_status') }}",
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 
+                    name: name,
+                    csrf_token: "{{ csrf_token() }}"
+                }),
+                headers: {
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        location.reload();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message
+                        });
+                    }
+                }
+            });
+        }
+    });
+}
+
+// Priority Management
+function addPriority() {
+    $('#priorityForm')[0].reset();
+    $('#priorityModal').modal('show');
+}
+
+function editPriority(name) {
+    $.get("{{ url_for('projects.get_priority') }}?name=" + encodeURIComponent(name), function(data) {
+        $('#priorityForm input[name="name"]').val(data.name);
+        $('#priorityForm select[name="color"]').val(data.color);
+        $('#priorityModal').modal('show');
+    });
+}
+
+function savePriority() {
+    var formData = new FormData($('#priorityForm')[0]);
+    var data = {};
+    formData.forEach((value, key) => { data[key] = value; });
+    
+    $.ajax({
+        url: "{{ url_for('projects.save_priority') }}",
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        headers: {
+            'X-CSRFToken': "{{ csrf_token() }}"
+        },
+        success: function(response) {
+            if (response.status === 'success') {
+                $('#priorityModal').modal('hide');
+                location.reload();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response.message
+                });
+            }
+        }
+    });
+}
+
+function deletePriority(name) {
+    Swal.fire({
+        title: 'Delete Priority?',
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Delete'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{{ url_for('projects.delete_priority') }}",
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 
+                    name: name,
+                    csrf_token: "{{ csrf_token() }}"
+                }),
+                headers: {
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        location.reload();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message
+                        });
+                    }
+                }
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

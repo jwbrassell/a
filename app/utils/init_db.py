@@ -1,81 +1,149 @@
+"""Database initialization utilities."""
+
+from flask import current_app
 from app.extensions import db
-from app.models import User, Role, UserPreference
-from werkzeug.security import generate_password_hash
+import logging
+from sqlalchemy.exc import OperationalError
 
-def init_roles_and_users():
-    """Initialize default roles and users."""
-    # Create default roles if they don't exist
-    admin_role = Role.query.filter_by(name='admin').first()
-    if not admin_role:
-        admin_role = Role(
-            name='admin',
-            notes='Administrator role with full access',
-            icon='fa-user-shield',
-            created_by='system'
-        )
-        db.session.add(admin_role)
+logger = logging.getLogger(__name__)
 
-    demo_role = Role.query.filter_by(name='demo').first()
-    if not demo_role:
-        demo_role = Role(
-            name='demo',
-            notes='Demo user role',
-            icon='fa-user',
-            created_by='system'
-        )
-        db.session.add(demo_role)
-
-    # Create default users if they don't exist
-    admin_user = User.query.filter_by(username='admin').first()
-    if not admin_user:
-        admin_user = User(
-            username='admin',
-            employee_number='ADMIN001',
-            name='Administrator',
-            email='admin@example.com',
-            vzid='admin',
-            roles=[admin_role],
-            password='admin123'
-        )
-        admin_user.set_password('admin123')
-        db.session.add(admin_user)
-
-    demo_user = User.query.filter_by(username='user').first()
-    if not demo_user:
-        demo_user = User(
-            username='user',
-            employee_number='USER001',
-            name='Demo User',
-            email='user@example.com',
-            vzid='user',
-            roles=[demo_role],
-            password='user123'
-        )
-        demo_user.set_password('user123')
-        db.session.add(demo_user)
-
+def init_roles():
+    """Initialize default roles if they don't exist."""
     try:
+        from app.models.role import Role
+
+        # Check if Admin role exists
+        admin_role = Role.query.filter_by(name='Administrator').first()
+        if not admin_role:
+            logger.info("Creating Administrator role")
+            admin_role = Role(
+                name='Administrator',
+                description='Full system access',
+                is_system_role=True,
+                created_by='system'  # Set created_by field
+            )
+            db.session.add(admin_role)
+
+        # Check if Manager role exists
+        manager_role = Role.query.filter_by(name='Manager').first()
+        if not manager_role:
+            logger.info("Creating Manager role")
+            manager_role = Role(
+                name='Manager',
+                description='Project management access',
+                is_system_role=True,
+                created_by='system'  # Set created_by field
+            )
+            db.session.add(manager_role)
+
+        # Check if User role exists
+        user_role = Role.query.filter_by(name='User').first()
+        if not user_role:
+            logger.info("Creating User role")
+            user_role = Role(
+                name='User',
+                description='Basic user access',
+                is_system_role=True,
+                created_by='system'  # Set created_by field
+            )
+            db.session.add(user_role)
+
         db.session.commit()
-        print("Successfully initialized default roles and users")
-        
-        # Initialize user preferences for existing users
-        for user in User.query.all():
-            # Initialize default preferences as individual key-value pairs
-            default_preferences = {
-                'theme': 'light',
-                'notifications': 'true',
-                'language': 'en'
-            }
-            
-            # Create individual preference entries
-            for key, value in default_preferences.items():
-                if not UserPreference.query.filter_by(user_id=user.id, key=key).first():
-                    pref = UserPreference(user_id=user.id, key=key, value=str(value))
-                    db.session.add(pref)
-        
-        db.session.commit()
-        print("Successfully initialized user preferences")
-        
+        logger.info("Default roles initialized successfully")
+        return True
     except Exception as e:
         db.session.rollback()
-        print(f"Error initializing defaults: {str(e)}")
+        logger.error(f"Error initializing roles: {str(e)}")
+        return False
+
+def init_project_status():
+    """Initialize default project statuses if they don't exist."""
+    try:
+        from app.blueprints.projects.models import ProjectStatus
+
+        # Check if table exists first
+        try:
+            if not ProjectStatus.query.first():
+                logger.info("Creating default project statuses")
+                statuses = [
+                    ('Not Started', '#dc3545'),  # Red
+                    ('In Progress', '#ffc107'),  # Yellow
+                    ('On Hold', '#6c757d'),      # Gray
+                    ('Completed', '#28a745'),    # Green
+                    ('Cancelled', '#343a40')     # Dark
+                ]
+                for name, color in statuses:
+                    status = ProjectStatus(
+                        name=name,
+                        color=color,
+                        created_by='system'
+                    )
+                    db.session.add(status)
+                db.session.commit()
+                logger.info("Default project statuses created")
+        except OperationalError:
+            logger.info("Project status table does not exist yet")
+            return True
+        return True
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error initializing project statuses: {str(e)}")
+        return False
+
+def init_project_priorities():
+    """Initialize default project priorities if they don't exist."""
+    try:
+        from app.blueprints.projects.models import ProjectPriority
+
+        # Check if table exists first
+        try:
+            if not ProjectPriority.query.first():
+                logger.info("Creating default project priorities")
+                priorities = [
+                    ('Low', '#28a745'),      # Green
+                    ('Medium', '#ffc107'),   # Yellow
+                    ('High', '#dc3545'),     # Red
+                    ('Critical', '#9c27b0')  # Purple
+                ]
+                for name, color in priorities:
+                    priority = ProjectPriority(
+                        name=name,
+                        color=color,
+                        created_by='system'
+                    )
+                    db.session.add(priority)
+                db.session.commit()
+                logger.info("Default project priorities created")
+        except OperationalError:
+            logger.info("Project priority table does not exist yet")
+            return True
+        return True
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error initializing project priorities: {str(e)}")
+        return False
+
+def init_database():
+    """Initialize database with required data."""
+    try:
+        with current_app.app_context():
+            # Initialize roles first since other parts depend on it
+            if not init_roles():
+                logger.error("Failed to initialize roles")
+                return False
+                
+            # Initialize project statuses
+            if not init_project_status():
+                logger.error("Failed to initialize project statuses")
+                return False
+                
+            # Initialize project priorities
+            if not init_project_priorities():
+                logger.error("Failed to initialize project priorities")
+                return False
+                
+            logger.info("Database initialized successfully")
+            return True
+    except Exception as e:
+        logger.error(f"Error initializing database: {str(e)}")
+        return False

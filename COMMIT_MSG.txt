@@ -1,18 +1,12 @@
-fix: oncall auto-schedule upload template mismatch
+Refactor projects blueprint and fix route initialization
 
-Fixed issue with oncall auto-schedule upload where template requirements didn't match the selected mode:
+- Restructured projects blueprint to match oncall blueprint pattern
+  - Consolidated all routes into a single routes.py file
+  - Simplified blueprint's __init__.py
+  - Removed old route files structure
 
-- Added separate template download links for manual and auto-generate modes
-- Updated auto_generate checkbox handler to toggle visibility of appropriate template
-- Ensured auto_generate parameter is properly set as 'true'/'false' in form data
-- Added template visibility reset when upload modal is closed
+- Fixed dispatch and handoff route initialization
+  - Updated role name from 'admin' to 'Administrator' in add_dispatch_routes.py
+  - Updated role name from 'admin' to 'Administrator' in add_handoff_routes.py
 
-Manual mode:
-- Shows template with week, name, phone columns
-- Requires all three columns in CSV
-
-Auto-generate mode:
-- Shows template with only name, phone columns
-- Only requires these two columns for fair schedule generation
-
-This prevents the "Missing required fields" error when using auto-generate mode with the correct template.
+These changes improve code organization and fix route registration issues.

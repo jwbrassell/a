@@ -7,7 +7,7 @@ from app.models.permission import Permission
 def add_dispatch_routes():
     """Add dispatch routes to navigation."""
     # Get admin role
-    admin_role = Role.query.filter_by(name='admin').first()
+    admin_role = Role.query.filter_by(name='Administrator').first()
     if not admin_role:
         print("Error: Admin role not found")
         return False

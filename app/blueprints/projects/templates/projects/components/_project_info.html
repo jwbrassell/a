@@ -1,0 +1,240 @@
+<!-- Project Info Card -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="card-title">Project Info</h3>
+    </div>
+    <div class="card-body">
+        <!-- Status -->
+        <div class="form-group mb-3">
+            <label>Status</label>
+            {% if readonly %}
+                <div class="text-muted">
+                    <span class="badge bg-{{ project.status_class }}">{{ project.status|title }}</span>
+                </div>
+            {% else %}
+                <select class="select2" id="project-status" name="status">
+                    {% for status in statuses %}
+                    <option value="{{ status.name }}" data-color="{{ status.color }}" {% if project.status == status.name %}selected{% endif %}>
+                        {{ status.name|title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <!-- Lead -->
+        <div class="form-group mb-3">
+            <label>Lead</label>
+            {% if readonly %}
+                <div class="text-muted">{{ project.lead.username if project.lead else 'Unassigned' }}</div>
+            {% else %}
+                <select class="form-select" id="project-lead" name="lead_id">
+                    <option value="">Unassigned</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if project.lead and project.lead.id == user.id %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <!-- Priority -->
+        <div class="form-group mb-3">
+            <label>Priority</label>
+            {% if readonly %}
+                <div class="text-muted">
+                    <span class="badge bg-{{ project.priority_class }}">{{ project.priority|title }}</span>
+                </div>
+            {% else %}
+                <select class="select2" id="project-priority" name="priority">
+                    {% for priority in priorities %}
+                    <option value="{{ priority.name }}" data-color="{{ priority.color }}" {% if project.priority == priority.name %}selected{% endif %}>
+                        {{ priority.name|title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <!-- Project Icon -->
+        <div class="form-group mb-4">
+            <label>Project Icon</label>
+            <div class="icon-select" {% if not readonly %}onclick="projectModule.openIconPicker()"{% endif %}>
+                <i id="icon-preview" class="{{ project.icon or 'fas fa-project-diagram' }}"></i>
+                <input type="hidden" id="project-icon" name="icon" value="{{ project.icon or 'fas fa-project-diagram' }}">
+            </div>
+        </div>
+
+        <!-- Timestamps -->
+        <div class="mb-3">
+            <label class="d-block mb-1">Last Updated</label>
+            <div class="text-muted" id="last-saved">{{ project.updated_at|datetime }}</div>
+        </div>
+        <div class="mb-4">
+            <label class="d-block mb-1">Created</label>
+            <div class="text-muted">{{ project.created_at|datetime }}</div>
+        </div>
+
+        <!-- Private Project Toggle -->
+        <div class="form-group mb-4">
+            <div class="d-flex align-items-center mb-2">
+                <label class="mb-0 me-2">Private Project</label>
+                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                   title="When enabled, this project will only be visible to you. Note: Admins and management may still access it if needed."></i>
+            </div>
+            {% if readonly %}
+                <div class="text-muted">{{ 'Yes' if project.is_private else 'No' }}</div>
+            {% else %}
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="project-private" name="is_private"
+                           {% if project.is_private %}checked{% endif %}>
+                    <label class="form-check-label" for="project-private">Make this project private</label>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Dynamic sections that hide when project is private -->
+        <div id="public-project-sections" {% if project.is_private %}style="display: none;"{% endif %}>
+            <!-- Watchers -->
+            <div class="form-group mb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <label class="mb-0 me-2">Watchers</label>
+                    <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                       title="Users who will receive updates about this project"></i>
+                </div>
+                {% if readonly %}
+                    <div class="text-muted">{{ ', '.join(project.watchers|map(attribute='username')) if project.watchers else 'None' }}</div>
+                {% else %}
+                    <select class="form-select" id="project-watchers" name="watchers" multiple>
+                        {% for user in users %}
+                        <option value="{{ user.id }}" {% if user in project.watchers %}selected{% endif %}>
+                            {{ user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+            </div>
+
+            <!-- Project Roles -->
+            <div class="form-group mb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <label class="mb-0 me-2">Project Roles</label>
+                    <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                       title="Assign roles to control access to this project"></i>
+                </div>
+                {% if readonly %}
+                    <div class="text-muted">{{ ', '.join(project.roles|map(attribute='name')) if project.roles else 'None' }}</div>
+                {% else %}
+                    <select class="form-select" id="project-role" name="roles" multiple>
+                        {% for role in current_user.roles %}
+                        <option value="{{ role.name }}" {% if role in project.roles %}selected{% endif %}>
+                            {{ role.name|title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Shareholders -->
+        <div class="form-group mb-3">
+            <div class="d-flex align-items-center mb-2">
+                <label class="mb-0 me-2">Shareholders</label>
+                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                   title="Users who have a stake in this project's success"></i>
+            </div>
+            {% if readonly %}
+                <div class="text-muted">{{ ', '.join(project.shareholders|map(attribute='username')) if project.shareholders else 'None' }}</div>
+            {% else %}
+                <select class="form-select" id="project-shareholders" name="shareholders" multiple>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if user in project.shareholders %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <!-- Stakeholders -->
+        <div class="form-group mb-3">
+            <div class="d-flex align-items-center mb-2">
+                <label class="mb-0 me-2">Stakeholders</label>
+                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" 
+                   title="Key decision makers and influencers in the project"></i>
+            </div>
+            {% if readonly %}
+                <div class="text-muted">{{ ', '.join(project.stakeholders|map(attribute='username')) if project.stakeholders else 'None' }}</div>
+            {% else %}
+                <select class="form-select" id="project-stakeholders" name="stakeholders" multiple>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if user in project.stakeholders %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if not readonly %}
+<style>
+/* Icon picker styles */
+.icon-option {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.icon-option:hover {
+    background-color: var(--bs-secondary-bg);
+    transform: scale(1.05);
+}
+.icon-option i {
+    transition: all 0.2s ease;
+}
+.icon-option:hover i {
+    color: var(--bs-primary);
+}
+
+/* Icon select styles */
+.icon-select {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.icon-select:hover {
+    background-color: var(--bs-secondary-bg);
+}
+.icon-select i {
+    font-size: 1.5rem;
+}
+
+/* Info icon styles */
+.fa-info-circle {
+    font-size: 0.875rem;
+    cursor: help;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Handle private project toggle
+    $('#project-private').on('change', function() {
+        const isPrivate = $(this).prop('checked');
+        $('#public-project-sections').toggle(!isPrivate);
+    });
+});
+</script>
+{% endif %}
