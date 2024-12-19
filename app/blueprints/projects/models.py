@@ -144,7 +144,17 @@ class Project(db.Model):
     def priority_class(self):
         """Return Bootstrap class based on priority"""
         priority = self.priority_obj
-        return priority.color if priority else 'secondary'
+        return priority.color if priority else 'info'
+
+    @property
+    def status_color(self):
+        """Return color based on status"""
+        return self.status_class
+
+    @property
+    def priority_color(self):
+        """Return color based on priority"""
+        return self.priority_class
     
     def to_dict(self):
         return {
@@ -163,7 +173,12 @@ class Project(db.Model):
             'roles': [role.name for role in self.roles],
             'is_private': self.is_private,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'status_color': self.status_color,
+            'priority_color': self.priority_color,
+            'notify_task_created': self.notify_task_created,
+            'notify_task_completed': self.notify_task_completed,
+            'notify_comments': self.notify_comments
         }
 
 class Task(db.Model):

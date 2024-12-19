@@ -73,15 +73,7 @@ def create_app(config_class=Config):
         else:
             app.logger.error("Failed to initialize database")
 
-    # Initialize routes
-    from app.routes import init_routes
-    init_routes(app)
-
-    # Initialize profile module
-    from app.routes.profile import init_profile
-    init_profile(app)
-
-    # Initialize projects blueprint
+    # Initialize projects blueprint first
     with app.app_context():
         try:
             from app.blueprints.projects import init_app as init_projects
@@ -91,6 +83,14 @@ def create_app(config_class=Config):
                 app.logger.warning("Failed to initialize projects blueprint")
         except Exception as e:
             app.logger.error(f"Error initializing projects blueprint: {e}")
+
+    # Initialize routes
+    from app.routes import init_routes
+    init_routes(app)
+
+    # Initialize profile module
+    from app.routes.profile import init_profile
+    init_profile(app)
 
     # Initialize dispatch routes
     with app.app_context():

@@ -1,12 +1,12 @@
-Refactor projects blueprint and fix route initialization
+fix: Project creation error handling and status/priority colors
 
-- Restructured projects blueprint to match oncall blueprint pattern
-  - Consolidated all routes into a single routes.py file
-  - Simplified blueprint's __init__.py
-  - Removed old route files structure
+- Added proper error handling for missing or invalid status/priority values in create_project route
+- Updated Project model to include status_color and priority_color properties
+- Added default status and priority initialization in EmptyProject class
+- Modified project templates to use correct color properties for status and priority badges
+- Added Select2 initialization in project.js to display status/priority badges with correct colors
+- Added validation to ensure status and priority values exist in database
+- Added fallback to default values if status or priority not provided
+- Updated Project.to_dict() to include status_color and priority_color properties
 
-- Fixed dispatch and handoff route initialization
-  - Updated role name from 'admin' to 'Administrator' in add_dispatch_routes.py
-  - Updated role name from 'admin' to 'Administrator' in add_handoff_routes.py
-
-These changes improve code organization and fix route registration issues.
+This fixes the issue where project creation would fail when trying to serialize the EmptyProject class instance. The changes ensure that status and priority colors are properly handled throughout the application, from creation to display.

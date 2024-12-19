@@ -12,47 +12,54 @@
             </tr>
         </thead>
         <tbody>
-            {% for task in project.tasks if not task.parent_id %}
-            <tr data-task-id="{{ task.id }}">
-                <td>{{ task.name }}</td>
-                <td>
-                    <div class="rich-text-content" title="{{ task.description|striptags if task.description }}">
-                        {{ task.summary if task.summary else (task.description|striptags|truncate(50) if task.description) }}
-                    </div>
-                </td>
-                <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
-                <td>
-                    <span class="badge bg-{{ task.status.color if task.status else 'secondary' }} status-badge">
-                        {{ task.status.name|title if task.status else 'No Status' }}
-                    </span>
-                </td>
-                <td>
-                    <span class="badge bg-{{ task.priority.color if task.priority else 'secondary' }} priority-badge">
-                        {{ task.priority.name|title if task.priority else 'No Priority' }}
-                    </span>
-                </td>
-                <td>{{ task.due_date|datetime if task.due_date }}</td>
-                <td>
-                    <div class="btn-group">
-                        <a href="{{ url_for('projects.view_task', task_id=task.id) }}" 
-                           class="btn btn-sm btn-info" title="View Task">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        {% if not readonly %}
-                        <a href="{{ url_for('projects.edit_task', task_id=task.id) }}" 
-                           class="btn btn-sm btn-primary" title="Edit Task">
-                            <i class="fas fa-pencil-alt"></i>
-                        </a>
-                        <button type="button" class="btn btn-sm btn-danger delete-task" 
-                                title="Delete Task"
-                                data-task-id="{{ task.id }}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
+            {% if project.tasks %}
+                {% for task in project.tasks if not task.parent_id %}
+                <tr data-task-id="{{ task.id }}">
+                    <td>{{ task.name }}</td>
+                    <td>
+                        <div class="rich-text-content" title="{{ task.description|striptags if task.description }}">
+                            {{ task.summary if task.summary else (task.description|striptags|truncate(50) if task.description) }}
+                        </div>
+                    </td>
+                    <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
+                    <td>
+                        <span class="badge bg-{{ task.status.color if task.status else 'secondary' }} status-badge">
+                            {{ task.status.name|title if task.status else 'No Status' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ task.priority.color if task.priority else 'secondary' }} priority-badge">
+                            {{ task.priority.name|title if task.priority else 'No Priority' }}
+                        </span>
+                    </td>
+                    <td>{{ task.due_date|datetime if task.due_date }}</td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="{{ url_for('projects.view_task', task_id=task.id) }}" 
+                               class="btn btn-sm btn-info" title="View Task">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if not readonly %}
+                            <a href="{{ url_for('projects.edit_task', task_id=task.id) }}" 
+                               class="btn btn-sm btn-primary" title="Edit Task">
+                                <i class="fas fa-pencil-alt"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger delete-task" 
+                                    title="Delete Task"
+                                    data-task-id="{{ task.id }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+            {% if not project.tasks or project.tasks|length == 0 %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted">No tasks found</td>
+                </tr>
+            {% endif %}
         </tbody>
     </table>
 </div>

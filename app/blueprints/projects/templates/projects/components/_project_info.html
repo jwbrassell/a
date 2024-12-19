@@ -9,7 +9,7 @@
             <label>Status</label>
             {% if readonly %}
                 <div class="text-muted">
-                    <span class="badge bg-{{ project.status_class }}">{{ project.status|title }}</span>
+                    <span class="badge bg-{{ project.status_class }}">{{ project.status|default('Not Started')|title }}</span>
                 </div>
             {% else %}
                 <select class="select2" id="project-status" name="status">
@@ -44,7 +44,7 @@
             <label>Priority</label>
             {% if readonly %}
                 <div class="text-muted">
-                    <span class="badge bg-{{ project.priority_class }}">{{ project.priority|title }}</span>
+                    <span class="badge bg-{{ project.priority_class }}">{{ project.priority|default('Medium')|title }}</span>
                 </div>
             {% else %}
                 <select class="select2" id="project-priority" name="priority">
@@ -61,19 +61,19 @@
         <div class="form-group mb-4">
             <label>Project Icon</label>
             <div class="icon-select" {% if not readonly %}onclick="projectModule.openIconPicker()"{% endif %}>
-                <i id="icon-preview" class="{{ project.icon or 'fas fa-project-diagram' }}"></i>
-                <input type="hidden" id="project-icon" name="icon" value="{{ project.icon or 'fas fa-project-diagram' }}">
+                <i id="icon-preview" class="{{ project.icon|default('fas fa-project-diagram') }}"></i>
+                <input type="hidden" id="project-icon" name="icon" value="{{ project.icon|default('fas fa-project-diagram') }}">
             </div>
         </div>
 
         <!-- Timestamps -->
         <div class="mb-3">
             <label class="d-block mb-1">Last Updated</label>
-            <div class="text-muted" id="last-saved">{{ project.updated_at|datetime }}</div>
+            <div class="text-muted" id="last-saved">{{ project.updated_at|datetime|default('Not yet saved') }}</div>
         </div>
         <div class="mb-4">
             <label class="d-block mb-1">Created</label>
-            <div class="text-muted">{{ project.created_at|datetime }}</div>
+            <div class="text-muted">{{ project.created_at|datetime|default('Not yet created') }}</div>
         </div>
 
         <!-- Private Project Toggle -->

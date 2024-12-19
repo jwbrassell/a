@@ -24,7 +24,7 @@ def check_route_access():
         return True
 
     # Admin users always have access to everything
-    if any(role.name == 'admin' for role in current_user.roles):
+    if any(role.name == 'Administrator' for role in current_user.roles):
         return True
         
     try:
@@ -77,7 +77,7 @@ def requires_roles(*role_names):
                 return current_app.login_manager.unauthorized()
 
             # Admin users always have access
-            if any(role.name == 'admin' for role in current_user.roles):
+            if any(role.name == 'Administrator' for role in current_user.roles):
                 return f(*args, **kwargs)
                 
             # Get the set of user's role names
@@ -107,7 +107,7 @@ def get_user_accessible_routes():
         mappings = PageRouteMapping.query.order_by(PageRouteMapping.weight).all()
 
         # Admin users can access all routes
-        if any(role.name == 'admin' for role in current_user.roles):
+        if any(role.name == 'Administrator' for role in current_user.roles):
             return [m for m in mappings if route_to_endpoint(m.route)]
         
         # Get the set of user's role names
