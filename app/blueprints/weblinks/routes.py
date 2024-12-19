@@ -1,19 +1,155 @@
-from flask import render_template, request, jsonify, flash, redirect, url_for, current_app
+from flask import render_template, request, jsonify, flash, redirect, url_for, current_app, send_file
 from flask_login import current_user, login_required
 from app.extensions import db, cache
 from app.utils.rbac import requires_roles
-from .models import WebLink, Tag, WebLinkHistory
+from .models import WebLink, Tag, WebLinkHistory, weblink_tags
 import json
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from sqlalchemy.exc import OperationalError
 import os
 import re
 from . import bp
+import csv
+from io import StringIO, BytesIO
 
 @bp.route('/')
 @login_required
 def index():
     return render_template('weblinks/index.html')
+
+@bp.route('/admin')
+@login_required
+@requires_roles('admin')
+def admin():
+    return render_template('weblinks/admin.html')
+
+@bp.route('/admin/stats')
+@login_required
+@requires_roles('admin')
+def get_stats():
+    # Get basic stats
+    total_links = WebLink.query.count()
+    total_clicks = db.session.query(func.sum(WebLink.click_count)).scalar() or 0
+    total_tags = Tag.query.count()
+    
+    # Get popular links
+    popular_links = WebLink.query.order_by(desc(WebLink.click_count)).limit(10).all()
+    
+    # Get tags distribution
+    tags_distribution = db.session.query(
+        Tag,
+        func.count(weblink_tags.c.weblink_id).label('count')
+    ).join(
+        weblink_tags
+    ).group_by(
+        Tag
+    ).all()
+    
+    return jsonify({
+        'total_links': total_links,
+        'total_clicks': total_clicks,
+        'total_tags': total_tags,
+        'popular_links': [{
+            'title': link.title,
+            'clicks': link.click_count
+        } for link in popular_links],
+        'tags_distribution': [{
+            'name': tag.name,
+            'count': count
+        } for tag, count in tags_distribution]
+    })
+
+@bp.route('/admin/template')
+@login_required
+@requires_roles('admin')
+def download_template():
+    # Create CSV template
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['url', 'title', 'description', 'icon', 'tags'])
+    writer.writerow(['https://example.com', 'Example Title', 'Description here', 'fas fa-link', 'tag1,tag2'])
+    
+    # Convert to bytes for send_file
+    bytes_output = BytesIO()
+    bytes_output.write(output.getvalue().encode('utf-8'))
+    bytes_output.seek(0)
+    
+    return send_file(
+        bytes_output,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='weblinks_template.csv'
+    )
+
+@bp.route('/admin/bulk-upload', methods=['POST'])
+@login_required
+@requires_roles('admin')
+def bulk_upload():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'})
+    
+    file = request.files['file']
+    if not file.filename.endswith('.csv'):
+        return jsonify({'success': False, 'error': 'File must be CSV'})
+    
+    try:
+        # Read CSV file
+        stream = StringIO(file.stream.read().decode("UTF8"), newline=None)
+        csv_reader = csv.DictReader(stream)
+        
+        for row in csv_reader:
+            # Check for required fields
+            if not row.get('url') or not row.get('title'):
+                continue
+                
+            # Create or update link
+            link = WebLink.query.filter_by(url=row['url']).first()
+            if not link:
+                link = WebLink(
+                    url=row['url'],
+                    title=row['title'],
+                    description=row.get('description', ''),
+                    icon=row.get('icon', 'fas fa-link'),
+                    created_by=current_user.id
+                )
+                db.session.add(link)
+            
+            # Handle tags
+            if row.get('tags'):
+                tags = [t.strip() for t in row['tags'].split(',')]
+                for tag_name in tags:
+                    tag = Tag.query.filter_by(name=tag_name).first()
+                    if not tag:
+                        tag = Tag(name=tag_name)
+                        db.session.add(tag)
+                    if tag not in link.tags:
+                        link.tags.append(tag)
+        
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+@bp.route('/admin/bulk-tags', methods=['POST'])
+@login_required
+@requires_roles('admin')
+def bulk_tags():
+    data = request.json
+    if not data or 'tags' not in data:
+        return jsonify({'success': False, 'error': 'No tags provided'})
+    
+    try:
+        for tag_name in data['tags']:
+            if not Tag.query.filter_by(name=tag_name).first():
+                tag = Tag(name=tag_name)
+                db.session.add(tag)
+        
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
 
 @bp.route('/get_links')
 @login_required

@@ -57,9 +57,30 @@ function initializeTagSelect() {
     });
 }
 
+// Create Link Card
+function createLinkCard(link) {
+    return `
+        <div class="col d-flex justify-content-center align-items-center">
+            <a href="${link.url}" target="_blank" class="info-box" onclick="recordClick(${link.id})" title="${link.title}">
+                <div class="info-box-content">
+                    <div class="info-box-icon bg-info elevation-1">
+                        <i class="${link.icon || 'fas fa-link'}"></i>
+                    </div>
+                    <span class="info-box-text">${link.title}</span>
+                    ${(link.tags || []).length > 0 ? `
+                        <div class="info-box-tags">
+                            ${link.tags.map(tag => `<span class="badge bg-secondary">${tag}</span>`).join(' ')}
+                        </div>
+                    ` : ''}
+                </div>
+            </a>
+        </div>
+    `;
+}
+
 // DataTable Initialization
 function initializeDataTable() {
-    const table = $('#linksTable').DataTable({
+    return $('#linksTable').DataTable({
         ajax: {
             url: "/weblinks/get_links",
             dataSrc: ''
@@ -67,84 +88,100 @@ function initializeDataTable() {
         columns: [
             { 
                 data: 'icon',
-                width: '50px',
                 render: function(data) {
                     return `<i class="${data || 'fas fa-link'} fa-lg"></i>`;
                 }
             },
-            { 
-                data: 'title',
-                width: '15%'
-            },
+            { data: 'title' },
             { 
                 data: 'url',
-                width: '40%',
                 render: function(data) {
                     return `<a href="${data}" target="_blank">${data}</a>`;
                 }
             },
             { 
                 data: 'tags',
-                width: '20%',
                 render: function(data) {
-                    return data.map(tag => 
+                    return (data || []).map(tag => 
                         `<span class="badge bg-info">${tag}</span>`
                     ).join(' ');
                 }
             },
-            { 
-                data: 'created_by',
-                width: '10%'
-            },
+            { data: 'created_by' },
             {
                 data: null,
-                width: '100px',
                 render: function(data, type, row) {
-                    let buttons = `<button class="btn btn-sm btn-info" onclick="viewLink(${row.id})">
+                    let buttons = `<button class="btn btn-sm btn-info" onclick="viewLink(${row.id})" title="View Details">
                         <i class="fas fa-eye"></i>
                     </button>`;
                     if (hasPermission()) {
                         buttons += `
-                            <button class="btn btn-sm btn-primary ms-1" onclick="editLink(${row.id})">
+                            <button class="btn btn-sm btn-primary ms-1" onclick="editLink(${row.id})" title="Edit Link">
                                 <i class="fas fa-edit"></i>
                             </button>`;
                     }
                     return buttons;
                 }
             }
-        ],
-        dom: 'Bfrtip',
-        buttons: ['copy', 'csv', 'excel'],
-        order: [[1, 'asc']],
-        autoWidth: false,
-        scrollX: true,
-        scrollCollapse: true,
-        fixedColumns: true,
-        responsive: true
+        ]
     });
+}
 
-    // Add resize handler
-    let resizeTimeout;
-    $(window).on('resize', function() {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(function() {
-            table.columns.adjust().draw();
-        }, 150);
+// Common Links
+function loadCommonLinks() {
+    $.get("/weblinks/get_common_links", function(links) {
+        const container = $('#commonLinks');
+        container.empty();
+        links.forEach(link => {
+            container.append(createLinkCard(link));
+        });
     });
-
-    // Initial column adjustment
-    table.columns.adjust().draw();
-
-    return table;
 }
 
 // Modal Management
-let linkModal = null;
-let viewLinkModal = null;
+let currentLinkId = null;
+let lastFocusedElement = null;
 
 function initializeModals() {
-    linkModal = new bootstrap.Modal(document.getElementById('linkModal'));
-    viewLinkModal = new bootstrap.Modal(document.getElementById('viewLinkModal'));
+    const linkModalEl = document.getElementById('linkModal');
+    const viewLinkModalEl = document.getElementById('viewLinkModal');
+
+    // Initialize modals with proper focus management
+    const linkModal = new bootstrap.Modal(linkModalEl, {
+        backdrop: 'static',
+        keyboard: true
+    });
+
+    const viewLinkModal = new bootstrap.Modal(viewLinkModalEl, {
+        backdrop: 'static',
+        keyboard: true
+    });
+
+    // Store last focused element before modal opens
+    linkModalEl.addEventListener('show.bs.modal', function () {
+        lastFocusedElement = document.activeElement;
+    });
+
+    viewLinkModalEl.addEventListener('show.bs.modal', function () {
+        lastFocusedElement = document.activeElement;
+    });
+
+    // Return focus to the last focused element when modal closes
+    linkModalEl.addEventListener('hidden.bs.modal', function () {
+        if (lastFocusedElement) {
+            lastFocusedElement.focus();
+        }
+    });
+
+    viewLinkModalEl.addEventListener('hidden.bs.modal', function () {
+        if (lastFocusedElement) {
+            lastFocusedElement.focus();
+        }
+    });
+
+    // Store modal instances
+    window.linkModal = linkModal;
+    window.viewLinkModal = viewLinkModal;
 }
 
 // Edit Link
@@ -166,7 +203,7 @@ function editLink(id) {
         $('#iconPreview').attr('class', link.icon);
         
         // Set tags with proper data structure for Select2
-        const tagOptions = link.tags.map(tag => new Option(tag, tag, true, true));
+        const tagOptions = (link.tags || []).map(tag => new Option(tag, tag, true, true));
         $('#linkTags')
             .empty()
             .append(tagOptions)
@@ -199,7 +236,7 @@ function viewLink(id) {
             </div>
             <div class="mb-3">
                 <h6>Tags</h6>
-                <p>${link.tags.map(tag => 
+                <p>${(link.tags || []).map(tag => 
                     `<span class="badge bg-info">${tag}</span>`
                 ).join(' ') || 'No tags'}</p>
             </div>
@@ -269,34 +306,6 @@ function formatChanges(changes) {
     return formattedChanges;
 }
 
-// Initialize everything when document is ready
-$(document).ready(function() {
-    initializeModals();
-    initializeIconSearch();
-    initializeTagSelect();
-    window.linksTable = initializeDataTable();
-    loadCommonLinks();
-});
-
-// Common Links
-function loadCommonLinks() {
-    $.get("/weblinks/get_common_links", function(links) {
-        const container = $('#commonLinks');
-        container.empty();
-        links.forEach(link => {
-            container.append(`
-                <a href="${link.url}" target="_blank" class="common-link-card" 
-                   onclick="recordClick(${link.id})" title="${link.title}">
-                    <div class="common-link-icon-wrapper">
-                        <i class="${link.icon || 'fas fa-link'} common-link-icon"></i>
-                    </div>
-                    <div class="common-link-title">${link.title}</div>
-                </a>
-            `);
-        });
-    });
-}
-
 function recordClick(id) {
     $.post(`/weblinks/record_click/${id}`);
 }
@@ -310,6 +319,46 @@ function showAddLinkModal() {
     linkModal.show();
 }
 
+function saveLink() {
+    const data = {
+        title: $('#linkTitle').val(),
+        url: $('#linkUrl').val(),
+        description: $('#linkDescription').val(),
+        icon: $('#linkIcon').val(),
+        tags: $('#linkTags').val() || []
+    };
+
+    const url = currentLinkId ? 
+        `/weblinks/update_link/${currentLinkId}` :
+        "/weblinks/create_link";
+    
+    $.ajax({
+        url: url,
+        method: currentLinkId ? 'PUT' : 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function() {
+            linkModal.hide();
+            if (window.linksTable) {
+                window.linksTable.ajax.reload();
+            }
+            loadCommonLinks();
+        },
+        error: function(xhr) {
+            alert(xhr.responseJSON?.error || 'Error saving link');
+        }
+    });
+}
+
 function hasPermission() {
     return $('#linksTable').data('canEdit');
 }
+
+// Initialize everything when document is ready
+$(document).ready(function() {
+    initializeModals();
+    initializeIconSearch();
+    initializeTagSelect();
+    window.linksTable = initializeDataTable();
+    loadCommonLinks();
+});

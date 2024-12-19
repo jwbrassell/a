@@ -4,24 +4,18 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('weblinks.static', filename='weblinks.css') }}">
-<style>
-/* Fix datatable overflow */
-.card-body {
-    overflow-x: auto;
-}
-</style>
 {% endblock %}
 
 {% block page_content %}
 <!-- Common Links -->
 <div class="common-links">
     <h5>Common Links</h5>
-    <div id="commonLinks" class="common-links-grid">
+    <div id="commonLinks" class="d-flex flex-wrap">
         <!-- Populated dynamically -->
     </div>
 </div>
 
-<!-- Main Links Table -->
+<!-- Main Links -->
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Links</h5>
@@ -32,51 +26,49 @@
         {% endif %}
     </div>
     <div class="card-body">
-        <div class="table-responsive">
-            <table id="linksTable" class="table table-striped" data-can-edit="{{ current_user.has_permission('edit_links')|tojson }}">
-                <thead>
-                    <tr>
-                        <th>Icon</th>
-                        <th>Title</th>
-                        <th>URL</th>
-                        <th>Tags</th>
-                        <th>Created By</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Populated dynamically -->
-                </tbody>
-            </table>
-        </div>
+        <table id="linksTable" class="table" data-can-edit="{{ current_user.has_permission('edit_links')|tojson }}">
+            <thead>
+                <tr>
+                    <th>Icon</th>
+                    <th>Title</th>
+                    <th>URL</th>
+                    <th>Tags</th>
+                    <th>Created By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated dynamically -->
+            </tbody>
+        </table>
     </div>
 </div>
 
 <!-- Add/Edit Link Modal -->
-<div class="modal fade" id="linkModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<div class="modal" id="linkModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="linkModalTitle">Add Link</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="linkForm">
                     <input type="hidden" id="linkId">
                     <div class="mb-3">
-                        <label class="form-label">Title</label>
+                        <label class="form-label" for="linkTitle">Title</label>
                         <input type="text" class="form-control" id="linkTitle" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">URL</label>
+                        <label class="form-label" for="linkUrl">URL</label>
                         <input type="url" class="form-control" id="linkUrl" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Description</label>
+                        <label class="form-label" for="linkDescription">Description</label>
                         <textarea class="form-control" id="linkDescription" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Icon</label>
+                        <label class="form-label" for="linkIcon">Icon</label>
                         <div class="input-group">
                             <span class="input-group-text">
                                 <i id="iconPreview" class="fas fa-link"></i>
@@ -88,7 +80,7 @@
                         <small class="form-text text-muted">Start typing to search for icons</small>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Tags</label>
+                        <label class="form-label" for="linkTags">Tags</label>
                         <select class="form-control" id="linkTags" multiple>
                             <!-- Populated dynamically -->
                         </select>
@@ -104,12 +96,12 @@
 </div>
 
 <!-- View Link Modal -->
-<div class="modal fade" id="viewLinkModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<div class="modal" id="viewLinkModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Link Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="linkDetails">
@@ -140,10 +132,6 @@
 {% block scripts %}
 <script src="{{ url_for('weblinks.static', filename='weblinks.js') }}"></script>
 <script>
-let currentLinkId = null;
-let linkModal = null;
-let viewLinkModal = null;
-
 // Set up CSRF token for all AJAX requests
 $.ajaxSetup({
     beforeSend: function(xhr, settings) {
@@ -152,187 +140,5 @@ $.ajaxSetup({
         }
     }
 });
-
-// Initialize modals when document is ready
-$(document).ready(function() {
-    linkModal = new bootstrap.Modal(document.getElementById('linkModal'));
-    viewLinkModal = new bootstrap.Modal(document.getElementById('viewLinkModal'));
-});
-
-function showAddLinkModal() {
-    currentLinkId = null;
-    $('#linkModalTitle').text('Add Link');
-    $('#linkForm')[0].reset();
-    $('#linkTags').val(null).trigger('change');
-    $('#linkIcon').val('fas fa-link').trigger('change');
-    linkModal.show();
-}
-
-function editLink(id) {
-    currentLinkId = id;
-    $('#linkModalTitle').text('Edit Link');
-    
-    $.get(`{{ url_for('weblinks.get_link', link_id=0) }}`.replace('0', id), function(link) {
-        $('#linkTitle').val(link.title);
-        $('#linkUrl').val(link.url);
-        $('#linkDescription').val(link.description);
-        
-        // Create or select the icon option
-        let iconOption = new Option(link.icon, link.icon, true, true);
-        $('#linkIcon').empty().append(iconOption).trigger('change');
-        
-        // Create or select tag options
-        let tagOptions = link.tags.map(tag => new Option(tag, tag, true, true));
-        $('#linkTags').empty().append(tagOptions).trigger('change');
-        
-        linkModal.show();
-    });
-}
-
-function formatChanges(changes) {
-    let formattedChanges = [];
-    
-    // Handle icon changes specially since they're nested
-    if (changes.icon) {
-        const iconChange = changes.icon;
-        if (iconChange.new && iconChange.old) {
-            formattedChanges.push(`Icon changed from "${iconChange.old}" to "${iconChange.new}"`);
-        } else if (iconChange.new) {
-            formattedChanges.push(`Icon set to "${iconChange.new}"`);
-        }
-    }
-    
-    // Handle other direct changes
-    for (const [key, value] of Object.entries(changes)) {
-        if (key === 'icon') continue; // Skip icon as it's already handled
-        
-        if (typeof value === 'object' && value !== null) {
-            if (value.new && value.old) {
-                // Format arrays nicely
-                if (Array.isArray(value.new) && Array.isArray(value.old)) {
-                    formattedChanges.push(`${key.charAt(0).toUpperCase() + key.slice(1)} changed from [${value.old.join(', ')}] to [${value.new.join(', ')}]`);
-                } else {
-                    formattedChanges.push(`${key.charAt(0).toUpperCase() + key.slice(1)} changed from "${value.old}" to "${value.new}"`);
-                }
-            } else if (value.new) {
-                if (Array.isArray(value.new)) {
-                    formattedChanges.push(`${key.charAt(0).toUpperCase() + key.slice(1)} set to [${value.new.join(', ')}]`);
-                } else {
-                    formattedChanges.push(`${key.charAt(0).toUpperCase() + key.slice(1)} set to "${value.new}"`);
-                }
-            }
-        }
-    }
-    
-    return formattedChanges;
-}
-
-function viewLink(id) {
-    $.get(`{{ url_for('weblinks.get_link', link_id=0) }}`.replace('0', id), function(link) {
-        const details = $('#linkDetails');
-        details.html(`
-            <div class="mb-3">
-                <h6>Title</h6>
-                <p>${link.title}</p>
-            </div>
-            <div class="mb-3">
-                <h6>URL</h6>
-                <p><a href="${link.url}" target="_blank">${link.url}</a></p>
-            </div>
-            <div class="mb-3">
-                <h6>Description</h6>
-                <p>${link.description || 'No description'}</p>
-            </div>
-            <div class="mb-3">
-                <h6>Icon</h6>
-                <p><i class="${link.icon}"></i> ${link.icon}</p>
-            </div>
-            <div class="mb-3">
-                <h6>Tags</h6>
-                <p>${link.tags.map(tag => 
-                    `<span class="badge bg-info">${tag}</span>`
-                ).join(' ') || 'No tags'}</p>
-            </div>
-        `);
-
-        const history = $('#linkHistory');
-        history.empty();
-        link.history.forEach(entry => {
-            const changes = formatChanges(entry.changes);
-            if (changes.length > 0) {
-                history.append(`
-                    <div class="history-item">
-                        <div class="history-meta">
-                            <i class="fas fa-user"></i> ${entry.changed_by}
-                            <span class="history-date">
-                                <i class="fas fa-clock"></i> ${new Date(entry.changed_at).toLocaleString()}
-                            </span>
-                        </div>
-                        <div class="history-changes">
-                            ${changes.map(change => `<div class="history-change">${change}</div>`).join('')}
-                        </div>
-                    </div>
-                `);
-            }
-        });
-
-        viewLinkModal.show();
-    });
-}
-
-function saveLink() {
-    const data = {
-        title: $('#linkTitle').val(),
-        url: $('#linkUrl').val(),
-        description: $('#linkDescription').val(),
-        icon: $('#linkIcon').val(),
-        tags: $('#linkTags').val() || []
-    };
-
-    const url = currentLinkId ? 
-        `{{ url_for('weblinks.update_link', link_id=0) }}`.replace('0', currentLinkId) :
-        "{{ url_for('weblinks.create_link') }}";
-    
-    $.ajax({
-        url: url,
-        method: currentLinkId ? 'PUT' : 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(data),
-        success: function() {
-            linkModal.hide();
-            linksTable.ajax.reload();
-            loadCommonLinks();
-        },
-        error: function(xhr) {
-            alert(xhr.responseJSON?.error || 'Error saving link');
-        }
-    });
-}
-
-function loadCommonLinks() {
-    $.get("{{ url_for('weblinks.get_common_links') }}", function(links) {
-        const container = $('#commonLinks');
-        container.empty();
-        links.forEach(link => {
-            container.append(`
-                <a href="${link.url}" target="_blank" class="common-link-card" 
-                   onclick="recordClick(${link.id})" title="${link.title}">
-                    <div class="common-link-icon-wrapper">
-                        <i class="${link.icon || 'fas fa-link'} common-link-icon"></i>
-                    </div>
-                    <div class="common-link-title">${link.title}</div>
-                </a>
-            `);
-        });
-    });
-}
-
-function recordClick(id) {
-    $.post(`{{ url_for('weblinks.record_click', link_id=0) }}`.replace('0', id));
-}
-
-function hasPermission() {
-    return $('#linksTable').data('canEdit');
-}
 </script>
 {% endblock %}
