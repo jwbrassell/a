@@ -31,3 +31,5 @@ cryptography
 python-dateutil
 requests
 email-validator
+oracledb  # Oracle database driver
+mysql-connector-python  # MySQL database driver

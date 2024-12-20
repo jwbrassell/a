@@ -29,7 +29,7 @@ cache_manager = CacheManager()
 def init_extensions(app):
     db.init_app(app)
     login.init_app(app)
-    migrate.init_app(app)
+    migrate.init_app(app, db)  # Initialize migrate with both app and db
     csrf.init_app(app)
     session.init_app(app)
     

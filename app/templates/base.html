@@ -251,6 +251,27 @@
     {% block scripts %}{% endblock %}
     <script src="{{ url_for('static', filename='src/js/theme.js') }}"></script>
     <script>
+        // Setup CSRF token for AJAX requests
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        // Add CSRF token to all AJAX requests
+        document.addEventListener('DOMContentLoaded', function() {
+            let oldFetch = window.fetch;
+            window.fetch = function() {
+                let [resource, config] = arguments;
+                if (config === undefined) {
+                    config = {};
+                }
+                if (config.headers === undefined) {
+                    config.headers = {};
+                }
+                if (config.method === undefined || config.method.toUpperCase() !== 'GET') {
+                    config.headers['X-CSRFToken'] = csrfToken;
+                }
+                return oldFetch(resource, config);
+            };
+        });
+
         // Global AJAX loader management
         window.showAjaxLoader = function() {
             document.getElementById('ajax-loader').style.display = 'flex';

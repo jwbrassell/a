@@ -14,6 +14,10 @@ from app.models import *
 def create_app(config_class=Config):
     # Import weblinks models
     from app.blueprints.weblinks.models import WebLink, Tag, WebLinkHistory
+    # Import database reports models
+    from app.blueprints.database_reports.models import (
+        DatabaseConnection, Report, ReportTagModel, ReportHistory
+    )
 
     # Ensure correct MIME types are set
     mimetypes.add_type('text/css', '.css')
@@ -141,6 +145,17 @@ def create_app(config_class=Config):
                 app.logger.warning("Failed to initialize weblinks blueprint")
         except Exception as e:
             app.logger.error(f"Error initializing weblinks blueprint: {e}")
+
+    # Initialize database reports blueprint
+    with app.app_context():
+        try:
+            from app.utils.add_database_report_routes import add_database_report_routes
+            if add_database_report_routes():
+                app.logger.info("Database reports blueprint initialized successfully")
+            else:
+                app.logger.warning("Failed to initialize database reports blueprint")
+        except Exception as e:
+            app.logger.error(f"Error initializing database reports blueprint: {e}")
 
     # Initialize Vault policies after blueprints are registered
     with app.app_context():

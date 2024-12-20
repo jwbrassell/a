@@ -1,0 +1,276 @@
+{% extends "database_reports/base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('database_reports.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">New Report</li>
+{% endblock %}
+
+{% block database_reports_content %}
+<div class="card">
+    <div class="card-body">
+        <form id="reportForm" method="POST" class="needs-validation" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <!-- Step progress -->
+            <div class="row mb-4">
+                <div class="col">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 25%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">Step 1 of 4</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Basic Info -->
+            <div class="step" id="step1">
+                <h3 class="mb-4">Basic Information</h3>
+                
+                <div class="mb-3">
+                    <label for="title" class="form-label">Report Title</label>
+                    <input type="text" class="form-control" id="title" name="title" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="tags" class="form-label">Tags</label>
+                    <input type="text" class="form-control" id="tags" name="tags" placeholder="Enter tags separated by commas">
+                    <div class="form-text">Example: monthly, sales, inventory</div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="is_public" name="is_public">
+                        <label class="form-check-label" for="is_public">
+                            Make this report public
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Database Connection -->
+            <div class="step d-none" id="step2">
+                <h3 class="mb-4">Select Database Connection</h3>
+                
+                <div class="mb-3">
+                    <label for="connection_id" class="form-label">Database Connection</label>
+                    <select class="form-select" id="connection_id" name="connection_id" required>
+                        <option value="">Choose a connection...</option>
+                        {% for conn in connections %}
+                        <option value="{{ conn.id }}">{{ conn.name }} ({{ conn.db_type }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Step 3: SQL Query -->
+            <div class="step d-none" id="step3">
+                <h3 class="mb-4">SQL Query</h3>
+                
+                <div class="mb-3">
+                    <label for="sql_query" class="form-label">Enter your SQL query</label>
+                    <textarea class="form-control" id="sql_query" name="sql_query" rows="10" required></textarea>
+                    <div class="form-text">Enter your SQL SELECT statement. Example: SELECT id, name, created_at FROM users WHERE status = 'active'</div>
+                </div>
+
+                <button type="button" class="btn btn-outline-primary" id="testQueryBtn">
+                    Test Query
+                </button>
+            </div>
+
+            <!-- Step 4: Column Display -->
+            <div class="step d-none" id="step4">
+                <h3 class="mb-4">Column Display Settings</h3>
+                
+                <div id="columnSettings">
+                    <!-- Column settings will be populated here after query test -->
+                </div>
+            </div>
+
+            <!-- Navigation buttons -->
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-secondary" id="prevBtn" disabled>Previous</button>
+                <button type="button" class="btn btn-primary" id="nextBtn">Next</button>
+                <button type="submit" class="btn btn-success d-none" id="submitBtn">Create Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentStep = 1;
+    const totalSteps = 4;
+    let columnConfig = {};
+
+    // Step navigation
+    function showStep(step) {
+        document.querySelectorAll('.step').forEach(el => el.classList.add('d-none'));
+        const stepElement = document.querySelector(`#step${step}`);
+        if (stepElement) {
+            stepElement.classList.remove('d-none');
+            
+            // Update progress bar
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                const progress = (step / totalSteps) * 100;
+                progressBar.style.width = `${progress}%`;
+                progressBar.textContent = `Step ${step} of ${totalSteps}`;
+            }
+            
+            // Update buttons
+            const prevBtn = document.querySelector('#prevBtn');
+            const nextBtn = document.querySelector('#nextBtn');
+            const submitBtn = document.querySelector('#submitBtn');
+            
+            if (prevBtn) prevBtn.disabled = step === 1;
+            if (nextBtn) nextBtn.classList.toggle('d-none', step === totalSteps);
+            if (submitBtn) submitBtn.classList.toggle('d-none', step !== totalSteps);
+        }
+    }
+
+    const prevBtn = document.querySelector('#prevBtn');
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        });
+    }
+
+    const nextBtn = document.querySelector('#nextBtn');
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (validateStep(currentStep)) {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    showStep(currentStep);
+                }
+            }
+        });
+    }
+
+    // Step validation
+    function validateStep(step) {
+        const form = document.querySelector('#reportForm');
+        if (!form) return false;
+        
+        switch(step) {
+            case 1:
+                const titleInput = form.querySelector('#title');
+                return titleInput && titleInput.value.trim() !== '';
+            case 2:
+                const connectionInput = form.querySelector('#connection_id');
+                return connectionInput && connectionInput.value !== '';
+            case 3:
+                const queryInput = form.querySelector('#sql_query');
+                return queryInput && queryInput.value.trim() !== '';
+            case 4:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // Test Query Button
+    const testQueryBtn = document.querySelector('#testQueryBtn');
+    if (testQueryBtn) {
+        testQueryBtn.addEventListener('click', async () => {
+            const connectionId = document.querySelector('#connection_id')?.value;
+            const query = document.querySelector('#sql_query')?.value;
+            
+            if (!connectionId || !query) {
+                alert('Please select a connection and enter a query');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/database_reports/test_query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                    },
+                    body: JSON.stringify({
+                        connection_id: connectionId,
+                        query: query
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('Query test successful!');
+                    // Populate column settings
+                    const columnSettings = document.querySelector('#columnSettings');
+                    if (columnSettings && data.columns) {
+                        columnSettings.innerHTML = data.columns.map(column => `
+                            <div class="mb-3">
+                                <label class="form-label">${column}</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="column_label_${column}" 
+                                           placeholder="Display label (optional)" value="${column}">
+                                    <select class="form-select" name="column_format_${column}">
+                                        <option value="text">Text</option>
+                                        <option value="number">Number</option>
+                                        <option value="date">Date</option>
+                                        <option value="datetime">DateTime</option>
+                                        <option value="boolean">Boolean</option>
+                                    </select>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    alert(`Query test failed: ${data.message}`);
+                }
+            } catch (error) {
+                alert(`Error testing query: ${error.message}`);
+            }
+        });
+    }
+
+    // Form submission
+    const form = document.querySelector('#reportForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Gather column settings
+            const columnSettings = {};
+            document.querySelectorAll('#columnSettings .mb-3').forEach(div => {
+                const column = div.querySelector('label').textContent;
+                columnSettings[column] = {
+                    label: div.querySelector('input[type="text"]').value,
+                    format: div.querySelector('select').value
+                };
+            });
+            
+            const formData = new FormData(form);
+            formData.append('column_config', JSON.stringify(columnSettings));
+            
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    window.location.href = response.url;
+                } else {
+                    const data = await response.json();
+                    alert(`Error creating report: ${data.message}`);
+                }
+            } catch (error) {
+                alert(`Error submitting form: ${error.message}`);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
