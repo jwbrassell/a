@@ -3,6 +3,7 @@ from flask import (
     request, session, current_app
 )
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFError
 import logging
 import os
 from datetime import datetime, timedelta
@@ -76,7 +77,9 @@ def init_routes(bp):
 
             # First try local authentication for development users
             user = User.query.filter_by(username=username).first()
-            if user and user.check_password(password):
+            
+            # Only try local auth if user has a password hash set
+            if user and user.password_hash and user.check_password(password):
                 login_user(user)
                 # Set session creation time
                 session['_creation_time'] = datetime.utcnow().timestamp()
@@ -90,7 +93,7 @@ def init_routes(bp):
                 next_page = session.pop('next_page', None)
                 return redirect(next_page or url_for('main.index'))
 
-            # If local auth fails, try LDAP
+            # If local auth fails or user doesn't have password hash, try LDAP
             user_info = authenticate_ldap(username, password)
             if user_info:
                 user = User.query.filter_by(username=username).first()
@@ -177,6 +180,16 @@ def init_routes(bp):
         return render_template('ohshit.html')
 
     # Error Handlers
+    @bp.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        """Handle CSRF token errors."""
+        if current_user.is_authenticated:
+            log_activity(current_user, 'CSRF token error')
+        flash('The form has expired. Please try again.', 'error')
+        return render_template('error.html', 
+                             error_title='CSRF Token Error',
+                             error_message='The form has expired. Please try again.'), 400
+
     @bp.errorhandler(400)
     def bad_request_error(e):
         """Handle 400 Bad Request errors."""
@@ -222,3 +235,5 @@ def init_routes(bp):
         if current_user.is_authenticated:
             log_activity(current_user, f'Encountered server error: {error_msg}')
         return render_template('500.html'), 500
+
+    return bp

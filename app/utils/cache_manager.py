@@ -1,3 +1,4 @@
+"""Cache management utilities."""
 from functools import wraps
 import hashlib
 import json
@@ -11,25 +12,22 @@ from flask_caching import Cache
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Flask-Caching
-cache = Cache()
-
 class CacheManager:
     """Multi-level caching system for Flask applications."""
     
     def __init__(self, app=None):
         """Initialize cache manager with optional Flask app."""
-        self.memory_cache = None
+        self.memory_cache = Cache(config={
+            'CACHE_TYPE': 'SimpleCache',
+            'CACHE_DEFAULT_TIMEOUT': 300,
+            'CACHE_THRESHOLD': 1000
+        })
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app):
         """Initialize cache with Flask application."""
-        # Initialize memory cache
-        self.memory_cache = Cache(app, config={
-            'CACHE_TYPE': 'SimpleCache',
-            'CACHE_DEFAULT_TIMEOUT': 300
-        })
+        self.memory_cache.init_app(app)
 
     def warm_cache(self):
         """Warm up the cache with frequently accessed data."""
@@ -52,7 +50,6 @@ class CacheManager:
         """Clear all caches."""
         if self.memory_cache:
             self.memory_cache.clear()
-        cache.clear()
 
     def clear_pattern(self, pattern: str):
         """Clear all cache entries matching a pattern."""
@@ -75,12 +72,7 @@ class CacheManager:
             }
         
         return {
-            'memory_cache': memory_stats,
-            'flask_cache': {
-                'size': len(getattr(cache.cache, '_cache', {})),
-                'hits': getattr(cache.cache, '_hits', 0),
-                'misses': getattr(cache.cache, '_misses', 0)
-            }
+            'memory_cache': memory_stats
         }
 
     def update_performance_metrics(self, endpoint: str, duration: float):
@@ -130,22 +122,49 @@ class CacheManager:
                 all_metrics[endpoint] = self.memory_cache.get(key) or {}
         return all_metrics
 
+    def cached(self, timeout=300, key_prefix=''):
+        """Cache decorator for functions."""
+        def decorator(f):
+            @wraps(f)
+            def decorated_function(*args, **kwargs):
+                return self.memory_cache.cached(
+                    timeout=timeout,
+                    key_prefix=key_prefix
+                )(f)(*args, **kwargs)
+            return decorated_function
+        return decorator
+
+    def memoize(self, timeout=300):
+        """Memoization decorator for functions."""
+        def decorator(f):
+            @wraps(f)
+            def decorated_function(*args, **kwargs):
+                return self.memory_cache.memoize(
+                    timeout=timeout
+                )(f)(*args, **kwargs)
+            return decorated_function
+        return decorator
+
+    def cache_response(self, timeout=300, key_prefix=''):
+        """Cache decorator specifically for Flask view responses."""
+        def decorator(f):
+            @wraps(f)
+            def decorated_function(*args, **kwargs):
+                # Don't cache for authenticated users or POST requests
+                if request.method != 'GET' or getattr(request, 'user', None) is not None:
+                    return f(*args, **kwargs)
+
+                return self.memory_cache.cached(
+                    timeout=timeout,
+                    key_prefix=key_prefix
+                )(f)(*args, **kwargs)
+            return decorated_function
+        return decorator
+
 # Initialize cache manager
 cache_manager = CacheManager()
 
-# Use Flask-Caching's decorators directly
-cached = cache.cached
-memoize = cache.memoize
-
-def cache_response(timeout=300, key_prefix=''):
-    """Cache decorator specifically for Flask view responses."""
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # Don't cache for authenticated users or POST requests
-            if request.method != 'GET' or getattr(request, 'user', None) is not None:
-                return f(*args, **kwargs)
-
-            return cache.cached(timeout=timeout, key_prefix=key_prefix)(f)(*args, **kwargs)
-        return decorated_function
-    return decorator
+# Expose decorators at module level for convenience
+cached = cache_manager.cached
+memoize = cache_manager.memoize
+cache_response = cache_manager.cache_response

@@ -1,47 +1,13 @@
-feat(database-reports): implement database reporting system
+Fixed circular imports and improved setup process
 
-- Add database connection management
-  - Support for MySQL, Oracle, and SQLite databases
-  - Secure credential storage using Vault integration
-  - Connection testing functionality
-  - Connection activation/deactivation
-
-- Implement report creation and management
-  - SQL query builder with validation (SELECT only)
-  - Column configuration and formatting options
-  - Public/private report visibility
-  - Tag-based organization system
-  - Report version history tracking
-
-- Add database schema
-  - database_connections: store connection details
-  - database_reports: store report configurations
-  - report_tags: manage report categorization
-  - report_history: track report changes
-  - Proper indexing for performance
-  - Foreign key constraints for referential integrity
-
-- Implement security features
-  - Role-based access control
-    - manage_database_connections permission
-    - create_reports permission
-    - edit_reports permission
-    - view_reports permission
-  - SQL injection protection via parameterized queries
-  - CSRF protection on all forms
-  - Vault integration for credential management
-
-- Add UI components
-  - Connection management interface
-  - Report creation/editing forms
-  - Report viewing dashboard
-  - Tag management system
-  - Query testing interface
-  - Admin menu integration
-
-- General improvements
-  - Automatic column type detection
-  - Query result preview
-  - Report search functionality
-  - Responsive table layouts
-  - Error handling and validation
+- Fixed circular import between extensions.py and navigation_manager.py by moving NavigationManager initialization into init_extensions function
+- Updated extensions.py to properly handle Flask-WTF CSRF protection
+- Added proper cache management with cache_manager
+- Fixed CSRF token handling in base template
+- Improved error handling for CSRF errors
+- Consolidated caching setup to avoid conflicts
+- Updated setup_app.py to handle Vault initialization properly
+- Added proper error handling in setup process
+- Fixed navigation manager initialization to avoid circular dependencies
+- Added proper CSRF protection for all forms and AJAX requests
+- Improved error templates to handle CSRF errors gracefully

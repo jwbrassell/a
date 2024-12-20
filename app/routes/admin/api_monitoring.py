@@ -3,7 +3,8 @@
 from flask import jsonify, request, current_app
 from flask_login import login_required, current_user
 from app.utils.enhanced_rbac import requires_permission
-from app.extensions import cache, db
+from app.extensions import db
+from app.utils.cache_manager import cache_manager
 from app.utils.alert_service import alert_service
 from app.models.metrics import MetricAlert, Metric
 from datetime import datetime, timedelta

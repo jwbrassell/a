@@ -1,6 +1,6 @@
 from flask import render_template, request, jsonify, flash, redirect, url_for, current_app, send_file
 from flask_login import current_user, login_required
-from app.extensions import db, cache
+from app.extensions import db, cache_manager
 from app.utils.rbac import requires_roles
 from .models import WebLink, Tag, WebLinkHistory, weblink_tags
 import json
@@ -332,7 +332,7 @@ def get_tags():
     except OperationalError:
         return jsonify([])
 
-@cache.cached(timeout=3600, key_prefix='fontawesome_icons')
+@cache_manager.cached(timeout=3600, key_prefix='fontawesome_icons')
 def get_cached_fontawesome_icons():
     # Load icons from Font Awesome CSS file
     icons = []

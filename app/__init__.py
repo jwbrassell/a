@@ -7,6 +7,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 import mimetypes
+from app.extensions import login_manager
+from app.models.user import User
 
 # Import base models at module level
 from app.models import *
@@ -44,6 +46,11 @@ def create_app(config_class=Config):
     # Initialize extensions
     from app.extensions import init_extensions
     init_extensions(app)
+    
+    # Set up Flask-Login user loader
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
     
     # Initialize template filters
     from app.template_filters import init_app as init_template_filters
