@@ -1,0 +1,233 @@
+{% extends "aws/base_aws.html" %}
+
+{% block aws_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>Security Groups</h2>
+            <div class="btn-group">
+                <button class="btn btn-primary me-2" onclick="showCreateGroupModal()">
+                    <i class="fas fa-plus"></i> Create Group
+                </button>
+                <select class="form-control" id="region-filter" onchange="loadSecurityGroups()">
+                    <option value="">All Regions</option>
+                    {% for region in config.regions %}
+                    <option value="{{ region }}">{{ region }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="table-responsive">
+            <table class="table table-striped aws-table">
+                <thead>
+                    <tr>
+                        <th>Group Name</th>
+                        <th>Group ID</th>
+                        <th>Description</th>
+                        <th>VPC ID</th>
+                        <th>Region</th>
+                        <th>Rules</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- View Security Group Modal -->
+<div class="modal fade" id="securityGroupModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Security Group Details</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <dl>
+                            <dt>Name</dt>
+                            <dd id="sg-name"></dd>
+                            <dt>Group ID</dt>
+                            <dd id="sg-id"></dd>
+                            <dt>Description</dt>
+                            <dd id="sg-description"></dd>
+                            <dt>VPC ID</dt>
+                            <dd id="sg-vpc"></dd>
+                            <dt>Region</dt>
+                            <dd id="sg-region"></dd>
+                        </dl>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6>Inbound Rules</h6>
+                            <button class="btn btn-sm btn-primary" onclick="showAddRuleModal('ingress')">
+                                <i class="fas fa-plus"></i> Add Rule
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Protocol</th>
+                                        <th>Port Range</th>
+                                        <th>Source</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inbound-rules">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6>Outbound Rules</h6>
+                            <button class="btn btn-sm btn-primary" onclick="showAddRuleModal('egress')">
+                                <i class="fas fa-plus"></i> Add Rule
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Protocol</th>
+                                        <th>Port Range</th>
+                                        <th>Destination</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="outbound-rules">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteGroup()">Delete Group</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Security Group Modal -->
+<div class="modal fade" id="createGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Security Group</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createGroupForm">
+                    <div class="form-group mb-3">
+                        <label for="group-name">Name</label>
+                        <input type="text" class="form-control" id="group-name" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="group-description">Description</label>
+                        <textarea class="form-control" id="group-description" required></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="group-vpc">VPC ID</label>
+                        <input type="text" class="form-control" id="group-vpc" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="group-region">Region</label>
+                        <select class="form-control" id="group-region" required>
+                            {% for region in config.regions %}
+                            <option value="{{ region }}">{{ region }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createSecurityGroup()">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Rule Modal -->
+<div class="modal fade" id="addRuleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Security Rule</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addRuleForm">
+                    <input type="hidden" id="rule-type">
+                    <div class="form-group mb-3">
+                        <label for="rule-protocol">Protocol</label>
+                        <select class="form-control" id="rule-protocol" required onchange="updatePortFields()">
+                            <option value="-1">All</option>
+                            <option value="tcp">TCP</option>
+                            <option value="udp">UDP</option>
+                            <option value="icmp">ICMP</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3 port-range">
+                        <label>Port Range</label>
+                        <div class="row">
+                            <div class="col">
+                                <input type="number" class="form-control" id="rule-from-port" placeholder="From">
+                            </div>
+                            <div class="col">
+                                <input type="number" class="form-control" id="rule-to-port" placeholder="To">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="rule-cidr">CIDR</label>
+                        <input type="text" class="form-control" id="rule-cidr" placeholder="0.0.0.0/0" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="rule-description">Description</label>
+                        <input type="text" class="form-control" id="rule-description">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addSecurityRule()">Add Rule</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block aws_scripts %}
+<script src="{{ url_for('aws_manager.static', filename='js/security_groups.js') }}"></script>
+{% endblock %}

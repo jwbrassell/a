@@ -1,0 +1,326 @@
+{% from "macros/navigation.html" import render_nav_item, render_category %}
+<!DOCTYPE html>
+<html data-bs-theme="{% if current_user.is_authenticated %}{{ current_user.get_preference('theme', 'light') }}{% else %}light{% endif %}">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="-1">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
+    <title>{% block title %}Portal{% endblock %}</title>
+    
+    {{ get_cached_imports()|safe }}
+
+    <style>
+        #page-loader, #ajax-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+
+        #ajax-loader {
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 9998;
+        }
+
+        .dark-mode #page-loader, .dark-mode #ajax-loader {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .dark-mode #ajax-loader {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Ensure modals stay above loaders */
+        .modal {
+            z-index: 10000;
+        }
+        .modal-backdrop {
+            z-index: 9999;
+        }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed {% if current_user.is_authenticated and current_user.get_preference('theme') == 'dark' %}dark-mode{% endif %}">
+    <!-- Page Loader -->
+    <div id="page-loader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- AJAX Loader -->
+    <div id="ajax-loader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <div class="wrapper">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Navbar -->
+        <nav class="main-header navbar navbar-expand {% if current_user.is_authenticated and current_user.get_preference('theme') == 'dark' %}navbar-dark bg-dark{% else %}navbar-light navbar-white{% endif %}">
+            <!-- Left navbar -->
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" data-widget="pushmenu" href="#" role="button">
+                        <i class="fas fa-bars"></i>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Right navbar -->
+            <ul class="navbar-nav ml-auto">
+                <!-- Dark Mode Toggle -->
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="darkModeToggle" role="button">
+                        <i class="fas {% if current_user.is_authenticated and current_user.get_preference('theme') == 'dark' %}fa-sun{% else %}fa-moon{% endif %}"></i>
+                    </a>
+                </li>
+                {% if current_user.is_authenticated %}
+                <!-- User Info -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        {{ current_user.name }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% if 'profile.index'|route_exists %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('profile.index') }}">
+                                <i class="fas fa-user"></i> Profile
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('main.logout') }}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+
+        <!-- Main Sidebar -->
+        <aside class="main-sidebar sidebar-dark-primary elevation-4">
+            <!-- Brand Logo -->
+            <a href="{{ url_for('main.index') }}" class="brand-link">
+                <span class="brand-text font-weight-light">Portal</span>
+            </a>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                {% if current_user.is_authenticated %}
+                <!-- User Panel -->
+                <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                    <div class="image">
+                        <img src="{{ url_for('static', filename='images/default-avatar.png') }}" 
+                             class="img-circle elevation-2" 
+                             alt="User Avatar"
+                             style="width: 40px; height: 40px; object-fit: cover;">
+                    </div>
+                    <div class="info">
+                        {% if 'profile.index'|route_exists %}
+                            <a href="{{ url_for('profile.index') }}" class="d-block">{{ current_user.name }}</a>
+                        {% else %}
+                            <span class="d-block text-light">{{ current_user.name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Sidebar Menu -->
+                <nav class="mt-2">
+                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                        <!-- Home -->
+                        {{ render_nav_item({'route': 'main.index', 'icon': 'fa-home', 'page_name': 'Home'}) }}
+
+                        <!-- Dynamic Navigation -->
+                        {% set nav = navigation_manager.get_user_navigation() %}
+                        
+                        <!-- Categorized Routes -->
+                        {% for category in nav.categories %}
+                            {{ render_category(category) }}
+                        {% endfor %}
+
+                        <!-- Uncategorized Routes -->
+                        {% for route in nav.uncategorized %}
+                            {{ render_nav_item(route) }}
+                        {% endfor %}
+                    </ul>
+                </nav>
+
+                <!-- Bottom Fixed Section -->
+                <div class="sidebar-bottom">
+                    <div class="sidebar-divider"></div>
+                    <ul class="nav nav-pills nav-sidebar flex-column">
+                        {% if 'profile.index'|route_exists %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('profile.index') }}" class="nav-link">
+                                <i class="nav-icon fas fa-user"></i>
+                                <p>Profile</p>
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('main.logout') }}" class="nav-link">
+                                <i class="nav-icon fas fa-sign-out-alt"></i>
+                                <p>Logout</p>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </aside>
+
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Breadcrumb -->
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-12">
+                            <ol class="breadcrumb">
+                                {% block breadcrumb %}
+                                {% set breadcrumb = navigation_manager.get_breadcrumb(request.path) %}
+                                {% for item in breadcrumb %}
+                                    <li class="breadcrumb-item {% if loop.last %}active{% endif %}">
+                                        {% if item.url %}
+                                            <a href="{{ item.url }}">{{ item.name }}</a>
+                                        {% else %}
+                                            {{ item.name }}
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                                {% endblock %}
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <section class="content">
+                <div class="container-fluid">
+                    {% block page_content %}{% endblock %}
+                </div>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="float-right d-none d-sm-block">
+                <b>Version</b> 1.0.0
+            </div>
+            <strong>&copy; {{ now.year }} Portal</strong>
+        </footer>
+    </div>
+
+    {% block scripts %}{% endblock %}
+    <script src="{{ url_for('static', filename='src/js/theme.js') }}"></script>
+    <script>
+        // Setup CSRF token for AJAX requests
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        // Add CSRF token to all AJAX requests
+        document.addEventListener('DOMContentLoaded', function() {
+            let oldFetch = window.fetch;
+            window.fetch = function() {
+                let [resource, config] = arguments;
+                if (config === undefined) {
+                    config = {};
+                }
+                if (config.headers === undefined) {
+                    config.headers = {};
+                }
+                if (config.method === undefined || config.method.toUpperCase() !== 'GET') {
+                    config.headers['X-CSRFToken'] = csrfToken;
+                }
+                return oldFetch(resource, config);
+            };
+        });
+
+        // Global AJAX loader management
+        window.showAjaxLoader = function() {
+            document.getElementById('ajax-loader').style.display = 'flex';
+        };
+        
+        window.hideAjaxLoader = function() {
+            document.getElementById('ajax-loader').style.display = 'none';
+        };
+
+        // Page transition handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const pageLoader = document.getElementById('page-loader');
+            
+            // Show loader before page navigation
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('a');
+                if (target && target.href && !target.href.includes('#') && 
+                    !target.href.includes('javascript:') && 
+                    target.getAttribute('target') !== '_blank' &&
+                    !target.classList.contains('no-loader')) {
+                    pageLoader.style.display = 'flex';
+                }
+            });
+
+            // Show loader on form submissions except AJAX forms
+            document.addEventListener('submit', function(e) {
+                if (e.target.tagName === 'FORM' && !e.target.classList.contains('ajax-form')) {
+                    pageLoader.style.display = 'flex';
+                }
+            });
+
+            // Hide loader when page is fully loaded
+            window.addEventListener('load', function() {
+                pageLoader.style.display = 'none';
+            });
+
+            // Hide loader if navigation is cancelled
+            window.addEventListener('pageshow', function(e) {
+                if (e.persisted) {
+                    pageLoader.style.display = 'none';
+                }
+            });
+
+            // Add global AJAX error handler
+            window.addEventListener('unhandledrejection', function(event) {
+                hideAjaxLoader();
+                console.error('Unhandled promise rejection:', event.reason);
+            });
+        });
+    </script>
+</body>
+</html>

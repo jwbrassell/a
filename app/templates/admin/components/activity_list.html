@@ -1,0 +1,29 @@
+{% macro activity_list(activities, show_view_all=True) %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-history mr-2"></i>Recent Activity
+        </h3>
+        {% if show_view_all %}
+        <div class="card-tools">
+            <a href="{{ url_for('admin.logs') }}" class="btn btn-tool">
+                <i class="fas fa-arrow-right"></i> View All
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% for activity in activities %}
+        <div class="activity-item">
+            <div class="d-flex justify-content-between">
+                <strong>{{ activity.username }}</strong>
+                <span class="activity-time">
+                    {{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                </span>
+            </div>
+            <div>{{ activity.activity }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}

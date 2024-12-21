@@ -1,0 +1,289 @@
+{% extends "aws/base_aws.html" %}
+
+{% block aws_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>IAM Users</h2>
+            <div class="btn-group">
+                <button class="btn btn-primary me-2" onclick="showCreateUserModal()">
+                    <i class="fas fa-plus"></i> Create User
+                </button>
+                <select class="form-control" id="refresh-interval">
+                    <option value="0">Manual Refresh</option>
+                    <option value="60">Refresh every minute</option>
+                    <option value="300">Refresh every 5 minutes</option>
+                    <option value="600">Refresh every 10 minutes</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="table-responsive">
+            <table class="table table-striped aws-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>User ID</th>
+                        <th>Groups</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">User Details</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <dl>
+                            <dt>Username</dt>
+                            <dd id="user-name"></dd>
+                            <dt>User ID</dt>
+                            <dd id="user-id"></dd>
+                            <dt>ARN</dt>
+                            <dd id="user-arn"></dd>
+                            <dt>Created</dt>
+                            <dd id="user-created"></dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6>Groups</h6>
+                            <button class="btn btn-sm btn-primary" onclick="showAddGroupModal()">
+                                <i class="fas fa-plus"></i> Add to Group
+                            </button>
+                        </div>
+                        <ul id="user-groups" class="list-unstyled">
+                            <!-- Populated by JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Access Keys</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Access Key ID</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="access-keys">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6>Attached Policies</h6>
+                            <button class="btn btn-sm btn-primary" onclick="showAddPolicyModal()">
+                                <i class="fas fa-plus"></i> Attach Policy
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Policy Name</th>
+                                        <th>Policy Type</th>
+                                        <th>ARN</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-policies">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteUser(currentUsername)">Delete User</button>
+                <button type="button" class="btn btn-warning" onclick="rotateAccessKey()">
+                    <i class="fas fa-sync"></i> Rotate Access Key
+                </button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create IAM User</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createUserForm">
+                    <div class="form-group mb-3">
+                        <label for="new-username">Username</label>
+                        <input type="text" class="form-control" id="new-username" required>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="create-access-key" checked>
+                        <label class="form-check-label" for="create-access-key">
+                            Create access key
+                        </label>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="new-user-policies">Policies</label>
+                        <select class="form-control" id="new-user-policies" multiple>
+                            <!-- Populated by JavaScript -->
+                        </select>
+                        <small class="form-text text-muted">
+                            Hold Ctrl/Cmd to select multiple policies
+                        </small>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="new-user-groups">Groups</label>
+                        <select class="form-control" id="new-user-groups" multiple>
+                            <!-- Populated by JavaScript -->
+                        </select>
+                        <small class="form-text text-muted">
+                            Hold Ctrl/Cmd to select multiple groups
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createUser()">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Policy Modal -->
+<div class="modal fade" id="addPolicyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Attach Policy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <input type="text" class="form-control" id="policy-search" 
+                           placeholder="Search policies..." onkeyup="filterPolicies()">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Policy Name</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="available-policies">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Group Modal -->
+<div class="modal fade" id="addGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add to Group</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="available-groups">Select Group</label>
+                    <select class="form-control" id="available-groups">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addToGroup(document.getElementById('available-groups').value)">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Access Key Modal -->
+<div class="modal fade" id="newAccessKeyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Access Key Created</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>Important:</strong> This is the only time you'll be able to view the secret access key.
+                    Make sure to save it now.
+                </div>
+                <div class="form-group mb-3">
+                    <label>Access Key ID</label>
+                    <input type="text" class="form-control" id="new-access-key-id" readonly>
+                </div>
+                <div class="form-group mb-3">
+                    <label>Secret Access Key</label>
+                    <input type="text" class="form-control" id="new-secret-key" readonly>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="copyAccessKey()">
+                    Copy Keys
+                </button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block aws_scripts %}
+<script src="{{ url_for('aws_manager.static', filename='js/iam_users.js') }}"></script>
+{% endblock %}

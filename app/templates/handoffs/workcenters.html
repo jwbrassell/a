@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Work Centers</h1>
+            <a href="{{ url_for('handoffs.create_workcenter') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Work Center
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for workcenter in workcenters %}
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">{{ workcenter.name }}</h3>
+            </div>
+            <div class="card-body">
+                {% if workcenter.description %}
+                <p class="card-text">{{ workcenter.description }}</p>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <strong>Team Members:</strong>
+                    <ul class="list-unstyled">
+                        {% for member in workcenter.team_members %}
+                        <li>
+                            {{ member.username }}
+                            {% if member.id in workcenter.members|map(attribute='user_id')|selectattr('is_admin')|list %}
+                            <span class="badge bg-primary">Admin</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="btn-group">
+                    <a href="{{ url_for('handoffs.index', workcenter=workcenter.id) }}" class="btn btn-info">
+                        <i class="fas fa-tasks"></i> View Handoffs
+                    </a>
+                    <a href="{{ url_for('handoffs.admin_settings', workcenter=workcenter.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not workcenters %}
+<div class="alert alert-info">
+    No work centers found. Click the "Create Work Center" button to create one.
+</div>
+{% endif %}
+{% endblock %}

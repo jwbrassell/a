@@ -1,0 +1,237 @@
+{% extends 'projects/layouts/_two_column.html' %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('projects.list_projects') }}">Projects</a></li>
+<li class="breadcrumb-item active">{{ project.name }}</li>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.form-control:disabled, 
+.form-control[readonly],
+.form-select:disabled {
+    background-color: transparent;
+    border: none;
+    padding-left: 0;
+    cursor: default;
+}
+.input-group-text {
+    background-color: transparent;
+    border: none;
+}
+.input-group .btn {
+    display: none;
+}
+textarea.form-control[readonly] {
+    min-height: unset;
+    height: auto;
+}
+.todo-list {
+    min-height: unset;
+}
+.todo-item {
+    padding: 8px;
+    margin: 4px 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.history-table th {
+    background: #f8f9fa;
+}
+.direct-chat-messages {
+    height: 400px;
+    overflow-y: auto;
+}
+.direct-chat-text {
+    margin: 5px 0 0 10px;
+}
+/* Rich text content styling */
+.rich-text-content {
+    line-height: 1.6;
+}
+.rich-text-content p {
+    margin-bottom: 1rem;
+}
+.rich-text-content ul, 
+.rich-text-content ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+.rich-text-content img {
+    max-width: 100%;
+    height: auto;
+}
+.rich-text-content table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+.rich-text-content table td,
+.rich-text-content table th {
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}
+
+{% block left_column %}
+    <!-- Project Details -->
+    {% with readonly=True %}
+    {% include 'projects/components/_project_details.html' %}
+    {% endwith %}
+
+    <!-- Tasks Table -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#tasksCollapse" aria-expanded="true" aria-controls="tasksCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-tasks me-1"></i>
+                    Tasks
+                </h3>
+                <i class="fas fa-minus collapse-icon"></i>
+            </div>
+        </div>
+        <div class="collapse show" id="tasksCollapse">
+            <div class="card-body">
+                {% with readonly=not can_edit %}
+                {% include 'projects/tasks/_table.html' %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Todo List -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#todosCollapse" aria-expanded="true" aria-controls="todosCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-check-square me-1"></i>
+                    Todo List
+                </h3>
+                <i class="fas fa-minus todos-collapse-icon"></i>
+            </div>
+        </div>
+        <div class="collapse show" id="todosCollapse">
+            <div class="card-body p-0">
+                {% with readonly=True %}
+                {% include 'projects/todos/_list.html' %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="card mb-4">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#commentsCollapse" aria-expanded="false" aria-controls="commentsCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-comments me-1"></i>
+                    Comments
+                </h3>
+                <i class="fas fa-plus"></i>
+            </div>
+        </div>
+        <div class="collapse" id="commentsCollapse">
+            <div class="card-body">
+                {% with readonly=True %}
+                {% include 'projects/comments/_list.html' %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="card">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#historyCollapse" aria-expanded="false" aria-controls="historyCollapse">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-history me-1"></i>
+                    Project History
+                </h3>
+                <i class="fas fa-plus"></i>
+            </div>
+        </div>
+        <div class="collapse" id="historyCollapse">
+            <div class="card-body">
+                {% include 'projects/history/_list.html' %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block right_column %}
+    <!-- Project Info -->
+    {% with readonly=True %}
+    {% include 'projects/components/_project_info.html' %}
+    {% endwith %}
+
+    {% if can_edit %}
+    <div class="d-grid gap-2">
+        <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-primary btn-lg mb-2">
+            <i class="fas fa-edit me-1"></i> Edit Project
+        </a>
+        <button onclick="window.deleteProject({{ project.id }})" class="btn btn-danger btn-lg">
+            <i class="fas fa-trash me-1"></i> Delete Project
+        </button>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block modals %}
+<!-- Task Modal -->
+{% with readonly=not can_edit %}
+{% include 'projects/tasks/_task_modal.html' %}
+{% endwith %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+<!-- Project functionality -->
+<script src="{{ url_for('projects.static', filename='js/project.js') }}"></script>
+<script src="{{ url_for('projects.static', filename='js/comments.js') }}"></script>
+<script src="{{ url_for('projects.static', filename='js/tasks.js') }}"></script>
+<script>
+// Initialize global variables
+window.APP = {
+    projectId: Number('{{ project.id }}'),
+    currentUserId: Number('{{ current_user.id }}')
+};
+
+// Document ready handler
+document.addEventListener('DOMContentLoaded', function() {
+    // Tasks collapse functionality
+    var tasksCollapse = document.getElementById('tasksCollapse');
+    var tasksCollapseIcon = tasksCollapse.previousElementSibling.querySelector('.collapse-icon');
+    
+    tasksCollapse.addEventListener('show.bs.collapse', function() {
+        tasksCollapseIcon.classList.remove('fa-plus');
+        tasksCollapseIcon.classList.add('fa-minus');
+    });
+    
+    tasksCollapse.addEventListener('hide.bs.collapse', function() {
+        tasksCollapseIcon.classList.remove('fa-minus');
+        tasksCollapseIcon.classList.add('fa-plus');
+    });
+
+    // Todos collapse functionality
+    var todosCollapse = document.getElementById('todosCollapse');
+    var todosCollapseIcon = todosCollapse.previousElementSibling.querySelector('.todos-collapse-icon');
+    
+    todosCollapse.addEventListener('show.bs.collapse', function() {
+        todosCollapseIcon.classList.remove('fa-plus');
+        todosCollapseIcon.classList.add('fa-minus');
+    });
+    
+    todosCollapse.addEventListener('hide.bs.collapse', function() {
+        todosCollapseIcon.classList.remove('fa-minus');
+        todosCollapseIcon.classList.add('fa-plus');
+    });
+});
+</script>
+{% endblock %}

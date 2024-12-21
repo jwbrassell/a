@@ -1,0 +1,132 @@
+{% from 'admin/components/forms/form_group.html' import form_group, form_textarea, form_checkbox, form_submit %}
+
+{% macro role_form(role=None, permissions=None, action_url="") %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas {% if role %}fa-edit{% else %}fa-plus{% endif %} mr-2"></i>
+            {% if role %}Edit Role{% else %}New Role{% endif %}
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ action_url }}">
+            {{ form_group(
+                label="Role Name",
+                name="name",
+                value=role.name if role else "",
+                required=true,
+                help_text="Enter a unique name for this role"
+            ) }}
+
+            {{ form_textarea(
+                label="Description",
+                name="description",
+                value=role.description if role else "",
+                help_text="Optional: Provide a description of this role's purpose"
+            ) }}
+
+            {{ form_group(
+                label="Icon",
+                name="icon",
+                value=role.icon if role else "fa-user-shield",
+                help_text='Font Awesome icon class (e.g., "fa-user-shield")'
+            ) }}
+
+            {% if permissions %}
+            <div class="form-group">
+                <label>Permissions</label>
+                <div class="permissions-container">
+                    {% for category, perms in permissions.items() %}
+                    <div class="permission-category mb-3">
+                        <h6 class="font-weight-bold">{{ category }}</h6>
+                        <div class="row">
+                            {% for perm in perms %}
+                            <div class="col-md-6">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input" 
+                                           id="perm{{ perm.id }}" 
+                                           name="permissions[]" 
+                                           value="{{ perm.id }}"
+                                           {% if role and perm in role.permissions %}checked{% endif %}>
+                                    <label class="custom-control-label" for="perm{{ perm.id }}">
+                                        {{ perm.name }}
+                                        {% if perm.description %}
+                                        <small class="text-muted d-block">{{ perm.description }}</small>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {{ form_checkbox(
+                label="System Role",
+                name="is_system_role",
+                checked=role.is_system_role if role else false,
+                help_text="System roles have special privileges and cannot be deleted"
+            ) }}
+
+            {{ form_submit(
+                label="Save Role",
+                cancel_url=url_for('admin.roles')
+            ) }}
+        </form>
+    </div>
+</div>
+
+<style>
+.permissions-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+.permission-category {
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.custom-checkbox small {
+    font-size: 0.85rem;
+    margin-left: 1.6rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add validation for role name
+    const form = document.querySelector('form');
+    const nameInput = document.querySelector('input[name="name"]');
+
+    if (form && nameInput) {
+        form.addEventListener('submit', function(e) {
+            if (!nameInput.value.trim()) {
+                e.preventDefault();
+                alert('Role name is required!');
+                return false;
+            }
+            return true;
+        });
+    }
+
+    // Add icon preview functionality
+    const iconInput = document.querySelector('input[name="icon"]');
+    if (iconInput) {
+        const previewIcon = document.createElement('i');
+        previewIcon.className = 'fas ' + iconInput.value + ' ml-2';
+        iconInput.parentNode.appendChild(previewIcon);
+
+        iconInput.addEventListener('input', function() {
+            previewIcon.className = 'fas ' + this.value + ' ml-2';
+        });
+    }
+});
+</script>
+{% endmacro %}

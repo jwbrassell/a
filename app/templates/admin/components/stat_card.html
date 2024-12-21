@@ -1,0 +1,23 @@
+{% macro stat_card(title, value, icon, color_class, subtitle=None, progress_value=0, progress_label=None) %}
+<div class="card stat-card {{ color_class }} text-white">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="stat-value">{{ value }}</div>
+                <div class="stat-label">{{ title }}</div>
+            </div>
+            <i class="fas {{ icon }} stat-icon"></i>
+        </div>
+        {% if progress_value is not none %}
+        <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-white" style="width: {{ progress_value }}%"></div>
+        </div>
+        {% endif %}
+        {% if progress_label %}
+        <div class="mt-2">
+            <small>{{ progress_label }}</small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}

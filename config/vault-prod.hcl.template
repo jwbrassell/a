@@ -1,0 +1,129 @@
+# Production Vault Configuration Template
+# Replace values in <> brackets with your specific settings
+
+storage "file" {
+  path = "<VAULT_DATA_PATH>"
+}
+
+listener "tcp" {
+  address         = "0.0.0.0:8200"
+  tls_cert_file   = "<TLS_CERT_PATH>"
+  tls_key_file    = "<TLS_KEY_PATH>"
+  tls_min_version = "tls12"
+  
+  # Optional: Configure mutual TLS
+  tls_require_and_verify_client_cert = "false"
+  tls_client_ca_file                 = "<CLIENT_CA_PATH>"
+}
+
+# API Address
+api_addr = "https://<VAULT_API_HOSTNAME>:8200"
+
+# Cluster Address
+cluster_addr = "https://<VAULT_CLUSTER_HOSTNAME>:8201"
+
+# UI Configuration
+ui = false
+
+# Telemetry Configuration
+telemetry {
+  statsite_address = "127.0.0.1:8125"
+  disable_hostname = true
+}
+
+# Seal Configuration (if using AWS KMS)
+# seal "awskms" {
+#   region     = "<AWS_REGION>"
+#   kms_key_id = "<KMS_KEY_ID>"
+# }
+
+# Log Level
+log_level = "INFO"
+
+# Maximum lease TTL
+max_lease_ttl = "768h"    # 32 days
+
+# Default lease TTL
+default_lease_ttl = "768h" # 32 days
+
+# Disable mlock
+disable_mlock = true
+
+# Enable Raw Endpoints
+raw_storage_endpoint = false
+
+# Plugin Directory
+plugin_directory = "<PLUGIN_DIRECTORY>"
+
+# Enterprise License (if applicable)
+# license_path = "<LICENSE_PATH>"
+
+# Audit Devices
+audit_device "file" {
+  path = "/var/log/vault/audit.log"
+  
+  options = {
+    file_path = "/var/log/vault/audit.log"
+    log_raw = "false"
+    hmac_accessor = "true"
+    mode = "0600"
+  }
+}
+
+# High Availability Settings
+cluster_name = "<CLUSTER_NAME>"
+cluster_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+
+# Cache Configuration
+cache {
+  use_auth_auth_token = "true"
+}
+
+# Rate Limiting Settings
+rate_limit_stale_age = "10m"
+rate_limit_exempt_paths = ["/v1/sys/health", "/v1/sys/metrics"]
+
+# Service Registration
+service_registration "consul" {
+  address = "127.0.0.1:8500"
+  service = "vault"
+  service_tags = "prod"
+  service_address = "<SERVICE_ADDRESS>"
+}
+
+# Entropy Augmentation
+entropy {
+  mode = "augmentation"
+}
+
+# Cross-Origin Resource Sharing
+cors_enabled = false
+# cors_allowed_origins = ["https://allowed-origin.com"]
+# cors_allowed_headers = ["Content-Type", "X-Requested-With", "X-Vault-Token"]
+
+# Request Headers
+# max_request_size = 33554432
+# max_request_duration = "90s"
+
+# Replication
+# replication {
+#   resolver_discover_servers = true
+#   consistency = "strong"
+# }
+
+# Integrated Storage (if not using file storage)
+# storage "raft" {
+#   path = "/vault/data"
+#   node_id = "<NODE_ID>"
+#   retry_join {
+#     leader_api_addr = "https://<LEADER_API_ADDR>:8200"
+#   }
+# }
+
+# Performance Standby
+# performance_standby = true
+# disable_performance_standby = false
+
+# Experiments
+# disable_sealwrap = false
+# disable_printable_check = false

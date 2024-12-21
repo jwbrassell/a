@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}System Monitoring{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Monitoring</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <h1>System Monitoring Dashboard</h1>
+    </div>
+</div>
+
+<div class="content">
+    <div class="container-fluid">
+        <!-- System Metrics -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">System Resources</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div id="cpuChart" style="height: 300px;"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div id="memoryChart" style="height: 300px;"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div id="diskChart" style="height: 300px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Metrics -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Error Rate</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="errorRateChart" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Active Users</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="activeUsersChart" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Usage -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Feature Usage</h3>
+                        <div class="card-tools">
+                            <select id="featureTimeRange" class="form-control">
+                                <option value="daily">Last 24 Hours</option>
+                                <option value="weekly">Last 7 Days</option>
+                                <option value="monthly">Last 30 Days</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div id="featureUsageChart" style="height: 400px;"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div id="featureUsagePie" style="height: 400px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resource Utilization -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Resource Utilization</h3>
+                        <div class="card-tools">
+                            <select id="resourceTimeRange" class="form-control">
+                                <option value="daily">Last 24 Hours</option>
+                                <option value="weekly">Last 7 Days</option>
+                                <option value="monthly">Last 30 Days</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="resourceUtilizationChart" style="height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Initialize charts with empty data
+function initCharts() {
+    // System metrics gauges
+    Highcharts.chart('cpuChart', {
+        chart: { type: 'gauge' },
+        title: { text: 'CPU Usage' },
+        pane: {
+            startAngle: -150,
+            endAngle: 150
+        },
+        yAxis: {
+            min: 0,
+            max: 100,
+            title: { text: '%' }
+        },
+        series: [{
+            name: 'CPU',
+            data: [0],
+            tooltip: { valueSuffix: ' %' }
+        }]
+    });
+
+    // Similar gauge charts for memory and disk
+    Highcharts.chart('memoryChart', {
+        chart: { type: 'gauge' },
+        title: { text: 'Memory Usage' },
+        pane: {
+            startAngle: -150,
+            endAngle: 150
+        },
+        yAxis: {
+            min: 0,
+            max: 100,
+            title: { text: '%' }
+        },
+        series: [{
+            name: 'Memory',
+            data: [0],
+            tooltip: { valueSuffix: ' %' }
+        }]
+    });
+
+    Highcharts.chart('diskChart', {
+        chart: { type: 'gauge' },
+        title: { text: 'Disk Usage' },
+        pane: {
+            startAngle: -150,
+            endAngle: 150
+        },
+        yAxis: {
+            min: 0,
+            max: 100,
+            title: { text: '%' }
+        },
+        series: [{
+            name: 'Disk',
+            data: [0],
+            tooltip: { valueSuffix: ' %' }
+        }]
+    });
+
+    // Line charts for error rate and active users
+    Highcharts.chart('errorRateChart', {
+        chart: { type: 'line' },
+        title: { text: 'Error Rate Over Time' },
+        xAxis: { type: 'datetime' },
+        yAxis: {
+            title: { text: 'Error Rate (%)' }
+        },
+        series: [{
+            name: 'Error Rate',
+            data: []
+        }]
+    });
+
+    Highcharts.chart('activeUsersChart', {
+        chart: { type: 'line' },
+        title: { text: 'Active Users Over Time' },
+        xAxis: { type: 'datetime' },
+        yAxis: {
+            title: { text: 'Active Users' }
+        },
+        series: [{
+            name: 'Active Users',
+            data: []
+        }]
+    });
+
+    // Feature usage bar chart
+    Highcharts.chart('featureUsageChart', {
+        chart: { type: 'column' },
+        title: { text: 'Feature Usage' },
+        xAxis: {
+            categories: [],
+            title: { text: 'Features' }
+        },
+        yAxis: {
+            title: { text: 'Usage Count' }
+        },
+        series: [{
+            name: 'Usage Count',
+            data: []
+        }]
+    });
+
+    // Feature usage pie chart
+    Highcharts.chart('featureUsagePie', {
+        chart: { type: 'pie' },
+        title: { text: 'Feature Usage Distribution' },
+        series: [{
+            name: 'Usage',
+            data: []
+        }]
+    });
+
+    // Resource utilization stacked area chart
+    Highcharts.chart('resourceUtilizationChart', {
+        chart: { type: 'area' },
+        title: { text: 'Resource Utilization' },
+        xAxis: {
+            categories: [],
+            title: { text: 'Category' }
+        },
+        yAxis: {
+            title: { text: 'Usage' },
+            stackLabels: {
+                enabled: true
+            }
+        },
+        plotOptions: {
+            area: {
+                stacking: 'normal',
+                marker: {
+                    enabled: false
+                }
+            }
+        },
+        series: []
+    });
+}
+
+// Update charts with real data
+function updateCharts() {
+    // System metrics
+    $.getJSON('/admin/monitoring/system', function(data) {
+        updateSystemCharts(data);
+    });
+
+    // Application metrics
+    $.getJSON('/admin/monitoring/application', function(data) {
+        updateApplicationCharts(data);
+    });
+
+    // Feature metrics
+    $.getJSON('/admin/monitoring/features', function(data) {
+        updateFeatureCharts(data);
+    });
+
+    // Resource metrics
+    $.getJSON('/admin/monitoring/resources', function(data) {
+        updateResourceCharts(data);
+    });
+}
+
+// Update functions for each chart type
+function updateSystemCharts(data) {
+    const cpuChart = $('#cpuChart').highcharts();
+    const memoryChart = $('#memoryChart').highcharts();
+    const diskChart = $('#diskChart').highcharts();
+
+    if (data.current && data.current.length > 0) {
+        data.current.forEach(metric => {
+            switch(metric.metric_type) {
+                case 'cpu_usage':
+                    cpuChart.series[0].points[0].update(parseFloat(metric.value));
+                    break;
+                case 'memory_usage':
+                    memoryChart.series[0].points[0].update(parseFloat(metric.value));
+                    break;
+                case 'disk_usage':
+                    diskChart.series[0].points[0].update(parseFloat(metric.value));
+                    break;
+            }
+        });
+    }
+}
+
+function updateApplicationCharts(data) {
+    const errorChart = $('#errorRateChart').highcharts();
+    const usersChart = $('#activeUsersChart').highcharts();
+
+    if (data.history && data.history.length > 0) {
+        const errorData = data.history
+            .filter(m => m.metric_type === 'error_rate')
+            .map(m => [new Date(m.timestamp).getTime(), parseFloat(m.value)]);
+        
+        const userData = data.history
+            .filter(m => m.metric_type === 'active_users')
+            .map(m => [new Date(m.timestamp).getTime(), parseInt(m.value)]);
+
+        if (errorData.length > 0) {
+            errorChart.series[0].setData(errorData);
+        }
+        if (userData.length > 0) {
+            usersChart.series[0].setData(userData);
+        }
+    }
+}
+
+function updateFeatureCharts(data) {
+    const timeRange = $('#featureTimeRange').val();
+    const chart = $('#featureUsageChart').highcharts();
+    const pieChart = $('#featureUsagePie').highcharts();
+
+    if (data && data[timeRange] && data[timeRange].length > 0) {
+        const featureData = data[timeRange].map(f => ({
+            name: `${f.plugin}.${f.feature}`,
+            y: parseInt(f.count)
+        }));
+
+        // Update bar chart
+        chart.xAxis[0].setCategories(featureData.map(f => f.name));
+        chart.series[0].setData(featureData.map(f => f.y));
+        
+        // Update pie chart
+        pieChart.series[0].setData(featureData);
+    }
+}
+
+function updateResourceCharts(data) {
+    const timeRange = $('#resourceTimeRange').val();
+    const chart = $('#resourceUtilizationChart').highcharts();
+
+    if (data && data[timeRange] && data[timeRange].length > 0) {
+        // Group data by resource type
+        const resourceTypes = [...new Set(data[timeRange].map(r => r.type))];
+        const categories = [...new Set(data[timeRange].map(r => r.category))];
+        
+        // Create series data
+        const series = resourceTypes.map(type => {
+            return {
+                name: type,
+                data: categories.map(cat => {
+                    const match = data[timeRange].find(r => r.type === type && r.category === cat);
+                    return match ? parseFloat(match.value) : 0;
+                })
+            };
+        });
+
+        // Update chart
+        chart.xAxis[0].setCategories(categories);
+        chart.update({
+            series: series
+        });
+    }
+}
+
+// Initialize and start updates
+$(document).ready(function() {
+    initCharts();
+    updateCharts();
+    
+    // Update every 30 seconds
+    setInterval(updateCharts, 30000);
+    
+    // Handle time range changes
+    $('#featureTimeRange, #resourceTimeRange').change(function() {
+        updateCharts();
+    });
+});
+</script>
+{% endblock %}

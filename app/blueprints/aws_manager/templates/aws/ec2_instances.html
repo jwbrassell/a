@@ -1,0 +1,254 @@
+{% extends "aws/base_aws.html" %}
+
+{% block aws_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>EC2 Instances</h2>
+            <div class="btn-group">
+                <button class="btn btn-success" data-toggle="modal" data-target="#launchInstanceModal">
+                    <i class="fas fa-plus"></i> Launch Instance
+                </button>
+                <button class="btn btn-info" onclick="syncInstances()">
+                    <i class="fas fa-sync"></i> Sync
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <select class="form-control" id="region-filter" onchange="loadInstances()">
+            <option value="">All Regions</option>
+            {% for region in config.regions %}
+            <option value="{{ region }}">{{ region }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-control" id="refresh-interval">
+            <option value="0">Manual Refresh</option>
+            <option value="60">Refresh every minute</option>
+            <option value="300">Refresh every 5 minutes</option>
+            <option value="600">Refresh every 10 minutes</option>
+        </select>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped aws-table" id="instances-table">
+        <thead>
+            <tr>
+                <th>Instance ID</th>
+                <th>Type</th>
+                <th>State</th>
+                <th>Region</th>
+                <th>Public IP</th>
+                <th>Private IP</th>
+                <th>Launch Time</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Populated by JavaScript -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Launch Instance Modal -->
+<div class="modal fade" id="launchInstanceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Launch EC2 Instance</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="launchInstanceForm">
+                    <div class="form-group">
+                        <label>Region</label>
+                        <select class="form-control" name="region" required>
+                            {% for region in config.regions %}
+                            <option value="{{ region }}">{{ region }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Template</label>
+                        <select class="form-control" name="template_id" required>
+                            {% for template in templates %}
+                            <option value="{{ template.id }}">{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Instances</label>
+                        <input type="number" class="form-control" name="count" value="1" min="1" max="12">
+                        <small class="form-text text-muted">Launch up to 12 instances at once</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="launchInstance()">Launch</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block aws_scripts %}
+<script>
+let instances = [];
+
+function loadInstances() {
+    const region = document.getElementById('region-filter').value;
+    const url = new URL("{{ url_for('aws_manager.list_ec2_instances', config_id=config.id) }}");
+    if (region) {
+        url.searchParams.append('region', region);
+    }
+
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        instances = data.instances;
+        renderInstances();
+    })
+    .catch(error => showError('Failed to load instances: ' + error.message));
+}
+
+function renderInstances() {
+    const tbody = document.querySelector('#instances-table tbody');
+    tbody.innerHTML = '';
+
+    instances.forEach(instance => {
+        const row = `
+            <tr>
+                <td>${instance.instance_id}</td>
+                <td>${instance.instance_type}</td>
+                <td>
+                    <span class="badge status-badge status-${instance.state}">
+                        ${instance.state}
+                    </span>
+                </td>
+                <td>${instance.region}</td>
+                <td>${instance.public_ip}</td>
+                <td>${instance.private_ip}</td>
+                <td>${new Date(instance.launch_time).toLocaleString()}</td>
+                <td>
+                    <div class="btn-group">
+                        ${instance.state === 'stopped' ? `
+                            <button class="btn btn-sm btn-success" 
+                                    onclick="controlInstance('${instance.instance_id}', 'start', '${instance.region}')">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        ` : ''}
+                        ${instance.state === 'running' ? `
+                            <button class="btn btn-sm btn-warning" 
+                                    onclick="controlInstance('${instance.instance_id}', 'stop', '${instance.region}')">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-sm btn-danger" 
+                                onclick="controlInstance('${instance.instance_id}', 'terminate', '${instance.region}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+function syncInstances() {
+    fetch("{{ url_for('aws_manager.sync_ec2_instances', config_id=config.id) }}", {
+        method: 'POST'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to sync instances');
+        }
+        return response.json();
+    })
+    .then(data => {
+        showSuccess('Successfully synced ' + data.instance_count + ' instances');
+        loadInstances();
+    })
+    .catch(error => {
+        showError('Failed to sync instances: ' + error.message);
+    });
+}
+
+function launchInstance() {
+    const form = document.getElementById('launchInstanceForm');
+    const formData = new FormData(form);
+    
+    const data = {
+        region: formData.get('region'),
+        template_id: formData.get('template_id'),
+        count: parseInt(formData.get('count'))
+    };
+
+    fetch("{{ url_for('aws_manager.launch_ec2_instance', config_id=config.id) }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to launch instance');
+        }
+        return response.json();
+    })
+    .then(data => {
+        $('#launchInstanceModal').modal('hide');
+        showSuccess('Successfully launched instance(s)');
+        loadInstances();
+    })
+    .catch(error => {
+        showError('Failed to launch instance: ' + error.message);
+    });
+}
+
+function controlInstance(instanceId, action, region) {
+    if (action === 'terminate' && !confirm('Are you sure you want to terminate this instance?')) {
+        return;
+    }
+
+    fetch(`{{ url_for('aws_manager.control_ec2_instance', config_id=config.id) }}/${instanceId}/${action}`, {
+        method: 'POST',
+        headers: {
+            'X-AWS-Region': region
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Failed to ${action} instance`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        showSuccess(`Successfully ${action}ed instance`);
+        loadInstances();
+    })
+    .catch(error => {
+        showError(`Failed to ${action} instance: ` + error.message);
+    });
+}
+
+// Initial load
+document.addEventListener('DOMContentLoaded', () => {
+    loadInstances();
+});
+</script>
+{% endblock %}

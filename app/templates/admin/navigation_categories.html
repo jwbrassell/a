@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Navigation Categories{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Navigation Categories</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-folder mr-2"></i>Navigation Categories
+        </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#categoryModal">
+                <i class="fas fa-plus mr-1"></i>New Category
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Icon</th>
+                        <th>Description</th>
+                        <th>Weight</th>
+                        <th>Routes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                    <tr>
+                        <td>{{ category.name }}</td>
+                        <td><i class="fas {{ category.icon }}"></i></td>
+                        <td>{{ category.description or '' }}</td>
+                        <td>{{ category.weight }}</td>
+                        <td>{{ category.routes|length }}</td>
+                        <td>
+                            <button type="button" class="btn btn-info btn-sm edit-category" 
+                                    data-id="{{ category.id }}"
+                                    data-name="{{ category.name }}"
+                                    data-icon="{{ category.icon }}"
+                                    data-description="{{ category.description or '' }}"
+                                    data-weight="{{ category.weight }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            {% if category.can_be_deleted() %}
+                            <button type="button" class="btn btn-danger btn-sm delete-category" 
+                                    data-id="{{ category.id }}"
+                                    data-name="{{ category.name }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">New Navigation Category</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="categoryForm" action="{{ url_for('admin.save_category') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="category_id" name="category_id">
+                    
+                    <div class="form-group">
+                        <label for="name">Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="icon">Icon</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i id="icon-preview" class="fas fa-folder"></i>
+                                </span>
+                            </div>
+                            <input type="text" class="form-control" id="icon" name="icon" 
+                                   value="fa-folder" readonly>
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-outline-secondary" id="icon-picker">
+                                    Choose Icon
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="weight">Weight</label>
+                        <input type="number" class="form-control" id="weight" name="weight" value="0">
+                        <small class="form-text text-muted">
+                            Lower numbers appear first in navigation
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Icon Picker Modal -->
+<div class="modal fade" id="iconModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Choose Icon</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" class="form-control" id="icon-search" 
+                           placeholder="Search icons...">
+                </div>
+                <div id="icon-grid" class="row">
+                    <!-- Icons will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Load icons when modal opens
+    $('#icon-picker').click(function() {
+        if ($('#icon-grid').children().length === 0) {
+            $.get("{{ url_for('admin.get_icons') }}", function(icons) {
+                icons.forEach(function(icon) {
+                    $('#icon-grid').append(`
+                        <div class="col-md-2 col-sm-3 col-4 text-center icon-item mb-3">
+                            <div class="p-2 border rounded icon-select" data-icon="${icon}">
+                                <i class="fas ${icon} fa-2x"></i>
+                                <div class="small text-muted mt-1">${icon}</div>
+                            </div>
+                        </div>
+                    `);
+                });
+            });
+        }
+        $('#iconModal').modal('show');
+    });
+
+    // Icon search
+    $('#icon-search').on('input', function() {
+        const search = $(this).val().toLowerCase();
+        $('.icon-item').each(function() {
+            const icon = $(this).find('.icon-select').data('icon');
+            $(this).toggle(icon.toLowerCase().includes(search));
+        });
+    });
+
+    // Icon selection
+    $(document).on('click', '.icon-select', function() {
+        const icon = $(this).data('icon');
+        $('#icon').val(icon);
+        $('#icon-preview').attr('class', 'fas ' + icon);
+        $('#iconModal').modal('hide');
+    });
+
+    // Edit category
+    $('.edit-category').click(function() {
+        const btn = $(this);
+        $('#modalTitle').text('Edit Navigation Category');
+        $('#category_id').val(btn.data('id'));
+        $('#name').val(btn.data('name'));
+        $('#icon').val(btn.data('icon'));
+        $('#icon-preview').attr('class', 'fas ' + btn.data('icon'));
+        $('#description').val(btn.data('description'));
+        $('#weight').val(btn.data('weight'));
+        $('#categoryModal').modal('show');
+    });
+
+    // Reset form on new category
+    $('[data-target="#categoryModal"]').click(function() {
+        $('#modalTitle').text('New Navigation Category');
+        $('#categoryForm')[0].reset();
+        $('#category_id').val('');
+        $('#icon').val('fa-folder');
+        $('#icon-preview').attr('class', 'fas fa-folder');
+    });
+
+    // Delete category
+    $('.delete-category').click(function() {
+        const btn = $(this);
+        Swal.fire({
+            title: 'Delete Category?',
+            text: `Are you sure you want to delete "${btn.data('name')}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Delete'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('admin.delete_category', category_id=0) }}".replace('0', btn.data('id'));
+            }
+        });
+    });
+
+    // Form validation
+    $('#categoryForm').submit(function(e) {
+        const name = $('#name').val().trim();
+        if (!name) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Error',
+                text: 'Category name is required',
+                icon: 'error'
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

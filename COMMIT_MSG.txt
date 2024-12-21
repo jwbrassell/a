@@ -1,0 +1,22 @@
+feat: Integrate Vault and fix database initialization
+
+- Update Vault configuration to use consistent port (8200)
+- Fix database initialization with proper SQLite path
+- Add Flask-Migrate integration for database migrations
+- Update environment configuration for Vault integration
+- Fix vault_utility.py to properly handle authentication
+- Add proper error handling for Vault initialization
+- Update start_vault.sh script for better cleanup and initialization
+- Configure development environment with SQLite and Vault
+
+This commit ensures proper integration between Flask, Vault, and SQLite:
+- Vault runs on port 8200 with KV v2 secrets engine
+- SQLite database properly initializes with default roles and users
+- Environment variables properly configured for development
+- Database migrations system in place with Flask-Migrate
+
+Testing:
+- Vault authentication successful
+- Database initialization successful
+- Default admin user and roles created
+- All blueprints initialized successfully

@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.env
+.venv
+
+# Flask
+instance/
+.webassets-cache
+*.db
+*.sqlite3
+
+# Environment Variables
+.env
+.env.*
+.env.vault
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+migrations/versions/
+
+# Cache
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# User uploads
+app/static/uploads/
+app/static/uploads/avatars/
+app/static/uploads/documents/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Vault
+vault-data/
+vault-data/*
+vault.log
+vault-audit.log
+vault-config.hcl
+vault-config.json
+vault-policy.hcl
+vault-token
+.vault-token
+config/vault-dev.hcl
+config/vault-prod.hcl
+config/vault-secure.hcl
+bin/vault

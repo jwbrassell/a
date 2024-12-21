@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Route Management{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Routes</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-route mr-2"></i>Route Mappings
+        </h3>
+        <div class="card-tools">
+            <a href="{{ url_for('admin.new_route') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus mr-1"></i>New Route
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="routes-table">
+                <thead>
+                    <tr>
+                        <th>Weight</th>
+                        <th>Page Name</th>
+                        <th>Route</th>
+                        <th>Icon</th>
+                        <th>Category</th>
+                        <th>Roles</th>
+                        <th>Navbar</th>
+                        <th>Created</th>
+                        <th>Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mapping in mappings %}
+                    <tr>
+                        <td>{{ mapping.weight }}</td>
+                        <td>{{ mapping.page_name }}</td>
+                        <td>{{ mapping.route }}</td>
+                        <td><i class="fas {{ mapping.icon }}"></i></td>
+                        <td>
+                            {% if mapping.category %}
+                                <span class="badge badge-info">
+                                    <i class="fas {{ mapping.category.icon }}"></i>
+                                    {{ mapping.category.name }}
+                                </span>
+                            {% else %}
+                                <span class="badge badge-secondary">Individual</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for role in mapping.allowed_roles %}
+                                <span class="badge badge-primary">{{ role.name }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if mapping.show_in_navbar %}
+                                <i class="fas fa-eye text-success" title="Visible in navbar"></i>
+                            {% else %}
+                                <i class="fas fa-eye-slash text-muted" title="Hidden from navbar"></i>
+                            {% endif %}
+                        </td>
+                        <td>{{ mapping.created_at|datetime }}</td>
+                        <td>{{ mapping.updated_at|datetime }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('admin.edit_route', route_id=mapping.id) }}" 
+                                   class="btn btn-info btn-sm" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-danger btn-sm" 
+                                        onclick="confirmDelete('{{ mapping.id }}', '{{ mapping.page_name }}')"
+                                        title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <form id="delete-form-{{ mapping.id }}" 
+                                  action="{{ url_for('admin.delete_route', route_id=mapping.id) }}" 
+                                  method="POST" style="display: none;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#routes-table').DataTable({
+        "order": [[0, "asc"]],  // Sort by weight by default
+        "pageLength": 25,
+        "language": {
+            "search": "Search routes:"
+        },
+        "columnDefs": [
+            { "width": "5%", "targets": 0 },   // Weight column
+            { "width": "15%", "targets": 1 },  // Page Name column
+            { "width": "15%", "targets": 2 },  // Route column
+            { "width": "5%", "targets": 3 },   // Icon column
+            { "width": "12%", "targets": 4 },  // Category column
+            { "width": "12%", "targets": 5 },  // Roles column
+            { "width": "5%", "targets": 6 },   // Navbar column
+            { "width": "10%", "targets": 7 },  // Created column
+            { "width": "10%", "targets": 8 },  // Updated column
+            { "width": "10%", "targets": 9 }   // Actions column
+        ]
+    });
+});
+
+function confirmDelete(id, name) {
+    Swal.fire({
+        title: 'Delete Route Mapping?',
+        text: `Are you sure you want to delete the route "${name}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById(`delete-form-${id}`).submit();
+        }
+    });
+}
+</script>
+
+<style>
+.badge {
+    font-size: 90%;
+}
+.badge i {
+    margin-right: 3px;
+}
+.fa-eye, .fa-eye-slash {
+    font-size: 1.1em;
+}
+</style>
+{% endblock %}
