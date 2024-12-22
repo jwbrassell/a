@@ -5,6 +5,7 @@ class ThemeManager {
         this.profileThemeToggle = document.getElementById('profileThemeToggle');
         this.body = document.body;
         this.navbar = document.querySelector('.main-header.navbar');
+        this.sidebar = document.querySelector('.main-sidebar');
         this.icon = this.darkModeToggle?.querySelector('i');
         this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         this.isLoggedIn = this.csrfToken && document.querySelector('.nav-item.dropdown') !== null;
@@ -22,8 +23,17 @@ class ThemeManager {
         // Batch DOM operations
         requestAnimationFrame(() => {
             this.body.classList.add('dark-mode');
+            
+            // Update navbar
             this.navbar.classList.remove('navbar-light', 'navbar-white');
             this.navbar.classList.add('navbar-dark', 'bg-dark');
+            
+            // Update sidebar
+            if (this.sidebar) {
+                this.sidebar.classList.remove('sidebar-light-primary');
+                this.sidebar.classList.add('sidebar-dark-primary');
+            }
+            
             this.htmlElement.setAttribute('data-bs-theme', 'dark');
             
             if (this.icon) {
@@ -41,8 +51,17 @@ class ThemeManager {
         // Batch DOM operations
         requestAnimationFrame(() => {
             this.body.classList.remove('dark-mode');
+            
+            // Update navbar
             this.navbar.classList.remove('navbar-dark', 'bg-dark');
             this.navbar.classList.add('navbar-light', 'navbar-white');
+            
+            // Update sidebar
+            if (this.sidebar) {
+                this.sidebar.classList.remove('sidebar-dark-primary');
+                this.sidebar.classList.add('sidebar-light-primary');
+            }
+            
             this.htmlElement.setAttribute('data-bs-theme', 'light');
             
             if (this.icon) {

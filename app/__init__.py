@@ -20,6 +20,8 @@ def create_app(config_class=Config):
     from app.blueprints.database_reports.models import (
         DatabaseConnection, Report, ReportTagModel, ReportHistory
     )
+    # Import example plugin models
+    from app.blueprints.example.models import ExampleData
 
     # Ensure correct MIME types are set
     mimetypes.add_type('text/css', '.css')
@@ -167,6 +169,15 @@ def create_app(config_class=Config):
                 app.logger.warning("Failed to initialize database reports blueprint")
         except Exception as e:
             app.logger.error(f"Error initializing database reports blueprint: {e}")
+
+    # Initialize example plugin
+    with app.app_context():
+        try:
+            from app.utils.add_example_routes import register_example_plugin
+            register_example_plugin(app)
+            app.logger.info("Example plugin initialized successfully")
+        except Exception as e:
+            app.logger.error(f"Error initializing example plugin: {e}")
 
     # Initialize Vault policies after blueprints are registered
     with app.app_context():
