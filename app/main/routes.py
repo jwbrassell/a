@@ -59,17 +59,3 @@ def logout():
     
     logout_user()
     return redirect(url_for('main.login'))
-
-@bp.route('/profile')
-@login_required
-@track_activity
-def profile():
-    """User profile page."""
-    # Get user's recent activities
-    activities = UserActivity.query.filter_by(
-        user_id=current_user.id
-    ).order_by(
-        UserActivity.timestamp.desc()
-    ).limit(10).all()
-    
-    return render_template('profile.html', activities=activities)

@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, request, jsonify, current_app, sen
 from flask_login import current_user, login_required
 from app.extensions import db
 from app.utils.cache_manager import cached
+from app.utils.activity_tracking import track_activity
 from sqlalchemy import desc
 from app.models.user import User
 from app.models.activity import UserActivity
@@ -13,9 +14,17 @@ from app.routes.profile import profile_bp
 
 @profile_bp.route('/')
 @login_required
-def profile():
+@track_activity
+def index():
     """Display user profile."""
-    return render_template('profile.html')
+    # Get user's recent activities
+    activities = UserActivity.query.filter_by(
+        user_id=current_user.id
+    ).order_by(
+        UserActivity.timestamp.desc()
+    ).limit(10).all()
+    
+    return render_template('profile.html', activities=activities)
 
 @profile_bp.route('/avatar/<int:user_id>')
 @login_required
@@ -107,6 +116,18 @@ def update_preferences():
     if 'language' in data:
         current_user.set_preference('language', data['language'])
     
+    db.session.commit()
+    return jsonify({'success': True})
+
+@profile_bp.route('/preferences/theme', methods=['POST'])
+@login_required
+def update_theme():
+    """Update user theme preference."""
+    data = request.get_json()
+    if 'theme' not in data or data['theme'] not in ['light', 'dark']:
+        return jsonify({'error': 'Invalid theme value'}), 400
+    
+    current_user.set_preference('theme', data['theme'])
     db.session.commit()
     return jsonify({'success': True})
 

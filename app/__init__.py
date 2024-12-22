@@ -106,8 +106,12 @@ def create_app(config_class=Config):
     init_routes(app)
 
     # Initialize profile module
-    from app.routes.profile import init_profile
-    init_profile(app)
+    try:
+        from app.routes.profile import init_profile
+        if not init_profile(app):
+            app.logger.error("Failed to initialize profile module")
+    except Exception as e:
+        app.logger.error(f"Error importing profile module: {e}")
 
     # Initialize dispatch routes
     with app.app_context():

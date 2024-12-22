@@ -1,6 +1,6 @@
 {% from "macros/navigation.html" import render_nav_item, render_category %}
 <!DOCTYPE html>
-<html data-bs-theme="{% if current_user.is_authenticated %}{{ current_user.get_preference('theme', 'light') }}{% else %}light{% endif %}">
+<html>
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Pragma" content="no-cache">
@@ -65,7 +65,7 @@
     {% block head %}{% endblock %}
 </head>
 
-<body class="hold-transition sidebar-mini layout-fixed {% if current_user.is_authenticated and current_user.get_preference('theme') == 'dark' %}dark-mode{% endif %}">
+<body class="hold-transition sidebar-mini layout-fixed {% if current_user.is_authenticated and current_user.get_preference('theme', 'light') == 'dark' %}dark-mode{% endif %}">
     <!-- Page Loader -->
     <div id="page-loader">
         <div class="loader-spinner"></div>
@@ -90,7 +90,7 @@
         {% endwith %}
 
         <!-- Navbar -->
-        <nav class="main-header navbar navbar-expand {% if current_user.is_authenticated and current_user.get_preference('theme') == 'dark' %}navbar-dark bg-dark{% else %}navbar-light navbar-white{% endif %}">
+        <nav class="main-header navbar navbar-expand {% if current_user.is_authenticated and current_user.get_preference('theme', 'light') == 'dark' %}navbar-dark bg-dark{% else %}navbar-light navbar-white{% endif %}">
             <!-- Left navbar -->
             <ul class="navbar-nav">
                 <li class="nav-item">
@@ -105,7 +105,7 @@
                 <!-- Dark Mode Toggle -->
                 <li class="nav-item">
                     <a class="nav-link" href="#" id="darkModeToggle" role="button">
-                        <i class="fas {% if current_user.is_authenticated and current_user.get_preference('theme') == 'dark' %}fa-sun{% else %}fa-moon{% endif %}"></i>
+                        <i class="fas {% if current_user.is_authenticated and current_user.get_preference('theme', 'light') == 'dark' %}fa-sun{% else %}fa-moon{% endif %}"></i>
                     </a>
                 </li>
                 {% if current_user.is_authenticated %}
@@ -115,13 +115,11 @@
                         {{ current_user.name }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        {% if 'profile.index'|route_exists %}
                         <li>
                             <a class="dropdown-item" href="{{ url_for('profile.index') }}">
                                 <i class="fas fa-user"></i> Profile
                             </a>
                         </li>
-                        {% endif %}
                         <li>
                             <a class="dropdown-item" href="{{ url_for('main.logout') }}">
                                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -185,14 +183,12 @@
                 <div class="sidebar-bottom">
                     <div class="sidebar-divider"></div>
                     <ul class="nav nav-pills nav-sidebar flex-column">
-                        {% if 'profile.index'|route_exists %}
                         <li class="nav-item">
                             <a href="{{ url_for('profile.index') }}" class="nav-link">
                                 <i class="nav-icon fas fa-user"></i>
                                 <p>Profile</p>
                             </a>
                         </li>
-                        {% endif %}
                         <li class="nav-item">
                             <a href="{{ url_for('main.logout') }}" class="nav-link">
                                 <i class="nav-icon fas fa-sign-out-alt"></i>

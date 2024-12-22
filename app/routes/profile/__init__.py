@@ -8,9 +8,7 @@ logger = logging.getLogger(__name__)
 
 # Create blueprint
 profile_bp = Blueprint('profile', __name__, 
-                      url_prefix='/profile',
-                      template_folder='templates',
-                      static_folder='static')
+                      url_prefix='/profile')
 
 # Constants
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -31,20 +29,24 @@ def allowed_file(filename):
 
 def init_profile(app):
     """Initialize profile module with Flask application."""
-    
-    # Add profile-specific configuration
-    app.config.setdefault('PROFILE_ITEMS_PER_PAGE', 10)
-    
-    # Import routes to register them with the blueprint
-    from . import routes
-    
-    # Register context processors
-    register_context_processors()
-    
-    # Register blueprint
-    app.register_blueprint(profile_bp)
-    
-    logger.info("Initialized profile module")
+    try:
+        # Add profile-specific configuration
+        app.config.setdefault('PROFILE_ITEMS_PER_PAGE', 10)
+        
+        # Import routes to register them with the blueprint
+        from . import routes
+        
+        # Register context processors
+        register_context_processors()
+        
+        # Register blueprint
+        app.register_blueprint(profile_bp)
+        
+        logger.info("Initialized profile module successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to initialize profile module: {e}")
+        return False
 
 def register_context_processors():
     """Register profile-specific template context processors."""
