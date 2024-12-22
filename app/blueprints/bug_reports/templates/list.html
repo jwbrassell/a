@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <h2>Bug Reports</h2>
+
+    <!-- Open Reports -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Open Reports</h5>
+        </div>
+        <div class="card-body">
+            <table id="openReportsTable" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Reported By</th>
+                        <th>Route</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in open_reports %}
+                    <tr>
+                        <td>{{ report.id }}</td>
+                        <td>{{ report.user.username }}</td>
+                        <td>{{ report.route }}</td>
+                        <td>{{ report.occurrence_type }}</td>
+                        <td>{{ report.status }}</td>
+                        <td>{{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info view-report" data-report-id="{{ report.id }}">
+                                View
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Closed Reports -->
+    <div class="card">
+        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#closedReports">
+            <h5 class="mb-0">Closed Reports</h5>
+        </div>
+        <div id="closedReports" class="collapse">
+            <div class="card-body">
+                <table id="closedReportsTable" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Reported By</th>
+                            <th>Route</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in closed_reports %}
+                        <tr>
+                            <td>{{ report.id }}</td>
+                            <td>{{ report.user.username }}</td>
+                            <td>{{ report.route }}</td>
+                            <td>{{ report.occurrence_type }}</td>
+                            <td>{{ report.status }}</td>
+                            <td>{{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info view-report" data-report-id="{{ report.id }}">
+                                    View
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Report Modal -->
+<div class="modal fade" id="viewReportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bug Report Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Reported By:</strong> <span id="reportUser"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>User Roles:</strong> <span id="reportUserRoles"></span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Route:</strong> <span id="reportRoute"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Occurrence:</strong> <span id="reportOccurrence"></span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <div id="reportDescription" class="border p-3 mt-2"></div>
+                </div>
+                <div class="mb-3">
+                    <strong>Screenshots:</strong>
+                    <div id="reportScreenshots" class="d-flex gap-3 flex-wrap mt-2"></div>
+                </div>
+                <div class="mb-3">
+                    <strong>Status:</strong>
+                    <select id="reportStatus" class="form-select mt-2">
+                        <option value="open">Open</option>
+                        <option value="solved">Solved</option>
+                        <option value="not_actionable">Not Actionable</option>
+                        <option value="merged">Merged</option>
+                    </select>
+                </div>
+                <div id="mergeWithContainer" class="mb-3 d-none">
+                    <strong>Merge with Report ID:</strong>
+                    <input type="number" id="mergeWithId" class="form-control mt-2">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="updateReport">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTables
+    $('#openReportsTable, #closedReportsTable').DataTable({
+        order: [[0, 'desc']]
+    });
+
+    let currentReportId = null;
+
+    // Handle status change
+    document.getElementById('reportStatus').addEventListener('change', function() {
+        const mergeContainer = document.getElementById('mergeWithContainer');
+        mergeContainer.classList.toggle('d-none', this.value !== 'merged');
+    });
+
+    // View report details
+    document.querySelectorAll('.view-report').forEach(button => {
+        button.addEventListener('click', function() {
+            const reportId = this.dataset.reportId;
+            currentReportId = reportId;
+            
+            // Find the report data from the table
+            const row = this.closest('tr');
+            const cells = row.cells;
+            
+            document.getElementById('reportUser').textContent = cells[1].textContent;
+            document.getElementById('reportRoute').textContent = cells[2].textContent;
+            document.getElementById('reportOccurrence').textContent = cells[3].textContent;
+            document.getElementById('reportStatus').value = cells[4].textContent.trim();
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('viewReportModal'));
+            modal.show();
+        });
+    });
+
+    // Handle report update
+    document.getElementById('updateReport').addEventListener('click', function() {
+        if (!currentReportId) return;
+
+        const data = {
+            status: document.getElementById('reportStatus').value
+        };
+
+        if (data.status === 'merged') {
+            data.merged_with = document.getElementById('mergeWithId').value;
+        }
+
+        fetch(`/bug-reports/reports/${currentReportId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify(data),
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.headers.get('content-type')?.includes('application/json')) {
+                    return response.json().then(err => { throw new Error(err.message || 'Server error') });
+                }
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                throw new Error(data.message || 'Unknown error');
+            }
+        })
+        .catch(error => {
+            alert('Error updating report: ' + error.message);
+        });
+    });
+});
+</script>
+{% endblock %}

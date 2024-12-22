@@ -42,6 +42,9 @@ class Config:
     SEND_FILE_MAX_AGE_DEFAULT = 31536000  # 1 year in seconds
     STATIC_CACHE_TIMEOUT = 2592000  # 30 days in seconds
     
+    # File upload configuration
+    UPLOAD_FOLDER = os.path.join('instance', 'uploads')
+    
     # Cache timeouts for specific file types
     FONT_CACHE_TIMEOUT = 31536000  # 1 year for fonts
     IMAGE_CACHE_TIMEOUT = 2592000   # 30 days for images
@@ -69,6 +72,11 @@ class Config:
         
         # Ensure proper permissions on instance directory
         os.chmod(instance_path, 0o755)
+        
+        # Create uploads directory
+        uploads_dir = os.path.join(instance_path, 'uploads')
+        os.makedirs(uploads_dir, exist_ok=True)
+        os.chmod(uploads_dir, 0o755)
         
         # Create cache directory if using filesystem cache
         cache_dir = os.path.join(instance_path, 'cache')

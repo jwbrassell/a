@@ -74,6 +74,11 @@
                             </a>
                         </li>
                         <li>
+                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bugReportModal">
+                                <i class="fas fa-bug"></i> Report Bug
+                            </a>
+                        </li>
+                        <li>
                             <a class="dropdown-item" href="{{ url_for('main.logout') }}">
                                 <i class="fas fa-sign-out-alt"></i> Logout
                             </a>
@@ -206,6 +211,8 @@
         </footer>
     </div>
 
+    {% include 'bug_reports/bug_report_modal.html' %}
+    
     {% block scripts %}{% endblock %}
     <script src="{{ url_for('static', filename='src/js/theme.js') }}"></script>
     {% if request.endpoint == 'main.login' %}
@@ -234,12 +241,35 @@
         });
 
         // Global AJAX loader management
+        let loaderTimeout = null;
+        
         window.showAjaxLoader = function() {
-            document.getElementById('ajax-loader').style.display = 'flex';
+            // Clear any existing timeout
+            if (loaderTimeout) {
+                clearTimeout(loaderTimeout);
+                loaderTimeout = null;
+            }
+            
+            // Don't show loader for quick operations
+            loaderTimeout = setTimeout(() => {
+                const loader = document.getElementById('ajax-loader');
+                if (loader) {
+                    loader.style.display = 'flex';
+                }
+            }, 250);
         };
         
         window.hideAjaxLoader = function() {
-            document.getElementById('ajax-loader').style.display = 'none';
+            // Clear pending show operation if any
+            if (loaderTimeout) {
+                clearTimeout(loaderTimeout);
+                loaderTimeout = null;
+            }
+            
+            const loader = document.getElementById('ajax-loader');
+            if (loader) {
+                loader.style.display = 'none';
+            }
         };
 
         // Page transition handling

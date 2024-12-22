@@ -14,13 +14,17 @@ from app.models.user import User
 from app.models import *
 
 def create_app(config_class=Config):
-    # Import weblinks models
+    # Import user model first to ensure it's registered
+    from app.models.user import User
+    
+    # Import bug reports models that depend on User
+    from app.blueprints.bug_reports.models import BugReport, BugReportScreenshot
+    
+    # Import other models
     from app.blueprints.weblinks.models import WebLink, Tag, WebLinkHistory
-    # Import database reports models
     from app.blueprints.database_reports.models import (
         DatabaseConnection, Report, ReportTagModel, ReportHistory
     )
-    # Import example plugin models
     from app.blueprints.example.models import ExampleData
 
     # Ensure correct MIME types are set
@@ -178,6 +182,17 @@ def create_app(config_class=Config):
             app.logger.info("Example plugin initialized successfully")
         except Exception as e:
             app.logger.error(f"Error initializing example plugin: {e}")
+
+    # Initialize bug reports blueprint
+    with app.app_context():
+        try:
+            from app.utils.add_bug_report_routes import add_bug_report_routes
+            if add_bug_report_routes():
+                app.logger.info("Bug reports blueprint initialized successfully")
+            else:
+                app.logger.warning("Failed to initialize bug reports blueprint")
+        except Exception as e:
+            app.logger.error(f"Error initializing bug reports blueprint: {e}")
 
     # Initialize Vault policies after blueprints are registered
     with app.app_context():

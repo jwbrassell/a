@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <!-- Ticket Details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Bug Report #{{ report.id }}</h5>
+                <span class="badge bg-{{ 'success' if report.status == 'solved' else 'primary' }}">{{ report.status|title }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>Reported By:</strong> {{ report.user.username }}
+                </div>
+                <div class="col-md-6">
+                    <strong>User Roles:</strong> {{ report.user_roles }}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>Route:</strong> {{ report.route }}
+                </div>
+                <div class="col-md-6">
+                    <strong>Occurrence:</strong> {{ report.occurrence_type }}
+                </div>
+            </div>
+            <div class="mb-3">
+                <strong>Description:</strong>
+                <div class="border p-3 mt-2">{{ report.description|safe }}</div>
+            </div>
+            {% if report.screenshots %}
+            <div class="mb-3">
+                <strong>Screenshots:</strong>
+                <div class="d-flex gap-3 flex-wrap mt-2">
+                    {% for screenshot in report.screenshots %}
+                    <div class="position-relative">
+                        <img src="{{ url_for('bug_reports.get_screenshot', report_id=report.id, filename=screenshot.filename) }}" 
+                             class="img-thumbnail" style="max-width: 200px; max-height: 200px;"
+                             onclick="window.open(this.src)">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <div class="mb-3">
+                <strong>Created:</strong> {{ report.created_at.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+            {% if report.updated_at and report.updated_at != report.created_at %}
+            <div class="mb-3">
+                <strong>Last Updated:</strong> {{ report.updated_at.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- All Bug Reports Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">All Bug Reports</h5>
+        </div>
+        <div class="card-body">
+            <table id="allReportsTable" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Reported By</th>
+                        <th>Route</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in all_reports %}
+                    <tr>
+                        <td>{{ report.id }}</td>
+                        <td>{{ report.user.username }}</td>
+                        <td>{{ report.route }}</td>
+                        <td>{{ report.occurrence_type }}</td>
+                        <td>{{ report.status }}</td>
+                        <td>{{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <a href="{{ url_for('bug_reports.view_ticket', report_id=report.id) }}" 
+                               class="btn btn-sm btn-info">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    $('#allReportsTable').DataTable({
+        order: [[0, 'desc']]
+    });
+});
+</script>
+{% endblock %}

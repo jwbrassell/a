@@ -65,6 +65,10 @@ class User(UserMixin, db.Model):
             permissions.update(role.get_permissions())
         return list(permissions)
 
+    def get_roles(self):
+        """Get list of role names for the user."""
+        return [role.name for role in self.roles]
+
     def get_preference(self, key, default=None):
         """Get user preference by key."""
         pref = UserPreference.query.filter_by(user_id=self.id, key=key).first()

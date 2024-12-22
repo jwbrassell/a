@@ -238,6 +238,8 @@ def sync_blueprint_routes(blueprint_name, route_mappings):
         # Convert blueprint name to handle special cases
         if blueprint_name == 'dispatch-tool':
             blueprint_name = 'dispatch_tool'
+        elif blueprint_name == 'bug-reports':
+            blueprint_name = 'bug_reports'
             
         # Get all existing mappings for this blueprint
         existing_routes = PageRouteMapping.query.filter(
