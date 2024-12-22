@@ -35,8 +35,8 @@ def init_profile(app):
     # Add profile-specific configuration
     app.config.setdefault('PROFILE_ITEMS_PER_PAGE', 10)
     
-    # Register routes
-    from app.routes.profile import routes
+    # Import routes to register them with the blueprint
+    from . import routes
     
     # Register context processors
     register_context_processors()

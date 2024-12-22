@@ -9,15 +9,15 @@ from app.models.activity import UserActivity
 from datetime import datetime, timedelta
 import io
 
-bp = Blueprint('profile', __name__)
+from app.routes.profile import profile_bp
 
-@bp.route('/')
+@profile_bp.route('/')
 @login_required
 def profile():
     """Display user profile."""
-    return render_template('profile/profile.html')
+    return render_template('profile.html')
 
-@bp.route('/avatar/<int:user_id>')
+@profile_bp.route('/avatar/<int:user_id>')
 @login_required
 def get_avatar(user_id):
     """Get user avatar."""
@@ -35,26 +35,56 @@ def get_avatar(user_id):
         mimetype=mimetype
     )
 
-@bp.route('/activities/data')
+@profile_bp.route('/activities/data')
 @login_required
-@cached(timeout=60, key_prefix='user_activities')
-def get_activities():
-    """Get user activities."""
+def activities_data():
+    """Get user activities with server-side processing support."""
+    # Get DataTables parameters
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = request.args.get('search[value]', type=str, default='')
+    order_column = request.args.get('order[0][column]', type=int, default=2)  # Default sort by timestamp
+    order_dir = request.args.get('order[0][dir]', type=str, default='desc')
+    
     # Get activities from the last 30 days
     since = datetime.utcnow() - timedelta(days=30)
-    
-    activities = UserActivity.query.filter(
+    query = UserActivity.query.filter(
         UserActivity.user_id == current_user.id,
         UserActivity.timestamp >= since
-    ).order_by(desc(UserActivity.timestamp)).limit(50).all()
+    )
     
-    return jsonify([{
-        'activity': activity.activity,
-        'timestamp': activity.timestamp.isoformat(),
-        'details': activity.details
-    } for activity in activities])
+    # Apply search if provided
+    if search:
+        query = query.filter(UserActivity.activity.ilike(f'%{search}%'))
+    
+    # Get total records before pagination
+    total_records = query.count()
+    filtered_records = total_records  # Will be different if search is applied
+    
+    # Apply sorting
+    if order_column == 0:  # ID column
+        query = query.order_by(desc(UserActivity.id) if order_dir == 'desc' else UserActivity.id)
+    elif order_column == 1:  # Activity column
+        query = query.order_by(desc(UserActivity.activity) if order_dir == 'desc' else UserActivity.activity)
+    else:  # Timestamp column
+        query = query.order_by(desc(UserActivity.timestamp) if order_dir == 'desc' else UserActivity.timestamp)
+    
+    # Apply pagination
+    activities = query.offset(start).limit(length).all()
+    
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': total_records,
+        'recordsFiltered': filtered_records,
+        'data': [{
+            'activity': activity.activity,
+            'timestamp': activity.timestamp.isoformat(),
+            'details': activity.details
+        } for activity in activities]
+    })
 
-@bp.route('/preferences', methods=['GET'])
+@profile_bp.route('/preferences', methods=['GET'])
 @login_required
 def get_preferences():
     """Get user preferences."""
@@ -64,7 +94,7 @@ def get_preferences():
         'language': current_user.get_preference('language', 'en')
     })
 
-@bp.route('/preferences', methods=['POST'])
+@profile_bp.route('/preferences', methods=['POST'])
 @login_required
 def update_preferences():
     """Update user preferences."""
@@ -80,7 +110,7 @@ def update_preferences():
     db.session.commit()
     return jsonify({'success': True})
 
-@bp.route('/avatar', methods=['POST'])
+@profile_bp.route('/avatar', methods=['POST'])
 @login_required
 def update_avatar():
     """Update user avatar."""

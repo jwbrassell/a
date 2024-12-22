@@ -86,19 +86,24 @@ $(function () {
         "processing": true,
         "serverSide": true,
         "ajax": {
-            "url": "{{ url_for('profile.get_activities_data') }}",
+            "url": "{{ url_for('profile.activities_data') }}",
             "type": "GET"
         },
         "columns": [
-            {"data": "id"},
+            {
+                "data": null,
+                "render": function(data, type, row, meta) {
+                    return meta.row + meta.settings._iDisplayStart + 1;
+                }
+            },
             {"data": "activity"},
             {
                 "data": "timestamp",
                 "render": function(data, type, row) {
                     if (type === 'display') {
-                        return data.display;
+                        return new Date(data).toLocaleString();
                     }
-                    return data.timestamp;
+                    return data;
                 }
             }
         ],

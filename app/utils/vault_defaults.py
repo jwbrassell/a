@@ -11,7 +11,12 @@ def initialize_vault_policies():
         # Role-based policies
         policy_manager.create_role_policy('Administrator', [
             {'path': 'kvv2/*', 'capabilities': ['create', 'read', 'update', 'delete', 'list']},
-            {'path': 'database_creds/*', 'capabilities': ['create', 'read', 'update', 'delete', 'list']}
+            {'path': 'database_creds/*', 'capabilities': ['create', 'read', 'update', 'delete', 'list']},
+            {'path': 'sys/policies/*', 'capabilities': ['create', 'read', 'update', 'delete', 'list']},
+            {'path': 'sys/auth/*', 'capabilities': ['create', 'read', 'update', 'delete', 'list']},
+            {'path': 'sys/mounts/*', 'capabilities': ['create', 'read', 'update', 'delete', 'list']},
+            {'path': 'sys/health', 'capabilities': ['read']},
+            {'path': 'sys/metrics', 'capabilities': ['read']}
         ])
         
         policy_manager.create_role_policy('Manager', [
