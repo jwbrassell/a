@@ -1,158 +1,175 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    const profileThemeToggle = document.getElementById('profileThemeToggle');
-    const body = document.body;
-    const navbar = document.querySelector('.main-header.navbar');
-    const icon = darkModeToggle.querySelector('i');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    const isLoggedIn = document.querySelector('meta[name="csrf-token"]').getAttribute('content') !== '' && 
-                      document.querySelector('.nav-item.dropdown') !== null;
+// Theme Management Class
+class ThemeManager {
+    constructor() {
+        this.darkModeToggle = document.getElementById('darkModeToggle');
+        this.profileThemeToggle = document.getElementById('profileThemeToggle');
+        this.body = document.body;
+        this.navbar = document.querySelector('.main-header.navbar');
+        this.icon = this.darkModeToggle?.querySelector('i');
+        this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        this.isLoggedIn = this.csrfToken && document.querySelector('.nav-item.dropdown') !== null;
+        
+        // Performance optimization: Store DOM queries
+        this.htmlElement = document.documentElement;
+        
+        // Debounce timer for theme changes
+        this.themeChangeTimer = null;
+        
+        this.initialize();
+    }
     
-    function enableDarkMode() {
-        // Update AdminLTE classes
-        body.classList.add('dark-mode');
-        navbar.classList.remove('navbar-light', 'navbar-white');
-        navbar.classList.add('navbar-dark', 'bg-dark');
-        
-        // Update Bootstrap theme
-        document.documentElement.setAttribute('data-bs-theme', 'dark');
-        
-        // Update icon
-        icon.classList.remove('fa-moon');
-        icon.classList.add('fa-sun');
-        
-        // Update profile toggle if it exists
-        if (profileThemeToggle) {
-            profileThemeToggle.checked = true;
-        }
+    enableDarkMode() {
+        // Batch DOM operations
+        requestAnimationFrame(() => {
+            this.body.classList.add('dark-mode');
+            this.navbar.classList.remove('navbar-light', 'navbar-white');
+            this.navbar.classList.add('navbar-dark', 'bg-dark');
+            this.htmlElement.setAttribute('data-bs-theme', 'dark');
+            
+            if (this.icon) {
+                this.icon.classList.remove('fa-moon');
+                this.icon.classList.add('fa-sun');
+            }
+            
+            if (this.profileThemeToggle) {
+                this.profileThemeToggle.checked = true;
+            }
+        });
     }
 
-    function disableDarkMode() {
-        // Update AdminLTE classes
-        body.classList.remove('dark-mode');
-        navbar.classList.remove('navbar-dark', 'bg-dark');
-        navbar.classList.add('navbar-light', 'navbar-white');
-        
-        // Update Bootstrap theme
-        document.documentElement.setAttribute('data-bs-theme', 'light');
-        
-        // Update icon
-        icon.classList.remove('fa-sun');
-        icon.classList.add('fa-moon');
-        
-        // Update profile toggle if it exists
-        if (profileThemeToggle) {
-            profileThemeToggle.checked = false;
-        }
+    disableDarkMode() {
+        // Batch DOM operations
+        requestAnimationFrame(() => {
+            this.body.classList.remove('dark-mode');
+            this.navbar.classList.remove('navbar-dark', 'bg-dark');
+            this.navbar.classList.add('navbar-light', 'navbar-white');
+            this.htmlElement.setAttribute('data-bs-theme', 'light');
+            
+            if (this.icon) {
+                this.icon.classList.remove('fa-sun');
+                this.icon.classList.add('fa-moon');
+            }
+            
+            if (this.profileThemeToggle) {
+                this.profileThemeToggle.checked = false;
+            }
+        });
     }
 
-    function setTheme(theme, savePreference = true) {
-        if (theme === 'dark') {
-            enableDarkMode();
-        } else {
-            disableDarkMode();
-        }
+    async setTheme(theme, savePreference = true) {
+        // Debounce theme changes
+        clearTimeout(this.themeChangeTimer);
+        this.themeChangeTimer = setTimeout(async () => {
+            theme === 'dark' ? this.enableDarkMode() : this.disableDarkMode();
 
-        if (savePreference) {
-            if (isLoggedIn) {
-                // Save theme preference to server for logged in users
-                fetch('/profile/preferences/theme', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({ theme: theme })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Theme update failed');
-                    }
-                    return response.json();
-                })
-                .catch(error => {
-                    console.error('Error updating theme:', error);
-                    // Revert the theme change
-                    if (theme === 'dark') {
-                        disableDarkMode();
-                    } else {
-                        enableDarkMode();
-                    }
-                    // Show error message
-                    const Toast = Swal.mixin({
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        timerProgressBar: true,
-                        didOpen: (toast) => {
-                            toast.addEventListener('mouseenter', Swal.stopTimer)
-                            toast.addEventListener('mouseleave', Swal.resumeTimer)
+            if (savePreference) {
+                try {
+                    if (this.isLoggedIn) {
+                        const response = await fetch('/profile/preferences/theme', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': this.csrfToken
+                            },
+                            body: JSON.stringify({ theme })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Theme update failed');
                         }
-                    });
-                    Toast.fire({
+                        
+                        await response.json();
+                    } else {
+                        // Enhanced cookie with SameSite attribute
+                        document.cookie = `theme=${theme};path=/;max-age=31536000;SameSite=Lax`;
+                    }
+                } catch (error) {
+                    console.error('Error updating theme:', error);
+                    
+                    // Revert theme change
+                    theme === 'dark' ? this.disableDarkMode() : this.enableDarkMode();
+                    
+                    // Show error toast
+                    this.showToast({
                         icon: 'error',
                         title: error.message === 'Failed to fetch' 
                             ? 'Could not connect to server' 
                             : 'Failed to save theme preference'
                     });
-                });
-            } else {
-                // Store theme in cookie for non-logged in users
-                document.cookie = `theme=${theme};path=/;max-age=31536000`;
+                }
             }
-        }
+        }, 150); // Debounce delay
     }
 
-    // Load initial theme
-    function initializeTheme() {
+    showToast(options) {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+        Toast.fire(options);
+    }
+
+    initialize() {
         // Get theme from data-bs-theme attribute
-        const htmlTheme = document.documentElement.getAttribute('data-bs-theme');
+        const htmlTheme = this.htmlElement.getAttribute('data-bs-theme');
         
-        if (isLoggedIn) {
-            // For logged in users, use server preference
-            setTheme(htmlTheme || 'light', false);
+        if (this.isLoggedIn) {
+            this.setTheme(htmlTheme || 'light', false);
         } else {
-            // For non-logged in users, prefer cookie over default
-            const savedTheme = document.cookie.split('; ').find(row => row.startsWith('theme='))?.split('=')[1];
+            const savedTheme = document.cookie.split('; ')
+                .find(row => row.startsWith('theme='))
+                ?.split('=')[1];
+            
             if (savedTheme) {
-                setTheme(savedTheme, false);
+                this.setTheme(savedTheme, false);
             } else {
-                setTheme('light', false);
-                localStorage.setItem('theme', 'light');
+                this.setTheme('light', false);
             }
         }
+
+        // Event Listeners
+        if (this.darkModeToggle) {
+            this.darkModeToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                const newTheme = this.body.classList.contains('dark-mode') ? 'light' : 'dark';
+                this.setTheme(newTheme);
+            });
+        }
+
+        if (this.profileThemeToggle) {
+            this.profileThemeToggle.addEventListener('change', (e) => {
+                const newTheme = e.target.checked ? 'dark' : 'light';
+                this.setTheme(newTheme);
+            });
+        }
+
+        // Initialize flash messages
+        this.initializeFlashMessages();
     }
 
-    // Initialize theme after DOM is loaded
-    initializeTheme();
-    
-    // Handle navbar toggle click
-    darkModeToggle.addEventListener('click', function(e) {
-        e.preventDefault();
-        const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
-        setTheme(newTheme);
-        // Sync profile toggle if it exists
-        if (profileThemeToggle) {
-            profileThemeToggle.checked = newTheme === 'dark';
-        }
-    });
-
-    // Handle profile toggle change if it exists
-    if (profileThemeToggle) {
-        profileThemeToggle.addEventListener('change', function(e) {
-            const newTheme = this.checked ? 'dark' : 'light';
-            setTheme(newTheme);
-            // No need to sync navbar toggle as it's handled in setTheme
+    initializeFlashMessages() {
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(message => {
+            setTimeout(() => {
+                message.classList.add('fade-out');
+                setTimeout(() => {
+                    if (message.parentNode) {
+                        message.remove();
+                    }
+                }, 500);
+            }, 5000);
         });
     }
+}
 
-    // Auto-hide flash messages
-    const flashMessages = document.querySelectorAll('.flash-message');
-    flashMessages.forEach(message => {
-        setTimeout(() => {
-            message.classList.add('fade-out');
-            setTimeout(() => message.remove(), 500);
-        }, 5000);
-    });
+// Initialize theme manager when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.themeManager = new ThemeManager();
 });

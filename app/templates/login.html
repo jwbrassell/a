@@ -3,16 +3,17 @@
 {% block title %}Login{% endblock %}
 
 {% block page_content %}
-<div class="login-page bg-light min-vh-100 d-flex align-items-center">
+<div class="login-page min-vh-100 d-flex align-items-center {% if request.cookies.get('theme') == 'dark' %}bg-dark{% else %}bg-light{% endif %}">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white text-center">
+                <div class="card shadow-sm animate__animated animate__fadeIn">
+                    <div class="card-header bg-primary text-white text-center p-4">
                         <img src="{{ url_for('static', filename='vz.png') }}" 
-                             class="brand-image img-circle elevation-3 mb-2" 
-                             height="50" width="50">
-                        <h3 class="mb-0">Portal</h3>
+                             class="brand-image img-circle elevation-3 mb-3" 
+                             height="60" width="60"
+                             alt="Portal Logo">
+                        <h1 class="h3 mb-0">Portal</h1>
                     </div>
                     
                     <div class="card-body p-4">
@@ -27,15 +28,19 @@
                             {% endif %}
                         {% endwith %}
 
-                        <form method="POST" action="{{ url_for('main.login', next=request.args.get('next')) }}">
+                        <form method="POST" 
+                              action="{{ url_for('main.login', next=request.args.get('next')) }}"
+                              id="loginForm"
+                              autocomplete="off">
                             {{ form.hidden_tag() }}
                             
                             <div class="form-group mb-3">
+                                <label for="{{ form.username.id }}" class="visually-hidden">Username</label>
                                 <div class="input-group">
-                                    <span class="input-group-text">
+                                    <span class="input-group-text" aria-hidden="true">
                                         <i class="fas fa-user"></i>
                                     </span>
-                                    {{ form.username(class="form-control", placeholder="Username") }}
+                                    {{ form.username(class="form-control", placeholder="Username", autocomplete="username") }}
                                 </div>
                                 {% if form.username.errors %}
                                     {% for error in form.username.errors %}
@@ -45,11 +50,12 @@
                             </div>
                             
                             <div class="form-group mb-4">
+                                <label for="{{ form.password.id }}" class="visually-hidden">Password</label>
                                 <div class="input-group">
-                                    <span class="input-group-text">
+                                    <span class="input-group-text" aria-hidden="true">
                                         <i class="fas fa-lock"></i>
                                     </span>
-                                    {{ form.password(class="form-control", placeholder="Password") }}
+                                    {{ form.password(class="form-control", placeholder="Password", autocomplete="current-password") }}
                                 </div>
                                 {% if form.password.errors %}
                                     {% for error in form.password.errors %}
@@ -59,13 +65,18 @@
                             </div>
                             
                             <div class="form-group">
-                                {{ form.submit(class="btn btn-primary w-100") }}
+                                {{ form.submit(class="btn btn-primary w-100 position-relative") }}
+                                <div class="submit-loader position-absolute top-50 start-50 translate-middle" style="display: none;">
+                                    <div class="spinner-border spinner-border-sm text-light" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
                             </div>
                         </form>
                     </div>
 
-                    <div class="card-footer text-center text-muted">
-                        <small>Please use your LDAP credentials to login</small>
+                    <div class="card-footer text-center">
+                        <small class="text-muted">Please use your LDAP credentials to login</small>
                     </div>
                 </div>
             </div>

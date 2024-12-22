@@ -10,57 +10,8 @@
     <title>{% block title %}Portal{% endblock %}</title>
     
     {{ get_cached_imports()|safe }}
-
-    <style>
-        #page-loader, #ajax-loader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            transition: opacity 0.3s;
-        }
-
-        #ajax-loader {
-            background: rgba(255, 255, 255, 0.5);
-            z-index: 9998;
-        }
-
-        .dark-mode #page-loader, .dark-mode #ajax-loader {
-            background: rgba(0, 0, 0, 0.8);
-        }
-
-        .dark-mode #ajax-loader {
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        .loader-spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Ensure modals stay above loaders */
-        .modal {
-            z-index: 10000;
-        }
-        .modal-backdrop {
-            z-index: 9999;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='src/css/theme.css') }}">
 
     {% block head %}{% endblock %}
 </head>
@@ -104,9 +55,11 @@
             <ul class="navbar-nav ml-auto">
                 <!-- Dark Mode Toggle -->
                 <li class="nav-item">
-                    <a class="nav-link" href="#" id="darkModeToggle" role="button">
-                        <i class="fas {% if current_user.is_authenticated and current_user.get_preference('theme', 'light') == 'dark' %}fa-sun{% else %}fa-moon{% endif %}"></i>
-                    </a>
+                    <button class="nav-link btn btn-link" id="darkModeToggle" role="button" aria-label="Toggle dark mode">
+                        <i class="fas {% if current_user.is_authenticated and current_user.get_preference('theme', 'light') == 'dark' %}fa-sun{% else %}fa-moon{% endif %}" 
+                           aria-hidden="true"></i>
+                        <span class="visually-hidden">Toggle dark mode</span>
+                    </button>
                 </li>
                 {% if current_user.is_authenticated %}
                 <!-- User Info -->
@@ -255,6 +208,9 @@
 
     {% block scripts %}{% endblock %}
     <script src="{{ url_for('static', filename='src/js/theme.js') }}"></script>
+    {% if request.endpoint == 'main.login' %}
+    <script src="{{ url_for('static', filename='src/js/login.js') }}"></script>
+    {% endif %}
     <script>
         // Setup CSRF token for AJAX requests
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
