@@ -11,7 +11,8 @@ from app.utils.activity_tracking import track_activity
 @track_activity
 def index():
     """Landing page after login."""
-    return render_template('index.html')
+    plugins = {}  # Initialize empty plugins dict
+    return render_template('index.html', plugins=plugins)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():

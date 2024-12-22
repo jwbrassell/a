@@ -107,17 +107,21 @@ def get_preferences():
 @login_required
 def update_preferences():
     """Update user preferences."""
-    data = request.get_json()
-    
-    if 'theme' in data:
-        current_user.set_preference('theme', data['theme'])
-    if 'notifications' in data:
-        current_user.set_preference('notifications', data['notifications'])
-    if 'language' in data:
-        current_user.set_preference('language', data['language'])
-    
-    db.session.commit()
-    return jsonify({'success': True})
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        if 'theme' in data and data['theme'] in ['light', 'dark']:
+            current_user.set_preference('theme', data['theme'])
+            db.session.commit()
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Invalid theme value'}), 400
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating preferences: {str(e)}")
+        return jsonify({'error': 'Failed to update preferences'}), 500
 
 @profile_bp.route('/preferences/theme', methods=['POST'])
 @login_required
