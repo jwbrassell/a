@@ -27,7 +27,7 @@
                             {% endif %}
                         {% endwith %}
 
-                        <form method="POST" action="{{ url_for('main.login') }}">
+                        <form method="POST" action="{{ url_for('main.login', next=request.args.get('next')) }}">
                             {{ form.hidden_tag() }}
                             
                             <div class="form-group mb-3">

@@ -10,9 +10,8 @@ from app.utils.activity_tracking import track_activity
 @login_required
 @track_activity
 def index():
-    """Landing page after login."""
-    plugins = {}  # Initialize empty plugins dict
-    return render_template('index.html', plugins=plugins)
+    """Landing page."""
+    return render_template('index.html')
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
