@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Email Settings</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.csrf_token }}
+                    <div class="form-group mb-3">
+                        {{ form.donotreply_email.label }}
+                        {{ form.donotreply_email(class="form-control") }}
+                        {% if form.donotreply_email.description %}
+                            <small class="form-text text-muted">{{ form.donotreply_email.description }}</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group mb-3">
+                        {{ form.subject_format.label }}
+                        {{ form.subject_format(class="form-control") }}
+                        <small class="form-text text-muted">
+                            Available variables:
+                            <ul>
+                                <li><code>{priority}</code> - The selected priority level</li>
+                                <li><code>{subject}</code> - The subject entered by the user</li>
+                            </ul>
+                            Example: "[{priority}] {subject}" becomes "[High] Server maintenance required"
+                        </small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        {{ form.body_format.label }}
+                        {{ form.body_format(class="form-control", rows=5) }}
+                        <small class="form-text text-muted">
+                            Available variables:
+                            <ul>
+                                <li><code>{team}</code> - The team name</li>
+                                <li><code>{message}</code> - The message entered by the user</li>
+                                <li><code>{requester}</code> - The name of the person sending the request</li>
+                            </ul>
+                            Example format:
+                            <pre>Dear {team},
+
+{message}
+
+Best regards,
+{requester}</pre>
+                        </small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        {{ form.signature.label }}
+                        {{ form.signature(class="form-control", rows=3) }}
+                        <small class="form-text text-muted">
+                            Optional signature to append to all emails. This will be added after the body format.
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Email Settings</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Team Settings</h3>
+            </div>
+            <div class="card-body">
+                <div id="team-list">
+                    {% for team in settings.teams.get('teams', []) %}
+                    <div class="input-group mb-3 team-entry">
+                        <input type="text" class="form-control team-name" value="{{ team.name }}" placeholder="Team Name">
+                        <input type="email" class="form-control team-email" value="{{ team.email }}" placeholder="Team Email">
+                        <div class="input-group-append">
+                            <button class="btn btn-danger remove-team" type="button">Remove</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="btn btn-success" id="add-team">Add Team</button>
+                <button type="button" class="btn btn-primary" id="save-teams">Save Teams</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Priority Settings</h3>
+            </div>
+            <div class="card-body">
+                <div id="priority-list">
+                    {% for priority, color in settings.priorities.items() %}
+                    <div class="input-group mb-3 priority-entry">
+                        <input type="text" class="form-control priority-name" value="{{ priority }}">
+                        <select class="form-control priority-color">
+                            <option value="primary" {% if color == 'primary' %}selected{% endif %}>Primary</option>
+                            <option value="secondary" {% if color == 'secondary' %}selected{% endif %}>Secondary</option>
+                            <option value="success" {% if color == 'success' %}selected{% endif %}>Success</option>
+                            <option value="danger" {% if color == 'danger' %}selected{% endif %}>Danger</option>
+                            <option value="warning" {% if color == 'warning' %}selected{% endif %}>Warning</option>
+                            <option value="info" {% if color == 'info' %}selected{% endif %}>Info</option>
+                        </select>
+                        <span class="input-group-text bg-{{ color }} text-white">Preview</span>
+                        <div class="input-group-append">
+                            <button class="btn btn-danger remove-priority" type="button">Remove</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="btn btn-success" id="add-priority">Add Priority</button>
+                <button type="button" class="btn btn-primary" id="save-priorities">Save Priorities</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Setup CSRF token for AJAX requests
+    var csrftoken = $('input[name=csrf_token]').val();
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+        }
+    });
+
+    // Team management
+    $('#add-team').click(function() {
+        const teamHtml = `
+            <div class="input-group mb-3 team-entry">
+                <input type="text" class="form-control team-name" placeholder="Team Name">
+                <input type="email" class="form-control team-email" placeholder="Team Email">
+                <div class="input-group-append">
+                    <button class="btn btn-danger remove-team" type="button">Remove</button>
+                </div>
+            </div>
+        `;
+        $('#team-list').append(teamHtml);
+    });
+
+    $(document).on('click', '.remove-team', function() {
+        $(this).closest('.team-entry').remove();
+    });
+
+    $('#save-teams').click(function() {
+        const teams = [];
+        $('.team-entry').each(function() {
+            const name = $(this).find('.team-name').val().trim();
+            const email = $(this).find('.team-email').val().trim();
+            if (name && email) {
+                teams.push({ name: name, email: email });
+            }
+        });
+
+        $.ajax({
+            url: "{{ url_for('dispatch.update_teams') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ teams: teams }),
+            success: function(response) {
+                toastr.success('Teams updated successfully');
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Error updating teams');
+            }
+        });
+    });
+
+    // Priority management
+    $('#add-priority').click(function() {
+        const priorityHtml = `
+            <div class="input-group mb-3 priority-entry">
+                <input type="text" class="form-control priority-name" placeholder="Priority Name">
+                <select class="form-control priority-color">
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="success">Success</option>
+                    <option value="danger">Danger</option>
+                    <option value="warning">Warning</option>
+                    <option value="info">Info</option>
+                </select>
+                <span class="input-group-text bg-primary text-white">Preview</span>
+                <div class="input-group-append">
+                    <button class="btn btn-danger remove-priority" type="button">Remove</button>
+                </div>
+            </div>
+        `;
+        $('#priority-list').append(priorityHtml);
+    });
+
+    $(document).on('click', '.remove-priority', function() {
+        $(this).closest('.priority-entry').remove();
+    });
+
+    // Update color preview when selection changes
+    $(document).on('change', '.priority-color', function() {
+        const color = $(this).val();
+        const preview = $(this).next('.input-group-text');
+        preview.removeClass().addClass(`input-group-text bg-${color} text-white`);
+    });
+
+    $('#save-priorities').click(function() {
+        const priorities = {};
+        $('.priority-entry').each(function() {
+            const name = $(this).find('.priority-name').val().trim();
+            const color = $(this).find('.priority-color').val();
+            if (name) priorities[name] = color;
+        });
+
+        $.ajax({
+            url: "{{ url_for('dispatch.update_priorities') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(priorities),
+            success: function(response) {
+                toastr.success('Priorities updated successfully');
+            },
+            error: function() {
+                toastr.error('Error updating priorities');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

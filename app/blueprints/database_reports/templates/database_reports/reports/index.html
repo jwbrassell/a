@@ -1,0 +1,121 @@
+{% extends "database_reports/base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Dashboard</li>
+{% endblock %}
+
+{% block database_reports_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Database Reports</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('database_reports.new_report') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Report
+        </a>
+        {% if current_user.has_permission('manage_database_connections') %}
+        <a href="{{ url_for('database_reports.list_connections') }}" class="btn btn-secondary">
+            <i class="fas fa-database"></i> Manage Connections
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <form action="{{ url_for('database_reports.search_reports') }}" method="GET" class="row g-3">
+                    <div class="col-md-8">
+                        <input type="text" name="q" class="form-control" placeholder="Search reports..." value="{{ request.args.get('q', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="tag" class="form-select">
+                            <option value="">Filter by tag...</option>
+                            {% for tag in tags %}
+                            <option value="{{ tag.name }}" {% if request.args.get('tag') == tag.name %}selected{% endif %}>
+                                {{ tag.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+    {% for report in reports %}
+    <div class="col">
+        <div class="card h-100 report-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title mb-0">
+                        <a href="{{ url_for('database_reports.view_report', id=report.id) }}" class="text-decoration-none">
+                            {{ report.title }}
+                        </a>
+                    </h5>
+                    {% if report.is_public %}
+                    <span class="badge bg-success">Public</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Private</span>
+                    {% endif %}
+                </div>
+                
+                <p class="card-text text-muted small mb-2">
+                    Created by {{ report.created_by.username }} on {{ report.created_at.strftime('%Y-%m-%d') }}
+                </p>
+                
+                <p class="card-text">{{ report.description|truncate(100) }}</p>
+                
+                <div class="mb-3">
+                    {% for tag in report.tags %}
+                    <span class="tag">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('database_reports.view_report', id=report.id) }}" class="btn btn-primary btn-sm">
+                        View Report
+                    </a>
+                    {% if report.created_by_id == current_user.id %}
+                    <a href="{{ url_for('database_reports.edit_report', id=report.id) }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            No reports found. {% if not request.args.get('q') and not request.args.get('tag') %}
+            <a href="{{ url_for('database_reports.new_report') }}">Create your first report</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize any JavaScript functionality needed for the dashboard
+    
+    // Example: Auto-submit form when tag filter changes
+    document.querySelector('select[name="tag"]').addEventListener('change', function() {
+        this.form.submit();
+    });
+});
+</script>
+{% endblock %}

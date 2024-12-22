@@ -1,0 +1,53 @@
+<!-- Create/Edit Policy Modal -->
+<div class="modal fade" id="policyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="policyModalTitle">Create Policy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="policyForm">
+                    <div class="form-group">
+                        <label>Policy Type</label>
+                        <select class="form-control" id="policyType">
+                            <option value="role">Role Policy</option>
+                            <option value="blueprint">Blueprint Policy</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" class="form-control" id="policyName" required>
+                    </div>
+                    <div id="policyPaths">
+                        <div class="path-entry">
+                            <div class="form-group">
+                                <label>Path</label>
+                                <input type="text" class="form-control path-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Capabilities</label>
+                                <select class="form-control capabilities-select" multiple required>
+                                    <option value="create">Create</option>
+                                    <option value="read">Read</option>
+                                    <option value="update">Update</option>
+                                    <option value="delete">Delete</option>
+                                    <option value="list">List</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-info btn-sm" onclick="addPolicyPath()">
+                        Add Path
+                    </button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="savePolicy()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>

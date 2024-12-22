@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Weblinks Admin{% endblock %}
+
+{% block page_content %}
+<div class="row">
+    <!-- Statistics Cards -->
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3 id="totalLinks">0</h3>
+                <p>Total Links</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-link"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3 id="totalClicks">0</h3>
+                <p>Total Clicks</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-mouse-pointer"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3 id="totalTags">0</h3>
+                <p>Total Tags</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-tags"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner">
+                <h3 id="avgClicksPerLink">0</h3>
+                <p>Avg. Clicks per Link</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Charts -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Most Popular Links</h3>
+            </div>
+            <div class="card-body">
+                <div id="popularLinksChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Tags Distribution</h3>
+            </div>
+            <div class="card-body">
+                <div id="tagsChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Bulk Upload Section -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Bulk Upload Links</h3>
+            </div>
+            <div class="card-body">
+                <p>Download the template and fill it with your links:</p>
+                <a href="{{ url_for('weblinks.download_template') }}" class="btn btn-primary mb-3 no-loader">
+                    <i class="fas fa-download"></i> Download Template
+                </a>
+                
+                <form id="bulkUploadForm" enctype="multipart/form-data" class="ajax-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label for="csvFile">Upload CSV File</label>
+                        <input type="file" class="form-control" id="csvFile" accept=".csv">
+                    </div>
+                    <button type="submit" class="btn btn-success mt-3">
+                        <i class="fas fa-upload"></i> Upload Links
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Tags Section -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Bulk Upload Tags</h3>
+            </div>
+            <div class="card-body">
+                <form id="bulkTagsForm" class="ajax-form">
+                    <div class="form-group">
+                        <label for="tagsList">Enter Tags (one per line)</label>
+                        <textarea class="form-control" id="tagsList" rows="5" placeholder="tag1&#10;tag2&#10;tag3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success mt-3">
+                        <i class="fas fa-tags"></i> Upload Tags
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    // Function to load statistics
+    function loadStats() {
+        showAjaxLoader();
+        fetch('/weblinks/admin/stats')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('totalLinks').textContent = data.total_links;
+                document.getElementById('totalClicks').textContent = data.total_clicks;
+                document.getElementById('totalTags').textContent = data.total_tags;
+                document.getElementById('avgClicksPerLink').textContent = 
+                    (data.total_clicks / (data.total_links || 1)).toFixed(1);
+                
+                // Popular Links Chart
+                Highcharts.chart('popularLinksChart', {
+                    chart: { type: 'bar' },
+                    title: { text: null },
+                    xAxis: {
+                        categories: data.popular_links.map(l => l.title),
+                        title: { text: null }
+                    },
+                    yAxis: {
+                        title: { text: 'Clicks' }
+                    },
+                    series: [{
+                        name: 'Clicks',
+                        data: data.popular_links.map(l => l.clicks)
+                    }],
+                    credits: { enabled: false }
+                });
+
+                // Tags Distribution Chart
+                Highcharts.chart('tagsChart', {
+                    chart: { type: 'pie' },
+                    title: { text: null },
+                    plotOptions: {
+                        pie: {
+                            allowPointSelect: true,
+                            cursor: 'pointer',
+                            dataLabels: {
+                                enabled: true,
+                                format: '<b>{point.name}</b>: {point.percentage:.1f} %'
+                            }
+                        }
+                    },
+                    series: [{
+                        name: 'Links',
+                        data: data.tags_distribution.map(t => ({
+                            name: t.name,
+                            y: t.count
+                        }))
+                    }],
+                    credits: { enabled: false }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading stats:', error);
+                toastr.error('Failed to load statistics');
+            })
+            .finally(() => {
+                hideAjaxLoader();
+            });
+    }
+
+    // Bulk upload links
+    document.getElementById('bulkUploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        showAjaxLoader();
+        const formData = new FormData();
+        formData.append('csrf_token', csrfToken);
+        formData.append('file', document.getElementById('csvFile').files[0]);
+
+        fetch('/weblinks/admin/bulk-upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                toastr.success('Links uploaded successfully');
+                document.getElementById('csvFile').value = '';
+                loadStats();
+            } else {
+                toastr.error(data.error || 'Upload failed');
+            }
+        })
+        .catch(error => {
+            console.error('Error uploading links:', error);
+            toastr.error('Failed to upload links');
+        })
+        .finally(() => {
+            hideAjaxLoader();
+        });
+    });
+
+    // Bulk upload tags
+    document.getElementById('bulkTagsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        showAjaxLoader();
+        const tags = document.getElementById('tagsList').value
+            .split('\n')
+            .map(t => t.trim())
+            .filter(t => t);
+
+        fetch('/weblinks/admin/bulk-tags', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ tags })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                toastr.success('Tags uploaded successfully');
+                document.getElementById('tagsList').value = '';
+                loadStats();
+            } else {
+                toastr.error(data.error || 'Upload failed');
+            }
+        })
+        .catch(error => {
+            console.error('Error uploading tags:', error);
+            toastr.error('Failed to upload tags');
+        })
+        .finally(() => {
+            hideAjaxLoader();
+        });
+    });
+
+    // Initial load
+    loadStats();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% from "admin/components/macros.html" import info_box, chart_card, detail_box, health_indicator, system_info_item %}
+
+{% block title %}Admin Monitoring Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Monitoring</li>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='src/css/admin/common.css') }}">
+{% endblock %}
+
+{% block page_content %}
+<!-- System Health Overview -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-heartbeat mr-2"></i>System Health
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for component in ['cpu', 'memory', 'disk', 'network'] %}
+                    <div class="col-md-3 col-sm-6 col-12">
+                        {{ info_box(
+                            icon=component,
+                            title=component|title,
+                            value="Loading...",
+                            color="info",
+                            extra_classes="component-" + component
+                        ) }}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- System Information -->
+                <div class="system-info">
+                    {{ system_info_item("System Uptime", "uptimeInfo") }}
+                    {{ system_info_item("Load Avg (1m)", "loadAvg1") }}
+                    {{ system_info_item("Load Avg (5m)", "loadAvg5") }}
+                    {{ system_info_item("Load Avg (15m)", "loadAvg15") }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Metrics -->
+<div class="row">
+    <div class="col-md-6">
+        {% call chart_card("CPU & Memory Usage", "systemMetricsChart", "microchip") %}
+            {{ detail_box("CPU Details", "cpuDetails") }}
+            {{ detail_box("Memory Details", "memoryDetails") }}
+        {% endcall %}
+    </div>
+    <div class="col-md-6">
+        {% call chart_card("Network Traffic", "networkMetricsChart", "network-wired") %}
+            {{ detail_box("Network Speed", "networkDetails") }}
+        {% endcall %}
+    </div>
+</div>
+
+<!-- Application Metrics -->
+<div class="row">
+    <div class="col-md-6">
+        {% call chart_card("Active Users", "userActivityChart", "users") %}
+            {{ detail_box("User Activity Summary", "userActivityDetails") }}
+        {% endcall %}
+    </div>
+    <div class="col-md-6">
+        {% call chart_card("Response Times", "responseTimesChart", "clock") %}
+            {{ detail_box("Process Information", "processDetails") }}
+        {% endcall %}
+    </div>
+</div>
+
+<!-- Alerts -->
+<div class="row">
+    <div class="col-12">
+        {% call chart_card("Active Alerts", "", "bell", tools=false) %}
+            <div class="card-tools position-absolute top-0 end-0 m-3">
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newAlertModal">
+                    <i class="fas fa-plus"></i> New Alert
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Metric</th>
+                            <th>Condition</th>
+                            <th>Threshold</th>
+                            <th>Last Triggered</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alertsTableBody">
+                        {% for alert in alerts %}
+                        <tr>
+                            <td>{{ alert.name }}</td>
+                            <td>{{ alert.metric_name }}</td>
+                            <td>{{ alert.condition }}</td>
+                            <td>{{ alert.threshold }}</td>
+                            <td>{{ alert.last_triggered|default('Never', true) }}</td>
+                            <td>
+                                <span class="badge badge-{{ 'success' if alert.enabled else 'secondary' }}">
+                                    {{ 'Active' if alert.enabled else 'Disabled' }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="admin.handleAlertAction('edit', {{ alert.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="admin.handleAlertAction('delete', {{ alert.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endcall %}
+    </div>
+</div>
+
+<!-- New Alert Modal -->
+<div class="modal fade" id="newAlertModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Alert</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newAlertForm">
+                    <div class="form-group mb-3">
+                        <label>Alert Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label>Metric Name</label>
+                        <select class="form-control" name="metric_name" required>
+                            <option value="system_cpu_percent">CPU Usage</option>
+                            <option value="system_memory_percent">Memory Usage</option>
+                            <option value="system_disk_percent">Disk Usage</option>
+                            <option value="request_duration_seconds">Response Time</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label>Condition</label>
+                        <select class="form-control" name="condition" required>
+                            <option value=">">&gt;</option>
+                            <option value="<">&lt;</option>
+                            <option value="=">=</option>
+                            <option value=">=">&gt;=</option>
+                            <option value="<=">&lt;=</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label>Threshold</label>
+                        <input type="number" class="form-control" name="threshold" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label>Duration (seconds)</label>
+                        <input type="number" class="form-control" name="duration" value="300">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="admin.handleAlertAction('create')">Create Alert</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Include Highcharts -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+
+<script type="module">
+    import { Admin } from "{{ url_for('static', filename='src/js/admin/main.js') }}";
+
+    // Initialize admin dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        const admin = new Admin();
+        window.admin = admin; // Make available globally for event handlers
+        
+        // Initialize monitoring dashboard with 1-minute refresh interval
+        admin.initMonitoringDashboard({
+            refreshInterval: 60000 // 60 seconds = 1 minute
+        });
+    });
+</script>
+{% endblock %}

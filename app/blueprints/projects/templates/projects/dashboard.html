@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}Project Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <!-- Statistics Cards -->
+    <div class="row">
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>{{ total_projects }}</h3>
+                    <p>Total Projects</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>{{ active_projects }}</h3>
+                    <p>Active Projects</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>{{ completed_projects }}</h3>
+                    <p>Completed Projects</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Status Distribution -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Project Status Distribution</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Priority Distribution -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Project Priority Distribution</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Workload -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Team Workload</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="teamChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Projects -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Projects</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Lead</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for project in recent_projects %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('projects.view_project', project_id=project.id) }}">
+                                            {{ project.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ project.status_color }}">
+                                            {{ project.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ project.priority_color }}">
+                                            {{ project.priority }}
+                                        </span>
+                                    </td>
+                                    <td>{{ project.lead.name if project.lead else 'Unassigned' }}</td>
+                                    <td>{{ project.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart data initialization
+var statusLabels = {{ status_labels|default([])|tojson|safe }};
+var statusData = {{ status_data|default([])|tojson|safe }};
+var priorityLabels = {{ priority_labels|default([])|tojson|safe }};
+var priorityData = {{ priority_data|default([])|tojson|safe }};
+var teamLabels = {{ team_labels|default([])|tojson|safe }};
+var teamData = {{ team_data|default([])|tojson|safe }};
+
+// Initialize Status Chart
+new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+        labels: statusLabels,
+        datasets: [{
+            data: statusData,
+            backgroundColor: [
+                '#28a745', // Success
+                '#ffc107', // Warning
+                '#dc3545', // Danger
+                '#6c757d'  // Secondary
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Initialize Priority Chart
+new Chart(document.getElementById('priorityChart'), {
+    type: 'doughnut',
+    data: {
+        labels: priorityLabels,
+        datasets: [{
+            data: priorityData,
+            backgroundColor: [
+                '#28a745', // Low
+                '#ffc107', // Medium
+                '#dc3545', // High
+                '#9c27b0'  // Critical
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Initialize Team Workload Chart
+new Chart(document.getElementById('teamChart'), {
+    type: 'bar',
+    data: {
+        labels: teamLabels,
+        datasets: [{
+            label: 'Assigned Tasks',
+            data: teamData,
+            backgroundColor: '#007bff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.small-box {
+    border-radius: 0.25rem;
+    box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+    display: block;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.small-box > .inner {
+    padding: 10px;
+}
+
+.small-box h3 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    padding: 0;
+    white-space: nowrap;
+}
+
+.small-box p {
+    font-size: 1rem;
+}
+
+.small-box .icon {
+    color: rgba(0,0,0,.15);
+    z-index: 0;
+}
+
+.small-box .icon > i {
+    font-size: 90px;
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    transition: transform .3s linear;
+}
+
+.small-box:hover .icon > i {
+    transform: scale(1.1);
+}
+
+.card {
+    margin-bottom: 1rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+</style>
+{% endblock %}

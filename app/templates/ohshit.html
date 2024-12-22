@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">All Accessible Pages</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Core Pages -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Core Pages</h4>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><a href="/">/</a></li>
+                                        <li><a href="/profile/">/profile/</a></li>
+                                        <li><a href="/admin/">/admin/</a></li>
+                                        <li><a href="/admin/roles">/admin/roles</a></li>
+                                        <li><a href="/admin/users">/admin/users</a></li>
+                                        <li><a href="/admin/routes">/admin/routes</a></li>
+                                        <li><a href="/admin/monitoring">/admin/monitoring</a></li>
+                                        <li><a href="/admin/vault">/admin/vault</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AWS Monitor Pages -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>AWS Monitor</h4>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><a href="/awsmon/">/awsmon/</a></li>
+                                        <li><a href="/awsmon/instances">/awsmon/instances</a></li>
+                                        <li><a href="/awsmon/synthetic">/awsmon/synthetic</a></li>
+                                        <li><a href="/awsmon/templates">/awsmon/templates</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Projects Pages -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Projects</h4>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><a href="/projects/">/projects/</a></li>
+                                        <li><a href="/projects/list">/projects/list</a></li>
+                                        <li><a href="/projects/create">/projects/create</a></li>
+                                        <li><a href="/projects/dashboard">/projects/dashboard</a></li>
+                                        <li><a href="/projects/statuses">/projects/statuses</a></li>
+                                        <li><a href="/projects/priorities">/projects/priorities</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dispatch Pages -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Dispatch</h4>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><a href="/dispatch/">/dispatch/</a></li>
+                                        <li><a href="/dispatch/manage">/dispatch/manage</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Handoffs Pages -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Handoffs</h4>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><a href="/handoffs/">/handoffs/</a></li>
+                                        <li><a href="/handoffs/create">/handoffs/create</a></li>
+                                        <li><a href="/handoffs/metrics">/handoffs/metrics</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OnCall Pages -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>OnCall</h4>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><a href="/oncall/">/oncall/</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reports Pages -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Reports</h4>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><a href="/reports/">/reports/</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Weblinks Pages -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Weblinks</h4>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><a href="/weblinks/">/weblinks/</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+            <div class="sidebar-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'configurations' %}active{% endif %}" 
+                           href="{{ url_for('aws_manager.list_configurations') }}">
+                            <i class="fas fa-cogs"></i> Configurations
+                        </a>
+                    </li>
+                    {% if config_id %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'ec2' %}active{% endif %}"
+                           href="{{ url_for('aws_manager.list_ec2_instances', config_id=config_id) }}">
+                            <i class="fas fa-server"></i> EC2 Instances
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'templates' %}active{% endif %}"
+                           href="{{ url_for('aws_manager.list_templates', config_id=config_id) }}">
+                            <i class="fas fa-copy"></i> EC2 Templates
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'iam' %}active{% endif %}"
+                           href="{{ url_for('aws_manager.list_iam_users', config_id=config_id) }}">
+                            <i class="fas fa-users"></i> IAM Users
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'security' %}active{% endif %}"
+                           href="{{ url_for('aws_manager.list_security_groups', config_id=config_id) }}">
+                            <i class="fas fa-shield-alt"></i> Security Groups
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main role="main" class="col-md-10 ms-sm-auto px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>{% block aws_title %}{% endblock %}</h1>
+                {% block aws_actions %}{% endblock %}
+            </div>
+
+            {% block aws_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<!-- Toast container for notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-danger text-white">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong class="me-auto">Error</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Common AWS manager JavaScript functions
+function confirmDelete(message) {
+    return confirm(message || 'Are you sure you want to delete this item?');
+}
+
+async function handleApiError(error) {
+    console.error('API Error:', error);
+    let message = 'An error occurred. Please try again.';
+    
+    if (error.response) {
+        if (error.response.json) {
+            try {
+                const data = await error.response.json();
+                message = data.message || message;
+            } catch {
+                message = error.response.statusText || message;
+            }
+        } else {
+            message = error.response.statusText || message;
+        }
+    } else if (error.message) {
+        message = error.message;
+    }
+    
+    // Show error toast
+    const toastEl = document.getElementById('errorToast');
+    const toast = new bootstrap.Toast(toastEl);
+    toastEl.querySelector('.toast-body').textContent = message;
+    toast.show();
+}
+
+// Set active page in navigation
+document.addEventListener('DOMContentLoaded', function() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    navLinks.forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Project Info</h3>
+  </div>
+  <div class="card-body">
+    <dl class="row">
+      <dt class="col-sm-4">Status</dt>
+      <dd class="col-sm-8">
+        <span class="badge badge-{{ project.status.badge_color }}">{{ project.status.name }}</span>
+      </dd>
+
+      <dt class="col-sm-4">Priority</dt>
+      <dd class="col-sm-8">
+        <span class="badge badge-{{ project.priority.badge_color }}">{{ project.priority.name }}</span>
+      </dd>
+
+      <dt class="col-sm-4">Lead</dt>
+      <dd class="col-sm-8">{{ project.lead }}</dd>
+
+      <dt class="col-sm-4">Created</dt>
+      <dd class="col-sm-8">{{ project.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+
+      <dt class="col-sm-4">Updated</dt>
+      <dd class="col-sm-8">{{ project.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+    </dl>
+  </div>
+</div>

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.aws-nav {
+    background-color: #232f3e;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+.aws-nav .nav-link {
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    border-radius: 4px;
+}
+.aws-nav .nav-link:hover {
+    background-color: #485769;
+}
+.aws-nav .nav-link.active {
+    background-color: #ff9900;
+    color: #232f3e;
+}
+.card {
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.refresh-btn {
+    margin-bottom: 1rem;
+}
+.status-badge {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+.status-running { background-color: #28a745; color: white; }
+.status-stopped { background-color: #dc3545; color: white; }
+.status-pending { background-color: #ffc107; color: black; }
+.status-terminated { background-color: #6c757d; color: white; }
+.aws-table th { 
+    background-color: #232f3e;
+    color: white;
+}
+.aws-table td {
+    vertical-align: middle;
+}
+.health-critical { background-color: #dc3545; color: white; }
+.health-warning { background-color: #ffc107; color: black; }
+.health-info { background-color: #17a2b8; color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="aws-nav">
+        <ul class="nav nav-pills">
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'configurations' %}active{% endif %}" 
+                   href="{{ url_for('aws_manager.list_configurations') }}">
+                    Configurations
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'ec2' %}active{% endif %}" 
+                   href="{{ url_for('aws_manager.list_ec2_instances', config_id=config.id) if config else '#' }}">
+                    EC2 Instances
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'templates' %}active{% endif %}" 
+                   href="{{ url_for('aws_manager.list_templates', config_id=config.id) if config else '#' }}">
+                    Templates
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'health' %}active{% endif %}" 
+                   href="{{ url_for('aws_manager.list_health_events', config_id=config.id) if config else '#' }}">
+                    Health Events
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'iam' %}active{% endif %}" 
+                   href="{{ url_for('aws_manager.list_iam_users', config_id=config.id) if config else '#' }}">
+                    IAM Users
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_page == 'security' %}active{% endif %}" 
+                   href="{{ url_for('aws_manager.list_security_groups', config_id=config.id) if config else '#' }}">
+                    Security Groups
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    {% block aws_content %}{% endblock %}
+</div>
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Common AWS manager functions
+function refreshData() {
+    location.reload();
+}
+
+function showError(message) {
+    const alert = `
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    `;
+    document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', alert);
+}
+
+function showSuccess(message) {
+    const alert = `
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    `;
+    document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', alert);
+}
+
+// Auto-refresh functionality
+let refreshInterval;
+
+function startAutoRefresh(interval) {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+    refreshInterval = setInterval(refreshData, interval * 1000);
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
+}
+
+// Set up refresh interval selector if it exists
+const refreshSelector = document.getElementById('refresh-interval');
+if (refreshSelector) {
+    refreshSelector.addEventListener('change', function() {
+        const interval = parseInt(this.value);
+        if (interval > 0) {
+            startAutoRefresh(interval);
+        } else {
+            stopAutoRefresh();
+        }
+    });
+}
+</script>
+{% endblock %}
+
+{% block aws_scripts %}{% endblock %}

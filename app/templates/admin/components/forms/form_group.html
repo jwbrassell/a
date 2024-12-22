@@ -1,0 +1,74 @@
+{% macro form_group(label, name, type="text", value="", required=false, placeholder="", help_text="") %}
+<div class="form-group">
+    <label for="{{ name }}">{{ label }}{% if required %}<span class="text-danger">*</span>{% endif %}</label>
+    <input type="{{ type }}" 
+           class="form-control" 
+           id="{{ name }}" 
+           name="{{ name }}" 
+           value="{{ value }}"
+           {% if required %}required{% endif %}
+           placeholder="{{ placeholder }}">
+    {% if help_text %}
+    <small class="form-text text-muted">{{ help_text }}</small>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro form_select(label, name, options, selected="", required=false, help_text="") %}
+<div class="form-group">
+    <label for="{{ name }}">{{ label }}{% if required %}<span class="text-danger">*</span>{% endif %}</label>
+    <select class="form-control" 
+            id="{{ name }}" 
+            name="{{ name }}"
+            {% if required %}required{% endif %}>
+        <option value="">Select {{ label }}</option>
+        {% for option in options %}
+        <option value="{{ option.id }}" {% if selected == option.id %}selected{% endif %}>
+            {{ option.name }}
+        </option>
+        {% endfor %}
+    </select>
+    {% if help_text %}
+    <small class="form-text text-muted">{{ help_text }}</small>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro form_textarea(label, name, value="", required=false, rows=3, help_text="") %}
+<div class="form-group">
+    <label for="{{ name }}">{{ label }}{% if required %}<span class="text-danger">*</span>{% endif %}</label>
+    <textarea class="form-control" 
+              id="{{ name }}" 
+              name="{{ name }}" 
+              rows="{{ rows }}"
+              {% if required %}required{% endif %}>{{ value }}</textarea>
+    {% if help_text %}
+    <small class="form-text text-muted">{{ help_text }}</small>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro form_checkbox(label, name, checked=false, help_text="") %}
+<div class="form-group">
+    <div class="custom-control custom-checkbox">
+        <input type="checkbox" 
+               class="custom-control-input" 
+               id="{{ name }}" 
+               name="{{ name }}"
+               {% if checked %}checked{% endif %}>
+        <label class="custom-control-label" for="{{ name }}">{{ label }}</label>
+    </div>
+    {% if help_text %}
+    <small class="form-text text-muted">{{ help_text }}</small>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro form_submit(label="Submit", cancel_url="") %}
+<div class="form-group mt-4">
+    <button type="submit" class="btn btn-primary">{{ label }}</button>
+    {% if cancel_url %}
+    <a href="{{ cancel_url }}" class="btn btn-secondary ml-2">Cancel</a>
+    {% endif %}
+</div>
+{% endmacro %}

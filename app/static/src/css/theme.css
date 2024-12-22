@@ -1,0 +1,315 @@
+/* Dark Mode Styles */
+[data-bs-theme="dark"] {
+    --bs-body-bg: #343a40;
+    --bs-body-color: #fff;
+    --bs-primary: #007bff;
+    --bs-secondary: #6c757d;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: #454d55;
+    border-color: #6c757d;
+}
+
+[data-bs-theme="dark"] .card-header {
+    background-color: #3a4047;
+    border-bottom-color: #6c757d;
+}
+
+[data-bs-theme="dark"] .form-control {
+    background-color: #454d55;
+    border-color: #6c757d;
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .form-control:focus {
+    background-color: #4b545c;
+    border-color: #80bdff;
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .btn-outline-primary {
+    color: #9fcdff;
+    border-color: #9fcdff;
+}
+
+[data-bs-theme="dark"] .btn-outline-primary:hover {
+    color: #343a40;
+    background-color: #9fcdff;
+}
+
+[data-bs-theme="dark"] .btn-check:checked + .btn-outline-primary {
+    color: #343a40;
+    background-color: #9fcdff;
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: #454d55;
+    border-color: #6c757d;
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+    background-color: #4b545c;
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .navbar-light {
+    background-color: #343a40 !important;
+}
+
+[data-bs-theme="dark"] .navbar-light .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, .8);
+}
+
+[data-bs-theme="dark"] .navbar-light .navbar-nav .nav-link:hover {
+    color: #fff;
+}
+
+/* TinyMCE Dark Mode Styles */
+[data-bs-theme="dark"] .tox-tinymce {
+    border-color: #6c757d !important;
+    background-color: #343a40 !important;
+}
+
+[data-bs-theme="dark"] .tox .tox-toolbar,
+[data-bs-theme="dark"] .tox .tox-toolbar__primary,
+[data-bs-theme="dark"] .tox .tox-toolbar__overflow,
+[data-bs-theme="dark"] .tox .tox-toolbar-overlord,
+[data-bs-theme="dark"] .tox .tox-editor-header {
+    background: #343a40 !important;
+    background-color: #343a40 !important;
+    border: none !important;
+    border-bottom: none !important;
+}
+
+[data-bs-theme="dark"] .tox .tox-toolbar__group {
+    border: none !important;
+    border-right: none !important;
+    border-left: none !important;
+    padding: 0 4px !important;
+    background: transparent !important;
+}
+
+[data-bs-theme="dark"] .tox .tox-toolbar__group::after,
+[data-bs-theme="dark"] .tox .tox-toolbar__group::before {
+    display: none !important;
+}
+
+[data-bs-theme="dark"] .tox .tox-tbtn {
+    color: #fff !important;
+    margin: 0 1px !important;
+}
+
+[data-bs-theme="dark"] .tox .tox-tbtn svg {
+    fill: #fff !important;
+}
+
+[data-bs-theme="dark"] .tox .tox-tbtn:hover {
+    background: #454d55 !important;
+}
+
+[data-bs-theme="dark"] .tox .tox-edit-area__iframe {
+    background-color: #454d55 !important;
+}
+
+[data-bs-theme="dark"] .tox .tox-tbtn--enabled,
+[data-bs-theme="dark"] .tox .tox-tbtn--enabled:hover {
+    background: #454d55 !important;
+}
+
+[data-bs-theme="dark"] .tox .tox-toolbar-overlord {
+    background: none !important;
+}
+
+[data-bs-theme="dark"] .tox-editor-header {
+    border-bottom: 1px solid #6c757d !important;
+}
+
+/* Flash Messages */
+.flash-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 350px;
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.flash-message.fade-out {
+    opacity: 0;
+}
+
+/* Navigation Styles */
+.nav-treeview {
+    margin-left: 1rem;
+    border-left: 1px solid rgba(255,255,255,0.1);
+    padding-left: 0.5rem;
+}
+
+.nav-treeview .nav-item {
+    margin-left: 0.5rem;
+}
+
+/* Sidebar Styles */
+.sidebar-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-bottom: 1rem;
+}
+
+.sidebar-bottom .sidebar-divider {
+    border-top: 1px solid rgba(255,255,255,.1);
+    margin: 1rem 0;
+}
+
+.sidebar {
+    position: relative;
+    min-height: calc(100vh - 4rem);
+}
+
+.sidebar nav {
+    padding-bottom: 150px;
+}
+
+.breadcrumb {
+    justify-content: flex-end;
+}
+
+/* DataTables Dark Mode Enhancements */
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_length select,
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter input {
+    background-color: #343a40;
+    border-color: #6c757d;
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_length select:focus,
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+/* Table Dark Mode Styles */
+[data-bs-theme="dark"] .table {
+    color: #fff !important;
+}
+
+[data-bs-theme="dark"] .table th,
+[data-bs-theme="dark"] .table td {
+    border-color: #454d55;
+}
+
+[data-bs-theme="dark"] .table tbody tr {
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+    color: #fff;
+    background-color: rgba(255,255,255,.075) !important;
+}
+
+[data-bs-theme="dark"] .table thead th {
+    border-bottom-color: #454d55;
+}
+
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_length,
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter,
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_info,
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_processing {
+    color: #fff;
+}
+
+/* Dark Mode Badge Styles */
+[data-bs-theme="dark"] .badge.bg-primary {
+    background-color: #0d6efd !important;
+    color: #fff;
+}
+
+/* Dark Mode Form Control Plaintext */
+[data-bs-theme="dark"] .form-control-plaintext {
+    color: #fff;
+}
+
+/* Todo Component Styles */
+.btn-link.text-body {
+    text-decoration: none;
+}
+
+.btn-link.text-body:hover {
+    opacity: 0.75;
+}
+
+.btn-link.text-body:focus {
+    box-shadow: none;
+}
+
+.collapse-icon {
+    transition: all 0.2s ease-in-out;
+    font-size: 0.875rem;
+}
+
+[data-bs-theme="dark"] .btn-link.text-body {
+    color: #fff !important;
+}
+
+.handle {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    cursor: move;
+}
+
+.handle:hover {
+    opacity: 1;
+}
+
+.sortable-ghost {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-bs-theme="dark"] .sortable-ghost {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Updated Button Styles */
+.btn-primary {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    border-color: #2980b9;
+}
+
+.btn-primary:focus {
+    box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+}
+
+.btn-outline-secondary {
+    color: #6c757d;
+    border-color: #ced4da;
+}
+
+.btn-outline-secondary:hover {
+    color: #fff;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary {
+    color: #ced4da;
+    border-color: #6c757d;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+    color: #fff;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}

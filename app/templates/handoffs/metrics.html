@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="row">
+    <!-- Summary Cards -->
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>{{ total_handoffs }}</h3>
+                <p>Total Handoffs</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>{{ completed_handoffs }}</h3>
+                <p>Completed</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-check"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3>{{ total_handoffs - completed_handoffs }}</h3>
+                <p>In Progress</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-clock"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner">
+                <h3>{{ overdue_handoffs }}</h3>
+                <p>Overdue</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Priority Distribution -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Handoffs by Priority</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="priorityChart" 
+                        data-labels='{{ priority_stats.keys()|list|tojson|safe }}'
+                        data-values='{{ priority_stats.values()|list|tojson|safe }}'></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignee Distribution -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Handoffs by Assignee</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="assigneeChart"
+                        data-labels='{{ assignee_stats.keys()|list|tojson|safe }}'
+                        data-values='{{ assignee_stats.values()|list|tojson|safe }}'></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Date Filter -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Filter by Date Range</h3>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="start_date">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ request.args.get('start_date', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="end_date">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date"
+                                   value="{{ request.args.get('end_date', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary d-block">Apply Filter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Priority Chart
+    const priorityChart = document.getElementById('priorityChart');
+    const priorityLabels = JSON.parse(priorityChart.dataset.labels);
+    const priorityData = JSON.parse(priorityChart.dataset.values);
+
+    new Chart(priorityChart.getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: priorityLabels,
+            datasets: [{
+                data: priorityData,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Assignee Chart
+    const assigneeChart = document.getElementById('assigneeChart');
+    const assigneeLabels = JSON.parse(assigneeChart.dataset.labels);
+    const assigneeData = JSON.parse(assigneeChart.dataset.values);
+
+    new Chart(assigneeChart.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: assigneeLabels,
+            datasets: [{
+                label: 'Number of Handoffs',
+                data: assigneeData,
+                backgroundColor: 'rgba(54, 162, 235, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

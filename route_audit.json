@@ -1,0 +1,1055 @@
+{
+  "total_routes": 74,
+  "categories": {
+    "Main": [
+      {
+        "route": "/static/<path:filename>",
+        "page_name": "Custom_Static",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "custom_static",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": false,
+        "test_url": "http://localhost:5000/static/<path:filename>"
+      },
+      {
+        "route": "/login",
+        "page_name": "Main Login",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "main.login",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "login.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/login"
+      },
+      {
+        "route": "/logout",
+        "page_name": "Main Logout",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "main.logout",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/logout"
+      },
+      {
+        "route": "/index",
+        "page_name": "Main Index",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "main.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "index.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/index"
+      },
+      {
+        "route": "/",
+        "page_name": "Main Index",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "main.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "index.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/"
+      },
+      {
+        "route": "/ohshit",
+        "page_name": "Main Ohshit",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "main.ohshit",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "ohshit.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/ohshit"
+      }
+    ],
+    "Projects": [
+      {
+        "route": "/projects/static/<path:filename>",
+        "page_name": "Projects Static",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "projects.static",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": false,
+        "test_url": "http://localhost:5000/projects/static/<path:filename>"
+      },
+      {
+        "route": "/projects",
+        "page_name": "Projects Index",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "projects.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "projects/error.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/projects"
+      },
+      {
+        "route": "/projects/",
+        "page_name": "Projects Index",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "projects.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "projects/error.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/projects/"
+      },
+      {
+        "route": "/projects/list",
+        "page_name": "Projects List_Projects",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "projects.list_projects",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/projects/list"
+      },
+      {
+        "route": "/projects/dashboard",
+        "page_name": "Projects Project_Dashboard",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "projects.project_dashboard",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "projects/error.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/projects/dashboard"
+      },
+      {
+        "route": "/projects/create",
+        "page_name": "Projects Create_Project",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "projects.create_project",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "projects/error.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/projects/create"
+      },
+      {
+        "route": "/projects/<int:project_id>/view",
+        "page_name": "Projects View_Project",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "projects.view_project",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "projects/error.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/projects/<int:project_id>/view"
+      }
+    ],
+    "Auth": [
+      {
+        "route": "/",
+        "page_name": "Auth Index",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "auth.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "index.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/"
+      },
+      {
+        "route": "/login",
+        "page_name": "Auth Login",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "auth.login",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "login.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/login"
+      },
+      {
+        "route": "/logout",
+        "page_name": "Auth Logout",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "auth.logout",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/logout"
+      },
+      {
+        "route": "/profile",
+        "page_name": "Auth Profile",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "auth.profile",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "profile.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/profile"
+      }
+    ],
+    "Vault Dashboard": [
+      {
+        "route": "/admin/vault/",
+        "page_name": "Vault_Dashboard Dashboard",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "vault_dashboard.dashboard",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/vault_dashboard.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/vault/"
+      },
+      {
+        "route": "/admin/vault/status",
+        "page_name": "Vault_Dashboard Status",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "vault_dashboard.status",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/vault_status.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/vault/status"
+      }
+    ],
+    "Admin": [
+      {
+        "route": "/admin/",
+        "page_name": "Admin Index",
+        "roles": [],
+        "permissions": [
+          "admin_dashboard_access"
+        ],
+        "endpoint": "admin.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/index.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/"
+      },
+      {
+        "route": "/admin/routes",
+        "page_name": "Admin Routes",
+        "roles": [],
+        "permissions": [
+          "admin_routes_access"
+        ],
+        "endpoint": "admin.routes",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/routes.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/routes"
+      },
+      {
+        "route": "/admin/routes/new",
+        "page_name": "Admin New_Route",
+        "roles": [],
+        "permissions": [
+          "admin_routes_access"
+        ],
+        "endpoint": "admin.new_route",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/route_form.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/routes/new"
+      },
+      {
+        "route": "/admin/routes/<int:route_id>/edit",
+        "page_name": "Admin Edit_Route",
+        "roles": [],
+        "permissions": [
+          "admin_routes_access"
+        ],
+        "endpoint": "admin.edit_route",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/route_form.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/routes/<int:route_id>/edit"
+      },
+      {
+        "route": "/admin/routes/<int:route_id>/delete",
+        "page_name": "Admin Delete_Route",
+        "roles": [],
+        "permissions": [
+          "admin_routes_access"
+        ],
+        "endpoint": "admin.delete_route",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/routes/<int:route_id>/delete"
+      },
+      {
+        "route": "/admin/routes/list",
+        "page_name": "Admin Get_Routes",
+        "roles": [],
+        "permissions": [
+          "admin_routes_access"
+        ],
+        "endpoint": "admin.get_routes",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/routes/list"
+      },
+      {
+        "route": "/admin/analytics",
+        "page_name": "Admin Analytics",
+        "roles": [],
+        "permissions": [
+          "admin_analytics_access"
+        ],
+        "endpoint": "admin.analytics",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/analytics.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/analytics"
+      },
+      {
+        "route": "/admin/logs",
+        "page_name": "Admin Logs",
+        "roles": [],
+        "permissions": [
+          "admin_logs_access"
+        ],
+        "endpoint": "admin.logs",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/logs.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/logs"
+      },
+      {
+        "route": "/admin/monitoring",
+        "page_name": "Admin Monitoring",
+        "roles": [],
+        "permissions": [
+          "admin_monitoring_access"
+        ],
+        "endpoint": "admin.monitoring",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/monitoring/index.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/monitoring"
+      },
+      {
+        "route": "/admin/users",
+        "page_name": "Admin Users",
+        "roles": [],
+        "permissions": [
+          "admin_users_access"
+        ],
+        "endpoint": "admin.users",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/users.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/users"
+      },
+      {
+        "route": "/admin/users/new",
+        "page_name": "Admin New_User",
+        "roles": [],
+        "permissions": [
+          "admin_users_access"
+        ],
+        "endpoint": "admin.new_user",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/user_form.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/users/new"
+      },
+      {
+        "route": "/admin/users/<int:user_id>/edit",
+        "page_name": "Admin Edit_User",
+        "roles": [],
+        "permissions": [
+          "admin_users_access"
+        ],
+        "endpoint": "admin.edit_user",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/user_form.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/users/<int:user_id>/edit"
+      },
+      {
+        "route": "/admin/users/<int:user_id>/delete",
+        "page_name": "Admin Delete_User",
+        "roles": [],
+        "permissions": [
+          "admin_users_access"
+        ],
+        "endpoint": "admin.delete_user",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/users/<int:user_id>/delete"
+      },
+      {
+        "route": "/admin/roles",
+        "page_name": "Admin Roles",
+        "roles": [],
+        "permissions": [
+          "admin_roles_access"
+        ],
+        "endpoint": "admin.roles",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/roles.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/roles"
+      },
+      {
+        "route": "/admin/roles/new",
+        "page_name": "Admin New_Role",
+        "roles": [],
+        "permissions": [
+          "admin_roles_access"
+        ],
+        "endpoint": "admin.new_role",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/role_form.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/roles/new"
+      },
+      {
+        "route": "/admin/roles/<int:role_id>/edit",
+        "page_name": "Admin Edit_Role",
+        "roles": [],
+        "permissions": [
+          "admin_roles_access"
+        ],
+        "endpoint": "admin.edit_role",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/role_form.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/roles/<int:role_id>/edit"
+      },
+      {
+        "route": "/admin/roles/<int:role_id>/delete",
+        "page_name": "Admin Delete_Role",
+        "roles": [],
+        "permissions": [
+          "admin_roles_access"
+        ],
+        "endpoint": "admin.delete_role",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/roles/<int:role_id>/delete"
+      },
+      {
+        "route": "/admin/roles/<int:role_id>/members",
+        "page_name": "Admin Role_Members",
+        "roles": [],
+        "permissions": [
+          "admin_roles_access"
+        ],
+        "endpoint": "admin.role_members",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/role_members.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/roles/<int:role_id>/members"
+      },
+      {
+        "route": "/admin/icons",
+        "page_name": "Admin Get_Icons",
+        "roles": [],
+        "permissions": [
+          "admin_icons_access"
+        ],
+        "endpoint": "admin.get_icons",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/icons"
+      },
+      {
+        "route": "/admin/icons/search",
+        "page_name": "Admin Search_Icons",
+        "roles": [],
+        "permissions": [
+          "admin_icons_access"
+        ],
+        "endpoint": "admin.search_icons",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/icons/search"
+      },
+      {
+        "route": "/admin/icons/categories",
+        "page_name": "Admin Get_Icon_Categories",
+        "roles": [],
+        "permissions": [
+          "admin_icons_access"
+        ],
+        "endpoint": "admin.get_icon_categories",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/icons/categories"
+      },
+      {
+        "route": "/admin/icons/validate",
+        "page_name": "Admin Validate_Icon",
+        "roles": [],
+        "permissions": [
+          "admin_icons_access"
+        ],
+        "endpoint": "admin.validate_icon",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/icons/validate"
+      },
+      {
+        "route": "/admin/navigation/categories",
+        "page_name": "Admin Navigation_Categories",
+        "roles": [],
+        "permissions": [
+          "admin_routes_access"
+        ],
+        "endpoint": "admin.navigation_categories",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "admin/navigation_categories.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/navigation/categories"
+      },
+      {
+        "route": "/admin/navigation/categories/<int:category_id>/delete",
+        "page_name": "Admin Delete_Category",
+        "roles": [],
+        "permissions": [
+          "admin_routes_access"
+        ],
+        "endpoint": "admin.delete_category",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/navigation/categories/<int:category_id>/delete"
+      },
+      {
+        "route": "/admin/navigation/categories/list",
+        "page_name": "Admin Get_Categories",
+        "roles": [],
+        "permissions": [
+          "admin_routes_access"
+        ],
+        "endpoint": "admin.get_categories",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/admin/navigation/categories/list"
+      }
+    ],
+    "Dispatch": [
+      {
+        "route": "/dispatch/admin/settings",
+        "page_name": "Dispatch Admin_Settings",
+        "roles": [],
+        "permissions": [
+          "admin_dispatch_access"
+        ],
+        "endpoint": "dispatch.admin_settings",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "dispatch/admin_settings.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/dispatch/admin/settings"
+      },
+      {
+        "route": "/dispatch/",
+        "page_name": "Dispatch Dispatch_Request",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "dispatch.dispatch_request",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "dispatch/request.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/dispatch/"
+      }
+    ],
+    "Handoffs": [
+      {
+        "route": "/handoffs/",
+        "page_name": "Handoffs Index",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "handoffs.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "handoffs/index.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/handoffs/"
+      },
+      {
+        "route": "/handoffs/workcenter-list",
+        "page_name": "Handoffs Workcenter_List",
+        "roles": [],
+        "permissions": [
+          "admin_handoffs_access"
+        ],
+        "endpoint": "handoffs.workcenter_list",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "handoffs/workcenters.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/handoffs/workcenter-list"
+      },
+      {
+        "route": "/handoffs/workcenters/create",
+        "page_name": "Handoffs Create_Workcenter",
+        "roles": [],
+        "permissions": [
+          "admin_handoffs_access"
+        ],
+        "endpoint": "handoffs.create_workcenter",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "handoffs/workcenter_form.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/handoffs/workcenters/create"
+      },
+      {
+        "route": "/handoffs/create",
+        "page_name": "Handoffs Create",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "handoffs.create",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "handoffs/create.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/handoffs/create"
+      },
+      {
+        "route": "/handoffs/metrics",
+        "page_name": "Handoffs Metrics",
+        "roles": [],
+        "permissions": [
+          "view_metrics"
+        ],
+        "endpoint": "handoffs.metrics",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "handoffs/metrics.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/handoffs/metrics"
+      },
+      {
+        "route": "/handoffs/admin/settings",
+        "page_name": "Handoffs Admin_Settings",
+        "roles": [],
+        "permissions": [
+          "admin_handoffs_access"
+        ],
+        "endpoint": "handoffs.admin_settings",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "handoffs/admin_settings.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/handoffs/admin/settings"
+      }
+    ],
+    "Profile": [
+      {
+        "route": "/profile/static/<path:filename>",
+        "page_name": "Profile Static",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "profile.static",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": false,
+        "test_url": "http://localhost:5000/profile/static/<path:filename>"
+      }
+    ],
+    "Oncall": [
+      {
+        "route": "/oncall/static/<path:filename>",
+        "page_name": "Oncall Static",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "oncall.static",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": false,
+        "test_url": "http://localhost:5000/oncall/static/<path:filename>"
+      },
+      {
+        "route": "/oncall/",
+        "page_name": "Oncall Index",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "oncall.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "oncall/index.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/oncall/"
+      }
+    ],
+    "Weblinks": [
+      {
+        "route": "/weblinks/static/<path:filename>",
+        "page_name": "Weblinks Static",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.static",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": false,
+        "test_url": "http://localhost:5000/weblinks/static/<path:filename>"
+      },
+      {
+        "route": "/weblinks/",
+        "page_name": "Weblinks Index",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "weblinks/index.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/"
+      },
+      {
+        "route": "/weblinks/admin",
+        "page_name": "Weblinks Admin",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.admin",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "weblinks/admin.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/admin"
+      },
+      {
+        "route": "/weblinks/admin/stats",
+        "page_name": "Weblinks Get_Stats",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.get_stats",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/admin/stats"
+      },
+      {
+        "route": "/weblinks/admin/template",
+        "page_name": "Weblinks Download_Template",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.download_template",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "weblinks/templates/weblinks/download_template.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/admin/template"
+      },
+      {
+        "route": "/weblinks/get_links",
+        "page_name": "Weblinks Get_Links",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.get_links",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/get_links"
+      },
+      {
+        "route": "/weblinks/get_common_links",
+        "page_name": "Weblinks Get_Common_Links",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.get_common_links",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/get_common_links"
+      },
+      {
+        "route": "/weblinks/get_link/<int:link_id>",
+        "page_name": "Weblinks Get_Link",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.get_link",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/get_link/<int:link_id>"
+      },
+      {
+        "route": "/weblinks/get_tags",
+        "page_name": "Weblinks Get_Tags",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.get_tags",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/get_tags"
+      },
+      {
+        "route": "/weblinks/search_icons",
+        "page_name": "Weblinks Search_Icons",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.search_icons",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/search_icons"
+      },
+      {
+        "route": "/weblinks/get_icons",
+        "page_name": "Weblinks Get_Icons",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "weblinks.get_icons",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/weblinks/get_icons"
+      }
+    ],
+    "Database Reports": [
+      {
+        "route": "/database_reports/connections",
+        "page_name": "Database_Reports List_Connections",
+        "roles": [],
+        "permissions": [
+          "manage_database_connections"
+        ],
+        "endpoint": "database_reports.list_connections",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "database_reports/connections/list.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/database_reports/connections"
+      },
+      {
+        "route": "/database_reports/connections/new",
+        "page_name": "Database_Reports New_Connection",
+        "roles": [],
+        "permissions": [
+          "manage_database_connections"
+        ],
+        "endpoint": "database_reports.new_connection",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "database_reports/connections/new.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/database_reports/connections/new"
+      },
+      {
+        "route": "/database_reports/connections/<int:id>/test",
+        "page_name": "Database_Reports Test_Connection",
+        "roles": [],
+        "permissions": [
+          "manage_database_connections"
+        ],
+        "endpoint": "database_reports.test_connection",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": null,
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/database_reports/connections/<int:id>/test"
+      },
+      {
+        "route": "/database_reports/",
+        "page_name": "Database_Reports Index",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "database_reports.index",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "database_reports/reports/index.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/database_reports/"
+      },
+      {
+        "route": "/database_reports/reports/new",
+        "page_name": "Database_Reports New_Report",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "database_reports.new_report",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "database_reports/reports/new.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/database_reports/reports/new"
+      },
+      {
+        "route": "/database_reports/reports/<int:id>",
+        "page_name": "Database_Reports View_Report",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "database_reports.view_report",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "database_reports/templates/database_reports/view_report.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/database_reports/reports/<int:id>"
+      },
+      {
+        "route": "/database_reports/reports/<int:id>/edit",
+        "page_name": "Database_Reports Edit_Report",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "database_reports.edit_report",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "database_reports/reports/edit.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/database_reports/reports/<int:id>/edit"
+      },
+      {
+        "route": "/database_reports/reports/search",
+        "page_name": "Database_Reports Search_Reports",
+        "roles": [],
+        "permissions": [],
+        "endpoint": "database_reports.search_reports",
+        "weight": 0,
+        "icon": "fa-link",
+        "shows_in_navbar": false,
+        "template": "database_reports/templates/database_reports/search_reports.html",
+        "requires_auth": true,
+        "test_url": "http://localhost:5000/database_reports/reports/search"
+      }
+    ]
+  }
+}
