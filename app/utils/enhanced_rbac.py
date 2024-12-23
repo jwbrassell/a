@@ -81,7 +81,7 @@ def has_permission(permission_name, action_name=None):
         logger.error(f"Error checking permission access: {str(e)}")
         return False
 
-def register_permission(name, description=None, actions=None, roles=None):
+def register_permission(name, description=None, actions=None, roles=None, category=None):
     """
     Register a new permission with optional actions and roles.
     
@@ -101,6 +101,7 @@ def register_permission(name, description=None, actions=None, roles=None):
             permission = Permission(
                 name=name,
                 description=description or f"Permission for {name}",
+                category=category or name.split('_')[0],  # Default to first part of name
                 created_by='system'
             )
             db.session.add(permission)
