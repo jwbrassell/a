@@ -2,7 +2,7 @@ import os
 import csv
 import io
 import shutil
-from flask import Blueprint, render_template, request, jsonify, current_app, send_from_directory, make_response, Response
+from flask import Blueprint, render_template, request, jsonify, current_app, send_from_directory, make_response, Response, redirect, url_for
 from flask_wtf.csrf import validate_csrf, ValidationError
 from flask_login import current_user, login_required
 from app.utils.enhanced_rbac import requires_permission
@@ -16,10 +16,12 @@ bp = Blueprint('bug_reports', __name__, template_folder='templates')
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
 
-@bp.route('/reports', methods=['POST'])  # Will become /bug_reports/reports with prefix
+@bp.route('/reports', methods=['GET', 'POST'])  # Will become /bug_reports/reports with prefix
 @login_required
 @requires_permission('bug_reports')
 def submit_bug_report():
+    if request.method == 'GET':
+        return redirect(url_for('bug_reports.view_reports'))
     current_app.logger.info(f"Received POST request to /reports")
     current_app.logger.info(f"Request URL: {request.url}")
     current_app.logger.info(f"Request method: {request.method}")

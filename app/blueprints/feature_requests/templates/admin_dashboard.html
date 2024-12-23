@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Feature Requests Admin Dashboard</h1>
+        <a href="{{ url_for('feature_requests.list_requests') }}" class="btn btn-outline-primary">
+            <i class="fas fa-list"></i> View Public List
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Requester</th>
+                    <th>Date</th>
+                    <th>Votes</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in feature_requests %}
+                <tr>
+                    <td>{{ request.id }}</td>
+                    <td>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#detailsModal{{ request.id }}">
+                            {{ request.title }}
+                        </a>
+                    </td>
+                    <td>{{ request.creator.name or request.creator.username }}</td>
+                    <td>{{ request.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ request.votes.count() }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if request.status == 'approved' else 'danger' if request.status == 'rejected' else 'warning' }}">
+                            {{ request.status|title }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-success status-btn" data-request-id="{{ request.id }}" data-status="approved">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger status-btn" data-request-id="{{ request.id }}" data-status="rejected">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            <button class="btn btn-sm btn-warning status-btn" data-request-id="{{ request.id }}" data-status="pending">
+                                <i class="fas fa-clock"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- Details Modal -->
+                <div class="modal fade" id="detailsModal{{ request.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Feature Request Details ({{ request.votes.count() }} votes)</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <dl class="row">
+                                    <dt class="col-sm-3">Title</dt>
+                                    <dd class="col-sm-9">{{ request.title }}</dd>
+
+                                    <dt class="col-sm-3">Requester</dt>
+                                    <dd class="col-sm-9">{{ request.creator.name or request.creator.username }}</dd>
+
+                                    <dt class="col-sm-3">Description</dt>
+                                    <dd class="col-sm-9">{{ request.description }}</dd>
+
+                                    <dt class="col-sm-3">Page URL</dt>
+                                    <dd class="col-sm-9">{{ request.page_url }}</dd>
+
+                                    {% if request.screenshot_path %}
+                                    <dt class="col-sm-3">Screenshot</dt>
+                                    <dd class="col-sm-9">
+                                        <img src="{{ url_for('static', filename=request.screenshot_path) }}" class="img-fluid" alt="Screenshot">
+                                    </dd>
+                                    {% endif %}
+
+                                    {% if request.impact_details %}
+                                    <dt class="col-sm-12 mt-4 mb-3">
+                                        <h5>Impact Details</h5>
+                                    </dt>
+
+                                    {% if request.impact_details.daily_users %}
+                                    <dt class="col-sm-3">Daily Users</dt>
+                                    <dd class="col-sm-9">{{ request.impact_details.daily_users }}</dd>
+                                    {% endif %}
+
+                                    {% if request.impact_details.time_saved %}
+                                    <dt class="col-sm-3">Time Saved</dt>
+                                    <dd class="col-sm-9">{{ request.impact_details.time_saved }}</dd>
+                                    {% endif %}
+
+                                    {% if request.impact_details.capital_project %}
+                                    <dt class="col-sm-3">Capital Project</dt>
+                                    <dd class="col-sm-9">
+                                        Yes
+                                        {% if request.impact_details.capital_details %}
+                                        - {{ request.impact_details.capital_details }}
+                                        {% endif %}
+                                    </dd>
+                                    {% endif %}
+
+                                    {% if request.impact_details.data_source %}
+                                    <dt class="col-sm-3">Data Source</dt>
+                                    <dd class="col-sm-9">{{ request.impact_details.data_source }}</dd>
+                                    {% endif %}
+
+                                    {% if request.impact_details.data_contact %}
+                                    <dt class="col-sm-3">Data Contact</dt>
+                                    <dd class="col-sm-9">{{ request.impact_details.data_contact }}</dd>
+                                    {% endif %}
+
+                                    {% if request.impact_details.data_type %}
+                                    <dt class="col-sm-3">Data Type</dt>
+                                    <dd class="col-sm-9">{{ request.impact_details.data_type }}</dd>
+                                    {% endif %}
+
+                                    {% if request.impact_details.workflow_needed %}
+                                    <dt class="col-sm-3">Workflow Needed</dt>
+                                    <dd class="col-sm-9">Yes</dd>
+                                    {% endif %}
+
+                                    {% if request.impact_details.similar_feature %}
+                                    <dt class="col-sm-3">Similar Feature</dt>
+                                    <dd class="col-sm-9">{{ request.impact_details.similar_feature }}</dd>
+                                    {% endif %}
+
+                                    {% if request.impact_details.willing_to_call %}
+                                    <dt class="col-sm-3">Willing to Call</dt>
+                                    <dd class="col-sm-9">Yes</dd>
+                                    {% endif %}
+                                    {% endif %}
+
+                                    <dt class="col-sm-12 mt-4 mb-3">
+                                        <h5>Comments</h5>
+                                    </dt>
+                                    <dd class="col-sm-12">
+                                        {% for comment in request.comments %}
+                                        <div class="comment mb-2">
+                                            <small class="text-muted">{{ comment.user.name or comment.user.username }} on {{ comment.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                            <p class="mb-1">{{ comment.comment }}</p>
+                                        </div>
+                                        {% else %}
+                                        <p class="text-muted">No comments yet</p>
+                                        {% endfor %}
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Status update functionality
+    document.querySelectorAll('.status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const requestId = this.dataset.requestId;
+            const status = this.dataset.status;
+            
+            fetch(`/feature_requests/${requestId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `status=${status}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Status updated by:', data.feature_request.updated_by);
+                    const row = button.closest('tr');
+                    const statusCell = row.querySelector('td:nth-child(6)');
+                    const newStatus = data.feature_request.new_status;
+                    statusCell.innerHTML = `
+                        <span class="badge bg-${newStatus === 'approved' ? 'success' : newStatus === 'rejected' ? 'danger' : 'warning'}">
+                            ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}
+                        </span>
+                    `;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+});
+</script>
+{% endblock %}

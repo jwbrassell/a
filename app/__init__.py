@@ -19,6 +19,7 @@ def create_app(config_class=Config):
     
     # Import bug reports models that depend on User
     from app.blueprints.bug_reports.models import BugReport, BugReportScreenshot
+    from app.blueprints.feature_requests.models import FeatureRequest, FeatureVote, FeatureComment
     
     # Import other models
     from app.blueprints.weblinks.models import WebLink, Tag, WebLinkHistory
@@ -193,6 +194,17 @@ def create_app(config_class=Config):
                 app.logger.warning("Failed to initialize bug reports blueprint")
         except Exception as e:
             app.logger.error(f"Error initializing bug reports blueprint: {e}")
+
+    # Initialize feature requests blueprint
+    with app.app_context():
+        try:
+            from app.utils.add_feature_request_routes import add_feature_request_routes
+            if add_feature_request_routes():
+                app.logger.info("Feature requests blueprint initialized successfully")
+            else:
+                app.logger.warning("Failed to initialize feature requests blueprint")
+        except Exception as e:
+            app.logger.error(f"Error initializing feature requests blueprint: {e}")
 
     # Initialize Vault policies after blueprints are registered
     with app.app_context():

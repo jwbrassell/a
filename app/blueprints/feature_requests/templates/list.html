@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Feature Requests</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#featureRequestModal">
+            <i class="fas fa-plus"></i> New Feature Request
+        </button>
+    </div>
+
+    <div class="row">
+        {% for request in feature_requests %}
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-title">{{ request.title }}</h5>
+                        <span class="badge bg-{{ 'success' if request.status == 'approved' else 'danger' if request.status == 'rejected' else 'warning' }}">
+                            {{ request.status|title }}
+                        </span>
+                    </div>
+                    <h6 class="card-subtitle mb-2 text-muted">Requested by {{ request.creator.name or request.creator.username }} on {{ request.created_at.strftime('%Y-%m-%d') }}</h6>
+                    <p class="card-text">{{ request.description }}</p>
+                    
+                    {% if request.screenshot_path %}
+                    <div class="mb-3">
+                        <img src="{{ url_for('static', filename=request.screenshot_path) }}" class="img-fluid" style="max-height: 200px;" alt="Screenshot">
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <button class="btn btn-outline-primary vote-button" data-request-id="{{ request.id }}">
+                            <i class="fas fa-thumbs-up"></i> 
+                            <span class="vote-count">{{ request.votes.count() }}</span> Votes
+                        </button>
+                    </div>
+
+                    {% if request.impact_details %}
+                    <div class="mb-3">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#impact{{ request.id }}">
+                            <i class="fas fa-info-circle"></i> Impact Details
+                        </button>
+                        <div class="collapse mt-2" id="impact{{ request.id }}">
+                            <div class="card card-body bg-light">
+                                <dl class="row mb-0">
+                                    {% if request.impact_details.daily_users %}
+                                    <dt class="col-sm-4">Daily Users:</dt>
+                                    <dd class="col-sm-8">{{ request.impact_details.daily_users }}</dd>
+                                    {% endif %}
+                                    
+                                    {% if request.impact_details.time_saved %}
+                                    <dt class="col-sm-4">Time Saved:</dt>
+                                    <dd class="col-sm-8">{{ request.impact_details.time_saved }}</dd>
+                                    {% endif %}
+                                    
+                                    {% if request.impact_details.capital_project %}
+                                    <dt class="col-sm-4">Capital Project:</dt>
+                                    <dd class="col-sm-8">Yes{% if request.impact_details.capital_details %} - {{ request.impact_details.capital_details }}{% endif %}</dd>
+                                    {% endif %}
+                                    
+                                    {% if request.impact_details.data_source %}
+                                    <dt class="col-sm-4">Data Source:</dt>
+                                    <dd class="col-sm-8">{{ request.impact_details.data_source }}</dd>
+                                    {% endif %}
+                                    
+                                    {% if request.impact_details.data_contact %}
+                                    <dt class="col-sm-4">Data Contact:</dt>
+                                    <dd class="col-sm-8">{{ request.impact_details.data_contact }}</dd>
+                                    {% endif %}
+                                    
+                                    {% if request.impact_details.workflow_needed %}
+                                    <dt class="col-sm-4">Workflow Needed:</dt>
+                                    <dd class="col-sm-8">Yes</dd>
+                                    {% endif %}
+                                    
+                                    {% if request.impact_details.similar_feature %}
+                                    <dt class="col-sm-4">Similar Feature:</dt>
+                                    <dd class="col-sm-8">{{ request.impact_details.similar_feature }}</dd>
+                                    {% endif %}
+                                    
+                                    {% if request.impact_details.willing_to_call %}
+                                    <dt class="col-sm-4">Willing to Call:</dt>
+                                    <dd class="col-sm-8">Yes</dd>
+                                    {% endif %}
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="comments-section">
+                        <h6>Comments</h6>
+                        <div class="comments-list" id="comments{{ request.id }}">
+                            {% for comment in request.comments %}
+                            <div class="comment mb-2">
+                                <small class="text-muted">{{ comment.user.name or comment.user.username }} on {{ comment.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                <p class="mb-1">{{ comment.comment }}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control comment-input" placeholder="Add a comment...">
+                            <button class="btn btn-outline-primary add-comment" data-request-id="{{ request.id }}">
+                                <i class="fas fa-comment"></i> Comment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Feature Request Modal -->
+<div class="modal fade" id="featureRequestModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Feature Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="featureRequestForm" enctype="multipart/form-data">
+                    <input type="hidden" name="page_url" id="pageUrl">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Screenshot (optional)</label>
+                        <input type="file" class="form-control" name="screenshot" accept="image/*">
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#impactDetails">
+                            <i class="fas fa-info-circle"></i> Additional Impact Details (Optional)
+                        </button>
+                        
+                        <div class="collapse mt-3" id="impactDetails">
+                            <div class="card card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">How many people would use this feature daily?</label>
+                                    <input type="text" class="form-control" name="daily_users">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">How much time would this save per person?</label>
+                                    <input type="text" class="form-control" name="time_saved">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="capital_project" value="true">
+                                        <label class="form-check-label">Is this for a capital project?</label>
+                                    </div>
+                                    <div class="collapse" id="capitalDetails">
+                                        <input type="text" class="form-control mt-2" name="capital_details" placeholder="Please provide more details...">
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Does this pull data from somewhere?</label>
+                                    <input type="text" class="form-control" name="data_source" placeholder="If yes, please specify">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Do you have a data contact?</label>
+                                    <input type="text" class="form-control" name="data_contact">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Data Type</label>
+                                    <select class="form-select" name="data_type">
+                                        <option value="">Select...</option>
+                                        <option value="api">API</option>
+                                        <option value="database">Database</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="workflow_needed" value="true">
+                                        <label class="form-check-label">Do you need a workflow?</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Do you know someone who has something similar?</label>
+                                    <input type="text" class="form-control" name="similar_feature">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="willing_to_call" value="true">
+                                        <label class="form-check-label">Would you be willing to do a call?</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitFeatureRequest">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set current page URL
+    document.getElementById('pageUrl').value = window.location.pathname;
+    
+    // Capital project details toggle
+    document.querySelector('input[name="capital_project"]').addEventListener('change', function() {
+        const detailsDiv = document.getElementById('capitalDetails');
+        if (this.checked) {
+            detailsDiv.classList.add('show');
+        } else {
+            detailsDiv.classList.remove('show');
+        }
+    });
+
+    // Feature request submission
+    document.getElementById('submitFeatureRequest').addEventListener('click', function() {
+        const form = document.getElementById('featureRequestForm');
+        const formData = new FormData(form);
+        
+        fetch('/feature_requests/submit', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    // Voting functionality
+    document.querySelectorAll('.vote-button').forEach(button => {
+        button.addEventListener('click', function() {
+            const requestId = this.dataset.requestId;
+            fetch(`/feature_requests/${requestId}/vote`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const countSpan = this.querySelector('.vote-count');
+                    countSpan.textContent = data.votes;
+                }
+            });
+        });
+    });
+
+    // Comment functionality
+    document.querySelectorAll('.add-comment').forEach(button => {
+        button.addEventListener('click', function() {
+            const requestId = this.dataset.requestId;
+            const input = this.parentElement.querySelector('.comment-input');
+            const comment = input.value.trim();
+            
+            if (!comment) return;
+            
+            fetch(`/feature_requests/${requestId}/comment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `comment=${encodeURIComponent(comment)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response data:', data);
+                
+                if (data.status === 'success' && data.comment) {
+                    const commentsList = document.getElementById(`comments${requestId}`);
+                    const newComment = document.createElement('div');
+                    newComment.className = 'comment mb-2';
+                    newComment.innerHTML = `
+                        <small class="text-muted">${data.comment.user.name || data.comment.user.username} on ${data.comment.created_at}</small>
+                        <p class="mb-1">${data.comment.comment}</p>
+                    `;
+                    commentsList.appendChild(newComment);
+                    input.value = '';
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
