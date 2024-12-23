@@ -63,6 +63,46 @@ def upgrade():
         sa.PrimaryKeyConstraint('id')
     )
 
+    # Create navigation tables
+    op.create_table('navigation_category',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('name', sa.String(length=64), unique=True, nullable=False),
+        sa.Column('icon', sa.String(length=32)),
+        sa.Column('description', sa.String(length=256)),
+        sa.Column('weight', sa.Integer(), default=0),
+        sa.Column('created_by', sa.String(length=64), nullable=False),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.func.now()),
+        sa.Column('updated_by', sa.String(length=64)),
+        sa.Column('updated_at', sa.DateTime(), server_default=sa.func.now(), onupdate=sa.func.now()),
+        sa.PrimaryKeyConstraint('id')
+    )
+
+    # Create route mapping table
+    op.create_table('page_route_mapping',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('page_name', sa.String(length=128), nullable=False),
+        sa.Column('route', sa.String(length=256), unique=True, nullable=False),
+        sa.Column('description', sa.String(length=256)),
+        sa.Column('icon', sa.String(length=32)),
+        sa.Column('weight', sa.Integer(), default=0),
+        sa.Column('category_id', sa.Integer()),
+        sa.Column('show_in_navbar', sa.Boolean(), default=True),
+        sa.Column('created_by', sa.String(length=64), nullable=False),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.func.now()),
+        sa.Column('updated_by', sa.String(length=64)),
+        sa.Column('updated_at', sa.DateTime(), server_default=sa.func.now(), onupdate=sa.func.now()),
+        sa.ForeignKeyConstraint(['category_id'], ['navigation_category.id']),
+        sa.PrimaryKeyConstraint('id')
+    )
+
+    op.create_table('route_roles',
+        sa.Column('route_id', sa.Integer(), nullable=False),
+        sa.Column('role_id', sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(['role_id'], ['role.id']),
+        sa.ForeignKeyConstraint(['route_id'], ['page_route_mapping.id']),
+        sa.PrimaryKeyConstraint('route_id', 'role_id')
+    )
+
     # Create tables that depend on the core tables
     op.create_table('permission_actions',
         sa.Column('permission_id', sa.Integer(), nullable=False),
@@ -288,3 +328,6 @@ def downgrade():
     op.drop_table('role')
     op.drop_table('permission')
     op.drop_table('action')
+    op.drop_table('route_roles')
+    op.drop_table('page_route_mapping')
+    op.drop_table('navigation_category')
