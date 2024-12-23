@@ -12,7 +12,7 @@ import re
 import time
 import shutil
 from pathlib import Path
-from generate_vault_cert import generate_certificates
+from generate_vault_cert import setup_vault_certificates
 
 # Configure logging
 logging.basicConfig(
@@ -52,7 +52,7 @@ class VaultDevSetup:
 
     def generate_certificates(self):
         """Generate SSL certificates."""
-        generate_certificates()
+        setup_vault_certificates()
 
     def kill_existing_vault(self):
         """Kill any existing Vault processes."""
