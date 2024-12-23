@@ -1,0 +1,752 @@
+{% extends "base.html" %}
+
+{% block title %}Navigation Categories{% endblock %}
+
+{% block styles %}
+<style>
+.category-card {
+    transition: all 0.2s;
+}
+.category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.route-badge {
+    font-size: 0.8rem;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+.bulk-actions {
+    display: none;
+    margin-bottom: 1rem;
+}
+.route-visualization {
+    min-height: 400px;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+.route-node {
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+.route-node:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.audit-entry {
+    padding: 0.75rem;
+    border-left: 3px solid #6c757d;
+    margin-bottom: 0.5rem;
+    background: white;
+    border-radius: 0 4px 4px 0;
+}
+.audit-entry:hover {
+    background: #f8f9fa;
+}
+.category-clone-preview {
+    max-height: 300px;
+    overflow-y: auto;
+}
+.category-stats {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+.stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item active">Navigation Categories</li>
+{% endblock %}
+
+{% block page_content %}
+<!-- Category Statistics -->
+<div class="category-stats">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-item">
+                <div class="stat-value">{{ categories|length }}</div>
+                <div class="stat-label">Total Categories</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-item">
+                <div class="stat-value">{{ total_routes }}</div>
+                <div class="stat-label">Total Routes</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-item">
+                <div class="stat-value">{{ avg_routes_per_category }}</div>
+                <div class="stat-label">Avg Routes/Category</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-item">
+                <div class="stat-value">{{ active_categories }}</div>
+                <div class="stat-label">Active Categories</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions -->
+<div class="bulk-actions" id="bulkActions">
+    <div class="btn-group">
+        <button type="button" class="btn btn-warning" onclick="bulkAction('deactivate')">
+            <i class="fas fa-ban mr-1"></i>Deactivate Selected
+        </button>
+        <button type="button" class="btn btn-success" onclick="bulkAction('activate')">
+            <i class="fas fa-check mr-1"></i>Activate Selected
+        </button>
+        <button type="button" class="btn btn-info" onclick="bulkAction('export')">
+            <i class="fas fa-download mr-1"></i>Export Selected
+        </button>
+        <button type="button" class="btn btn-danger" onclick="bulkAction('delete')">
+            <i class="fas fa-trash mr-1"></i>Delete Selected
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">
+                <i class="fas fa-folder mr-2"></i>Navigation Categories
+            </h3>
+            <div class="btn-group">
+                <button type="button" class="btn btn-info" onclick="showRouteVisualization()">
+                    <i class="fas fa-project-diagram mr-1"></i>Route Map
+                </button>
+                <button type="button" class="btn btn-success" onclick="showCategoryStats()">
+                    <i class="fas fa-chart-bar mr-1"></i>Analytics
+                </button>
+                <a href="{{ url_for('admin.new_category') }}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-1"></i>New Category
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Search and Filters -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
+                    <input type="text" class="form-control" id="category-search" 
+                           placeholder="Search categories...">
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="btn-group float-right">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" 
+                            data-toggle="dropdown">
+                        <i class="fas fa-filter mr-1"></i>Filter
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="#" data-filter="all">All Categories</a>
+                        <a class="dropdown-item" href="#" data-filter="active">Active Categories</a>
+                        <a class="dropdown-item" href="#" data-filter="inactive">Inactive Categories</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#" data-filter="with-routes">With Routes</a>
+                        <a class="dropdown-item" href="#" data-filter="without-routes">Without Routes</a>
+                    </div>
+                </div>
+                <div class="btn-group float-right mr-2">
+                    <button type="button" class="btn btn-outline-secondary active" data-view="grid">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-view="list">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Grid -->
+        <div class="row" id="categories-grid">
+            {% for category in categories %}
+            <div class="col-md-6 mb-4 category-item">
+                <div class="category-card card h-100">
+                    <div class="card-body">
+                        <div class="custom-control custom-checkbox float-right">
+                            <input type="checkbox" class="custom-control-input category-select" 
+                                   id="category{{ category.id }}" value="{{ category.id }}">
+                            <label class="custom-control-label" for="category{{ category.id }}"></label>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas {{ category.icon }} mr-2"></i>{{ category.name }}
+                            </h5>
+                            <div class="btn-group">
+                                <a href="{{ url_for('admin.edit_category', category_id=category.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-info" 
+                                        onclick="viewAuditLog({{ category.id }})">
+                                    <i class="fas fa-history"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" 
+                                        onclick="cloneCategory({{ category.id }})">
+                                    <i class="fas fa-clone"></i>
+                                </button>
+                                {% if category.can_be_deleted() %}
+                                <button type="button" class="btn btn-sm btn-outline-danger delete-category"
+                                        data-id="{{ category.id }}" data-name="{{ category.name }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if category.description %}
+                        <p class="card-text text-muted mb-3">{{ category.description }}</p>
+                        {% endif %}
+
+                        <!-- Category Stats -->
+                        <div class="d-flex mb-3 text-muted">
+                            <div class="mr-3">
+                                <i class="fas fa-link mr-1"></i>
+                                {{ category.routes|length }} Routes
+                            </div>
+                            <div>
+                                <i class="fas fa-sort mr-1"></i>
+                                Weight: {{ category.weight }}
+                            </div>
+                        </div>
+
+                        <!-- Routes Preview -->
+                        {% if category.routes %}
+                        <div>
+                            <small class="text-muted">Routes:</small>
+                            <div class="mt-2">
+                                {% for route in category.routes[:3] %}
+                                <span class="badge badge-secondary route-badge">
+                                    {{ route.name }}
+                                </span>
+                                {% endfor %}
+                                {% if category.routes|length > 3 %}
+                                <span class="badge badge-light route-badge">
+                                    +{{ category.routes|length - 3 }} more
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Route Visualization Modal -->
+<div class="modal fade" id="routeMapModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Route Map</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="route-visualization" id="routeMap">
+                    <!-- Route map will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Analytics Modal -->
+<div class="modal fade" id="analyticsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Category Analytics</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div id="routeDistributionChart" style="height: 300px;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div id="categoryActivityChart" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Log Modal -->
+<div class="modal fade" id="auditModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Category Audit Log</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="auditLog">
+                    <!-- Audit log will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clone Category Modal -->
+<div class="modal fade" id="cloneModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Clone Category</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="cloneForm">
+                    <div class="form-group">
+                        <label>New Category Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Clone Options</label>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" 
+                                   id="cloneRoutes" checked>
+                            <label class="custom-control-label" for="cloneRoutes">
+                                Clone Routes
+                            </label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" 
+                                   id="cloneSettings" checked>
+                            <label class="custom-control-label" for="cloneSettings">
+                                Clone Settings
+                            </label>
+                        </div>
+                    </div>
+                    <div class="category-clone-preview">
+                        <h6>Preview</h6>
+                        <div id="clonePreview">
+                            <!-- Clone preview will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="processClone()">
+                    <i class="fas fa-clone mr-1"></i>Clone Category
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Category search
+    $('#category-search').on('input', function() {
+        const search = $(this).val().toLowerCase();
+        $('.category-item').each(function() {
+            const text = $(this).text().toLowerCase();
+            $(this).toggle(text.includes(search));
+        });
+    });
+
+    // View switching
+    $('[data-view]').click(function() {
+        const view = $(this).data('view');
+        
+        // Update active button
+        $('[data-view]').removeClass('active');
+        $(this).addClass('active');
+        
+        // Update view
+        if (view === 'grid') {
+            $('.category-item').removeClass('col-12').addClass('col-md-6');
+        } else {
+            $('.category-item').removeClass('col-md-6').addClass('col-12');
+        }
+    });
+
+    // Category filtering
+    $('[data-filter]').click(function(e) {
+        e.preventDefault();
+        const filter = $(this).data('filter');
+        
+        $('.category-item').show();
+        
+        switch(filter) {
+            case 'active':
+                $('.category-item:not(.active)').hide();
+                break;
+            case 'inactive':
+                $('.category-item.active').hide();
+                break;
+            case 'with-routes':
+                $('.category-item:not(:has(.route-badge))').hide();
+                break;
+            case 'without-routes':
+                $('.category-item:has(.route-badge))').hide();
+                break;
+        }
+    });
+
+    // Bulk selection
+    $('.category-select').change(function() {
+        updateBulkActions();
+    });
+
+    // Delete category
+    $('.delete-category').click(function() {
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+        
+        Swal.fire({
+            title: 'Delete Category?',
+            text: `Are you sure you want to delete "${name}"? This cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Delete'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('admin.delete_category', category_id=0) }}".replace('0', id);
+            }
+        });
+    });
+});
+
+function updateBulkActions() {
+    const selectedCount = $('.category-select:checked').length;
+    $('#bulkActions').toggle(selectedCount > 0);
+}
+
+function bulkAction(action) {
+    const selectedCategories = $('.category-select:checked').map(function() {
+        return $(this).val();
+    }).get();
+
+    if (!selectedCategories.length) return;
+
+    switch (action) {
+        case 'deactivate':
+            confirmBulkDeactivate(selectedCategories);
+            break;
+        case 'activate':
+            confirmBulkActivate(selectedCategories);
+            break;
+        case 'export':
+            exportSelectedCategories(selectedCategories);
+            break;
+        case 'delete':
+            confirmBulkDelete(selectedCategories);
+            break;
+    }
+}
+
+function showRouteVisualization() {
+    // Simulate loading route data
+    const routes = [
+        {
+            category: 'Admin',
+            routes: ['Dashboard', 'Users', 'Settings']
+        },
+        {
+            category: 'User',
+            routes: ['Profile', 'Messages']
+        }
+    ];
+
+    const html = routes.map(category => `
+        <div class="route-node">
+            <h6>${category.category}</h6>
+            <div class="mt-2">
+                ${category.routes.map(route => 
+                    `<span class="badge badge-secondary route-badge">${route}</span>`
+                ).join('')}
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('routeMap').innerHTML = html;
+    $('#routeMapModal').modal('show');
+}
+
+function showCategoryStats() {
+    $('#analyticsModal').modal('show');
+    
+    // Route Distribution Chart
+    Highcharts.chart('routeDistributionChart', {
+        chart: { type: 'pie' },
+        title: { text: 'Route Distribution' },
+        series: [{
+            name: 'Routes',
+            data: [
+                { name: 'Admin', y: 30 },
+                { name: 'User', y: 20 },
+                { name: 'Public', y: 50 }
+            ]
+        }]
+    });
+
+    // Category Activity Chart
+    Highcharts.chart('categoryActivityChart', {
+        chart: { type: 'column' },
+        title: { text: 'Category Activity' },
+        xAxis: { categories: ['Admin', 'User', 'Public'] },
+        series: [{
+            name: 'Access Count',
+            data: [150, 100, 200]
+        }]
+    });
+}
+
+function viewAuditLog(categoryId) {
+    // Simulate loading audit log
+    const auditLog = [
+        {
+            action: 'Route Added',
+            user: 'admin',
+            timestamp: '2024-01-01 10:00:00',
+            details: 'Added route: /admin/dashboard'
+        },
+        {
+            action: 'Category Updated',
+            user: 'admin',
+            timestamp: '2024-01-01 09:30:00',
+            details: 'Updated category description'
+        }
+    ];
+
+    const html = auditLog.map(entry => `
+        <div class="audit-entry">
+            <div class="d-flex justify-content-between">
+                <strong>${entry.action}</strong>
+                <small class="text-muted">${entry.timestamp}</small>
+            </div>
+            <div class="text-muted">By: ${entry.user}</div>
+            <div>${entry.details}</div>
+        </div>
+    `).join('');
+
+    document.getElementById('auditLog').innerHTML = html;
+    $('#auditModal').modal('show');
+}
+
+function cloneCategory(categoryId) {
+    // Load category data
+    const categoryData = {
+        name: 'Admin',
+        routes: ['Dashboard', 'Users', 'Settings'],
+        settings: {
+            icon: 'fa-cog',
+            weight: 1
+        }
+    };
+
+    // Update clone preview
+    const preview = `
+        <div class="card">
+            <div class="card-body">
+                <h6>Original Category: ${categoryData.name}</h6>
+                <div class="mb-2">
+                    <small class="text-muted">Routes:</small><br>
+                    ${categoryData.routes.map(r => 
+                        `<span class="badge badge-secondary mr-1">${r}</span>`
+                    ).join('')}
+                </div>
+                <div>
+                    <small class="text-muted">Settings:</small><br>
+                    <span class="badge badge-info mr-1">
+                        <i class="fas ${categoryData.settings.icon}"></i> Icon
+                    </span>
+                    <span class="badge badge-info">
+                        Weight: ${categoryData.settings.weight}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('clonePreview').innerHTML = preview;
+    $('#cloneModal').modal('show');
+}
+
+function processClone() {
+    const name = document.querySelector('#cloneForm input[name="name"]').value;
+    const cloneRoutes = document.getElementById('cloneRoutes').checked;
+    const cloneSettings = document.getElementById('cloneSettings').checked;
+
+    if (!name) {
+        Swal.fire('Error', 'Please enter a name for the new category', 'error');
+        return;
+    }
+
+    // Simulate cloning process
+    Swal.fire({
+        title: 'Cloning Category',
+        text: 'Please wait...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Simulate API call
+    setTimeout(() => {
+        $('#cloneModal').modal('hide');
+        Swal.fire({
+            icon: 'success',
+            title: 'Category Cloned',
+            text: 'The category has been cloned successfully'
+        }).then(() => {
+            location.reload();
+        });
+    }, 1500);
+}
+
+function confirmBulkDeactivate(categories) {
+    Swal.fire({
+        title: 'Deactivate Categories?',
+        text: `Are you sure you want to deactivate ${categories.length} categories?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#f39c12',
+        confirmButtonText: 'Deactivate'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement deactivation
+            Swal.fire('Success', 'Categories have been deactivated', 'success');
+        }
+    });
+}
+
+function confirmBulkActivate(categories) {
+    Swal.fire({
+        title: 'Activate Categories?',
+        text: `Are you sure you want to activate ${categories.length} categories?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#00a65a',
+        confirmButtonText: 'Activate'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement activation
+            Swal.fire('Success', 'Categories have been activated', 'success');
+        }
+    });
+}
+
+function confirmBulkDelete(categories) {
+    Swal.fire({
+        title: 'Delete Categories?',
+        text: `Are you sure you want to delete ${categories.length} categories? This cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Delete'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement deletion
+            Swal.fire('Success', 'Categories have been deleted', 'success');
+        }
+    });
+}
+
+function exportSelectedCategories(categories) {
+    Swal.fire({
+        title: 'Export Categories',
+        html: `
+            <div class="form-group">
+                <label>Export Format</label>
+                <select class="form-control" id="exportFormat">
+                    <option value="csv">CSV</option>
+                    <option value="excel">Excel</option>
+                    <option value="pdf">PDF</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Include Fields</label>
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" id="exportName" checked>
+                    <label class="custom-control-label" for="exportName">Name</label>
+                </div>
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" id="exportRoutes" checked>
+                    <label class="custom-control-label" for="exportRoutes">Routes</label>
+                </div>
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" id="exportSettings" checked>
+                    <label class="custom-control-label" for="exportSettings">Settings</label>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Export',
+        preConfirm: () => {
+            return {
+                format: document.getElementById('exportFormat').value,
+                fields: {
+                    name: document.getElementById('exportName').checked,
+                    routes: document.getElementById('exportRoutes').checked,
+                    settings: document.getElementById('exportSettings').checked
+                }
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement export
+            Swal.fire({
+                icon: 'success',
+                title: 'Export Complete',
+                text: 'Categories have been exported successfully'
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

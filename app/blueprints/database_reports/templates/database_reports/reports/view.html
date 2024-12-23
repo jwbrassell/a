@@ -1,0 +1,191 @@
+{% extends "database_reports/base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('database_reports.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">{{ report.title }}</li>
+{% endblock %}
+
+{% block database_reports_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>{{ report.title }}</h2>
+        <p class="text-muted">
+            Created by {{ report.created_by.username }} on {{ report.created_at.strftime('%Y-%m-%d') }}
+            {% if report.updated_at != report.created_at %}
+            • Updated {{ report.updated_at.strftime('%Y-%m-%d') }}
+            {% endif %}
+        </p>
+        {% if report.description %}
+        <p>{{ report.description }}</p>
+        {% endif %}
+        {% for tag in report.tags %}
+        <span class="tag">{{ tag.name }}</span>
+        {% endfor %}
+    </div>
+    <div class="col-md-4 text-end">
+        {% if report.created_by_id == current_user.id %}
+        <a href="{{ url_for('database_reports.edit_report', id=report.id) }}" class="btn btn-outline-primary">
+            <i class="fas fa-edit"></i> Edit Report
+        </a>
+        {% endif %}
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#historyModal">
+            <i class="fas fa-history"></i> History
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="reportTable" class="table table-striped">
+                <thead>
+                    <tr>
+                        {% for column in columns %}
+                        <th>{{ report.column_config.get(column, {}).get('display_name', column) }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        {% for column in columns %}
+                        <td>
+                            {% if report.column_config.get(column, {}).get('transform') == 'link' %}
+                                {{ row[column]|safe }}
+                            {% else %}
+                                {{ row[column] }}
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Report History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="timeline">
+                    {% for history in report.history|sort(attribute='changed_at', reverse=true) %}
+                    <div class="timeline-item">
+                        <div class="timeline-date">
+                            {{ history.changed_at.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                        <div class="timeline-content">
+                            <p class="mb-1">
+                                <strong>Changed by:</strong> {{ history.changed_by.username }}
+                            </p>
+                            <div class="changes">
+                                {% if history.changes.title %}
+                                <p><strong>Title:</strong> {{ history.changes.title }}</p>
+                                {% endif %}
+                                {% if history.changes.description %}
+                                <p><strong>Description:</strong> {{ history.changes.description }}</p>
+                                {% endif %}
+                                {% if history.changes.query_config %}
+                                <p><strong>Query configuration updated</strong></p>
+                                {% endif %}
+                                {% if history.changes.column_config %}
+                                <p><strong>Column configuration updated</strong></p>
+                                {% endif %}
+                                {% if history.changes.is_public is defined %}
+                                <p><strong>Visibility:</strong> {% if history.changes.is_public %}Made public{% else %}Made private{% endif %}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No history available</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    position: relative;
+    padding: 20px 0;
+    padding-left: 20px;
+    border-left: 2px solid #e9ecef;
+}
+
+.timeline-date {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #6c757d;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.changes {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable with export buttons
+    $('#reportTable').DataTable({
+        dom: 'Bfrtip',
+        buttons: [
+            'copy',
+            'csv',
+            'excel'
+        ],
+        pageLength: 25,
+        order: [[ {{ report.query_config.get('order_by_index', 0) }}, '{{ report.query_config.get('order_direction', 'asc').lower() }}' ]],
+        initComplete: function () {
+            // Add individual column filtering
+            this.api().columns().every(function () {
+                let column = this;
+                let title = $(column.header()).text();
+                
+                // Create input element
+                let input = document.createElement('input');
+                input.placeholder = `Filter ${title}`;
+                input.className = 'form-control form-control-sm mt-2';
+                
+                // Add input to header
+                $(column.header()).append($('<div>').append(input));
+                
+                // Handle keyup event
+                input.addEventListener('keyup', () => {
+                    if (column.search() !== input.value) {
+                        column.search(input.value).draw();
+                    }
+                });
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,158 @@
+<div class="modal fade" id="bugReportModal" tabindex="-1" aria-labelledby="bugReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bugReportModalLabel">Report an Issue</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bugReportForm" enctype="multipart/form-data">
+                    <input type="hidden" id="currentRoute" name="route">
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea id="description" name="description" class="tinymce"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Occurrence Type</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="occurrence_type" id="typeIntermittent" value="intermittent">
+                            <label class="form-check-label" for="typeIntermittent">
+                                Intermittent - Issue occurs occasionally
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="occurrence_type" id="typeConsistent" value="consistent">
+                            <label class="form-check-label" for="typeConsistent">
+                                Consistent - Issue occurs every time
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="screenshots" class="form-label">Screenshots (Max 3, each under 5MB)</label>
+                        <input type="file" class="form-control" id="screenshots" name="screenshots" multiple accept="image/*">
+                        <div id="screenshotPreview" class="mt-2 d-flex gap-2 flex-wrap"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="submitBugReport">Submit Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize TinyMCE
+    tinymce.init({
+        selector: '.tinymce',
+        height: 300,
+        menubar: false,
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+            'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'table', 'code', 'help', 'wordcount'
+        ],
+        toolbar: 'undo redo | formatselect | ' +
+        'bold italic backcolor | alignleft aligncenter ' +
+        'alignright alignjustify | bullist numlist outdent indent | ' +
+        'removeformat | help',
+    });
+
+    // Screenshot preview and validation
+    const screenshotInput = document.getElementById('screenshots');
+    const previewDiv = document.getElementById('screenshotPreview');
+    
+    screenshotInput.addEventListener('change', function() {
+        previewDiv.innerHTML = '';
+        if (this.files.length > 3) {
+            alert('Maximum 3 screenshots allowed');
+            this.value = '';
+            return;
+        }
+        
+        for (let file of this.files) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Each file must be under 5MB');
+                this.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.createElement('div');
+                preview.className = 'position-relative';
+                preview.innerHTML = `
+                    <img src="${e.target.result}" style="height: 100px; object-fit: cover;">
+                `;
+                previewDiv.appendChild(preview);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Form submission
+    document.getElementById('submitBugReport').addEventListener('click', async function() {
+        try {
+            const form = document.getElementById('bugReportForm');
+            const formData = new FormData(form);
+            
+            // Add current route
+            formData.set('route', window.location.pathname);
+            
+            // Get TinyMCE content
+            formData.set('description', tinymce.get('description').getContent());
+            
+            const response = await fetch('/bug_reports/reports', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                if (response.headers.get('content-type')?.includes('application/json')) {
+                    const err = await response.json();
+                    throw new Error(err.message || 'Server error');
+                }
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                // Show toaster notification
+                const toast = new bootstrap.Toast(Object.assign(document.createElement('div'), {
+                    className: 'toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3',
+                    innerHTML: `
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                ${data.message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                        </div>
+                    `
+                }));
+                document.body.appendChild(toast._element);
+                toast.show();
+                
+                // Reset form and close modal
+                bootstrap.Modal.getInstance(document.getElementById('bugReportModal')).hide();
+                form.reset();
+                previewDiv.innerHTML = '';
+                tinymce.get('description').setContent('');
+                
+                // Redirect to ticket view in a new tab
+                window.open(data.redirect_url, '_blank');
+            } else {
+                throw new Error(data.message || 'Unknown error');
+            }
+        } catch (error) {
+            alert('Error submitting report: ' + error.message);
+        }
+    });
+});
+</script>

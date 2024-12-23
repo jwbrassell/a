@@ -1,0 +1,134 @@
+{% macro user_list(users, roles=None, show_actions=True) %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-users mr-2"></i>Users
+        </h3>
+        {% if show_actions %}
+        <div class="card-tools">
+            <a href="{{ url_for('admin.new_user') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-user-plus mr-1"></i>Add User
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Roles</th>
+                        <th>Status</th>
+                        {% if show_actions %}
+                        <th>Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="{{ user.avatar_url or url_for('static', filename='images/default-avatar.png') }}" 
+                                     alt="Avatar" 
+                                     class="img-circle mr-2" 
+                                     style="width: 32px; height: 32px;">
+                                {{ user.username }}
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% for role in user.roles %}
+                            <span class="badge badge-info">{{ role.name }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if user.is_active %}
+                            <span class="badge badge-success">Active</span>
+                            {% else %}
+                            <span class="badge badge-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        {% if show_actions %}
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" 
+                                   class="btn btn-sm btn-outline-primary" 
+                                   title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if roles %}
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-info" 
+                                        title="Manage Roles"
+                                        data-toggle="modal" 
+                                        data-target="#userRolesModal{{ user.id }}">
+                                    <i class="fas fa-user-tag"></i>
+                                </button>
+                                {% endif %}
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        title="Delete"
+                                        onclick="confirmDelete('{{ user.username }}', '{{ url_for('admin.delete_user', user_id=user.id) }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+
+                            {% if roles %}
+                            <!-- User Roles Modal -->
+                            <div class="modal fade" id="userRolesModal{{ user.id }}" tabindex="-1" role="dialog">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Manage Roles: {{ user.username }}</h5>
+                                            <button type="button" class="close" data-dismiss="modal">
+                                                <span>&times;</span>
+                                            </button>
+                                        </div>
+                                        <form action="{{ url_for('admin.update_user_roles', user_id=user.id) }}" method="POST">
+                                            <div class="modal-body">
+                                                {% for role in roles %}
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" 
+                                                           class="custom-control-input" 
+                                                           id="role{{ user.id }}{{ role.id }}" 
+                                                           name="roles[]" 
+                                                           value="{{ role.id }}"
+                                                           {% if role in user.roles %}checked{% endif %}>
+                                                    <label class="custom-control-label" for="role{{ user.id }}{{ role.id }}">
+                                                        {{ role.name }}
+                                                    </label>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if show_actions %}
+<script>
+function confirmDelete(username, deleteUrl) {
+    if (confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+        window.location.href = deleteUrl;
+    }
+}
+</script>
+{% endif %}
+{% endmacro %}

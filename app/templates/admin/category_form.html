@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if category else 'New' }} Navigation Category{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">Admin</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.categories') }}">Categories</a></li>
+<li class="breadcrumb-item active">{{ 'Edit' if category else 'New' }} Category</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-folder mr-2"></i>{{ 'Edit' if category else 'New' }} Navigation Category
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="category-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="form-group">
+                <label for="name">Category Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="name" name="name" 
+                       value="{{ category.name if category else '' }}" required>
+                <small class="form-text text-muted">
+                    Name displayed in navigation menu
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ category.description if category else '' }}</textarea>
+                <small class="form-text text-muted">
+                    Brief description of what this category contains
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="icon">Icon</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">
+                            <i id="icon-preview" class="fas {{ category.icon if category else 'fa-folder' }}"></i>
+                        </span>
+                    </div>
+                    <input type="text" class="form-control" id="icon" name="icon" 
+                           value="{{ category.icon if category else 'fa-folder' }}" readonly>
+                    <div class="input-group-append">
+                        <button type="button" class="btn btn-outline-secondary" id="icon-picker">
+                            Choose Icon
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="weight">Weight</label>
+                <input type="number" class="form-control" id="weight" name="weight" 
+                       value="{{ category.weight if category else 0 }}">
+                <small class="form-text text-muted">
+                    Lower numbers appear first in navigation
+                </small>
+            </div>
+
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-1"></i>Save Category
+                </button>
+                <a href="{{ url_for('admin.categories') }}" class="btn btn-secondary">
+                    <i class="fas fa-times mr-1"></i>Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Icon Picker Modal -->
+<div class="modal fade" id="iconModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Choose Icon</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" class="form-control" id="icon-search" 
+                           placeholder="Search icons...">
+                </div>
+                <div id="icon-grid" class="row">
+                    <!-- Icons will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Load icons when modal opens
+    $('#icon-picker').click(function() {
+        if ($('#icon-grid').children().length === 0) {
+            $.get("{{ url_for('admin.get_icons') }}", function(icons) {
+                icons.forEach(function(icon) {
+                    $('#icon-grid').append(`
+                        <div class="col-md-2 col-sm-3 col-4 text-center icon-item mb-3">
+                            <div class="p-2 border rounded icon-select" data-icon="${icon}">
+                                <i class="fas ${icon} fa-2x"></i>
+                                <div class="small text-muted mt-1">${icon}</div>
+                            </div>
+                        </div>
+                    `);
+                });
+            });
+        }
+        $('#iconModal').modal('show');
+    });
+
+    // Icon search
+    $('#icon-search').on('input', function() {
+        const search = $(this).val().toLowerCase();
+        $('.icon-item').each(function() {
+            const icon = $(this).find('.icon-select').data('icon');
+            $(this).toggle(icon.toLowerCase().includes(search));
+        });
+    });
+
+    // Icon selection
+    $(document).on('click', '.icon-select', function() {
+        const icon = $(this).data('icon');
+        $('#icon').val(icon);
+        $('#icon-preview').attr('class', 'fas ' + icon);
+        $('#iconModal').modal('hide');
+    });
+
+    // Form validation
+    $('#category-form').submit(function(e) {
+        const name = $('#name').val().trim();
+        
+        if (!name) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Error',
+                text: 'Category name is required',
+                icon: 'error'
+            });
+        }
+    });
+});
+</script>
+
+<style>
+.icon-select {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.icon-select:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.05);
+}
+</style>
+{% endblock %}

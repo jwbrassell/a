@@ -1,0 +1,146 @@
+{% macro system_health_chart() %}
+<div class="card chart-card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-chart-line mr-2"></i>System Health
+        </h3>
+        <div class="card-tools">
+            <div class="btn-group">
+                <button type="button" class="btn btn-tool" data-range="1h">1H</button>
+                <button type="button" class="btn btn-tool active" data-range="24h">24H</button>
+                <button type="button" class="btn btn-tool" data-range="7d">7D</button>
+                <button type="button" class="btn btn-tool" data-range="30d">30D</button>
+            </div>
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="systemHealthChart" class="chart-container"></div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro resource_usage_chart() %}
+<div class="card chart-card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-chart-pie mr-2"></i>Resource Usage
+        </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="resourceUsageChart" class="chart-container"></div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro charts_scripts() %}
+<script>
+function initializeCharts() {
+    // System Health Chart
+    Highcharts.chart('systemHealthChart', {
+        chart: {
+            type: 'spline',
+            style: {
+                fontFamily: 'inherit'
+            }
+        },
+        title: {
+            text: null
+        },
+        xAxis: {
+            type: 'datetime',
+            labels: {
+                format: '{value:%H:%M}'
+            }
+        },
+        yAxis: [{
+            title: {
+                text: 'CPU & Memory Usage'
+            },
+            labels: {
+                format: '{value}%'
+            }
+        }, {
+            title: {
+                text: 'Response Time'
+            },
+            opposite: true
+        }],
+        tooltip: {
+            shared: true
+        },
+        series: [{
+            name: 'CPU Usage',
+            data: generateRandomData(24),
+            color: '#4099ff'
+        }, {
+            name: 'Memory Usage',
+            data: generateRandomData(24),
+            color: '#2ed8b6'
+        }, {
+            name: 'Response Time',
+            data: generateRandomData(24),
+            yAxis: 1,
+            color: '#FFB64D'
+        }]
+    });
+
+    // Resource Usage Chart
+    Highcharts.chart('resourceUsageChart', {
+        chart: {
+            type: 'pie',
+            style: {
+                fontFamily: 'inherit'
+            }
+        },
+        title: {
+            text: null
+        },
+        tooltip: {
+            pointFormat: '{point.y}%'
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>'
+                }
+            }
+        },
+        series: [{
+            name: 'Usage',
+            data: [
+                { name: 'CPU', y: 45, color: '#4099ff' },
+                { name: 'Memory', y: 30, color: '#2ed8b6' },
+                { name: 'Disk', y: 25, color: '#FFB64D' }
+            ]
+        }]
+    });
+}
+
+function generateRandomData(points) {
+    const data = [];
+    const now = Date.now();
+    for (let i = points; i > 0; i--) {
+        data.push([
+            now - i * 3600000,
+            Math.round(Math.random() * 100)
+        ]);
+    }
+    return data;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+});
+</script>
+{% endmacro %}

@@ -1,0 +1,47 @@
+# Vault Integration Requirements
+
+# HashiCorp Vault Client
+hvac>=1.1.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# HTTP Client
+requests>=2.31.0
+
+# Date/Time Handling
+pytz>=2023.3
+
+# SSL/TLS Support
+pyOpenSSL>=23.2.0
+cryptography>=41.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+
+# Type Hints
+typing-extensions>=4.7.1
+
+# JSON Processing
+jsonschema>=4.19.0
+
+# Operating System Interface
+psutil>=5.9.5
+
+# Command Line Interface
+click>=8.1.7
+
+# Logging Enhancements
+structlog>=23.1.0
+
+# Development Tools
+black>=23.7.0  # Code formatting
+flake8>=6.1.0  # Code linting
+mypy>=1.5.1   # Type checking
+isort>=5.12.0  # Import sorting
+
+# Documentation
+Sphinx>=7.1.2
+sphinx-rtd-theme>=1.3.0

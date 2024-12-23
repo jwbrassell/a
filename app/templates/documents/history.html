@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Document History</h1>
+            <h4 class="text-muted">{{ document.title }}</h4>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('documents.edit', id=document.id) }}" class="btn btn-outline-primary">
+                    <i class="fas fa-edit"></i> Edit Document
+                </a>
+                <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Documents
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Document Info</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Category</dt>
+                        <dd class="col-sm-8">{{ document.category.name }}</dd>
+
+                        <dt class="col-sm-4">Tags</dt>
+                        <dd class="col-sm-8">
+                            {% for tag in document.tags %}
+                            <span class="badge bg-secondary">{{ tag.name }}</span>
+                            {% endfor %}
+                        </dd>
+
+                        <dt class="col-sm-4">Created</dt>
+                        <dd class="col-sm-8">{{ document.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+
+                        <dt class="col-sm-4">Created By</dt>
+                        <dd class="col-sm-8">{{ document.creator.username }}</dd>
+
+                        <dt class="col-sm-4">Updated</dt>
+                        <dd class="col-sm-8">{{ document.updated_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+
+                        <dt class="col-sm-4">Changes</dt>
+                        <dd class="col-sm-8">{{ changes|length }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Change History</h5>
+                </div>
+                <div class="card-body">
+                    {% if changes %}
+                    <div class="timeline">
+                        {% for change in changes %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker {% if change.change_type == 'create' %}bg-success
+                                                      {% elif change.change_type == 'update' %}bg-primary
+                                                      {% else %}bg-danger{% endif %}">
+                            </div>
+                            <div class="timeline-content">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-1">
+                                        {% if change.change_type == 'create' %}
+                                        <i class="fas fa-plus-circle text-success"></i> Document Created
+                                        {% elif change.change_type == 'update' %}
+                                        <i class="fas fa-edit text-primary"></i> Document Updated
+                                        {% else %}
+                                        <i class="fas fa-trash text-danger"></i> Document Deleted
+                                        {% endif %}
+                                    </h6>
+                                    <small class="text-muted">
+                                        {{ change.changed_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </small>
+                                </div>
+                                <p class="mb-0">
+                                    Changed by <strong>{{ change.editor.username }}</strong>
+                                </p>
+                                {% if change.previous_content %}
+                                <button class="btn btn-sm btn-outline-secondary mt-2" type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#change-{{ change.id }}">
+                                    Show Previous Version
+                                </button>
+                                <div class="collapse mt-2" id="change-{{ change.id }}">
+                                    <div class="card card-body">
+                                        {{ change.previous_content|safe }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No changes recorded yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    position: relative;
+    display: flex;
+    margin-bottom: 30px;
+}
+
+.timeline-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 15px;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+.timeline-content {
+    flex-grow: 1;
+    position: relative;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.timeline-item:last-child .timeline-content {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 7px;
+    height: 100%;
+    width: 2px;
+    background: #dee2e6;
+}
+</style>
+{% endblock %}

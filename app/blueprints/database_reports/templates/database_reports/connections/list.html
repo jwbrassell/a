@@ -1,0 +1,209 @@
+{% extends "database_reports/base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('database_reports.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Database Connections</li>
+{% endblock %}
+
+{% block database_reports_content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Database Connections</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('database_reports.new_connection') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Connection
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped" id="connectionsTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Host</th>
+                        <th>Database</th>
+                        <th>Created By</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conn in connections %}
+                    <tr>
+                        <td>{{ conn.name }}</td>
+                        <td>{{ conn.db_type }}</td>
+                        <td>{{ conn.host if conn.host else 'N/A' }}</td>
+                        <td>{{ conn.database }}</td>
+                        <td>{{ conn.created_by.username }}</td>
+                        <td>
+                            <span class="badge {% if conn.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ 'Active' if conn.is_active else 'Inactive' }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-primary test-connection" 
+                                        data-connection-id="{{ conn.id }}">
+                                    <i class="fas fa-plug"></i> Test
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#editModal{{ conn.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal{{ conn.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Edit Modal -->
+                            <div class="modal fade" id="editModal{{ conn.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit Connection</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form action="{{ url_for('database_reports.edit_connection', id=conn.id) }}" method="POST">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label for="name{{ conn.id }}" class="form-label">Connection Name</label>
+                                                    <input type="text" class="form-control" id="name{{ conn.id }}" 
+                                                           name="name" value="{{ conn.name }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="description{{ conn.id }}" class="form-label">Description</label>
+                                                    <textarea class="form-control" id="description{{ conn.id }}" 
+                                                              name="description" rows="3">{{ conn.description }}</textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="host{{ conn.id }}" class="form-label">Host</label>
+                                                    <input type="text" class="form-control" id="host{{ conn.id }}" 
+                                                           name="host" value="{{ conn.host }}" 
+                                                           {% if conn.db_type == 'sqlite' %}readonly{% endif %}>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="port{{ conn.id }}" class="form-label">Port</label>
+                                                    <input type="number" class="form-control" id="port{{ conn.id }}" 
+                                                           name="port" value="{{ conn.port }}"
+                                                           {% if conn.db_type == 'sqlite' %}readonly{% endif %}>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="database{{ conn.id }}" class="form-label">Database</label>
+                                                    <input type="text" class="form-control" id="database{{ conn.id }}" 
+                                                           name="database" value="{{ conn.database }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" 
+                                                               id="is_active{{ conn.id }}" name="is_active"
+                                                               {% if conn.is_active %}checked{% endif %}>
+                                                        <label class="form-check-label" for="is_active{{ conn.id }}">
+                                                            Active
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="username{{ conn.id }}" class="form-label">Username</label>
+                                                    <input type="text" class="form-control" id="username{{ conn.id }}" 
+                                                           name="username" placeholder="Leave blank to keep current">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="password{{ conn.id }}" class="form-label">Password</label>
+                                                    <input type="password" class="form-control" id="password{{ conn.id }}" 
+                                                           name="password" placeholder="Leave blank to keep current">
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Delete Modal -->
+                            <div class="modal fade" id="deleteModal{{ conn.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Delete Connection</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Are you sure you want to delete the connection "{{ conn.name }}"?</p>
+                                            <p class="text-danger">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                This will also delete all reports using this connection.
+                                            </p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <form action="{{ url_for('database_reports.delete_connection', id=conn.id) }}" 
+                                                  method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    $('#connectionsTable').DataTable({
+        pageLength: 25,
+        order: [[0, 'asc']]
+    });
+    
+    // Handle test connection buttons
+    document.querySelectorAll('.test-connection').forEach(button => {
+        button.addEventListener('click', async function() {
+            const connectionId = this.dataset.connectionId;
+            let testButton = this;
+            let originalHtml = testButton.innerHTML;
+            
+            try {
+                testButton.disabled = true;
+                testButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+                
+                const response = await fetch(`/database_reports/connections/${connectionId}/test`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('Connection successful!');
+                } else {
+                    alert(`Connection failed: ${data.message}`);
+                }
+            } catch (error) {
+                alert(`Error testing connection: ${error.message}`);
+            } finally {
+                testButton.innerHTML = originalHtml;
+                testButton.disabled = false;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

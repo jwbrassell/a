@@ -1,0 +1,401 @@
+/* Theme Transitions */
+body, .navbar, .main-sidebar, .content-wrapper, .main-footer,
+.navbar-nav .nav-link, .brand-link, .sidebar-dark-primary {
+    transition: all 0.3s ease-in-out !important;
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+/* Loader Styles */
+#page-loader, #ajax-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.3s;
+}
+
+#ajax-loader {
+    background: rgba(255, 255, 255, 0.5);
+    z-index: 100000;
+    display: none;
+}
+
+.dark-mode #page-loader, .dark-mode #ajax-loader {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.dark-mode #ajax-loader {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.loader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Flash Messages */
+.flash-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    max-width: 350px;
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.flash-message.fade-out {
+    opacity: 0;
+}
+
+/* Modal Z-index Fixes */
+.modal {
+    z-index: 10000;
+}
+.modal-backdrop {
+    z-index: 9999;
+}
+
+/* Navbar Styles */
+.navbar.navbar-dark {
+    background-color: #343a40 !important;
+    border-color: #4b545c !important;
+    color: #ffffff !important;
+}
+
+.navbar.navbar-light {
+    background-color: #ffffff !important;
+    border-color: #dee2e6 !important;
+    color: #343a40 !important;
+}
+
+/* Navbar Links */
+.navbar.navbar-dark .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.navbar.navbar-dark .nav-link:hover {
+    color: #ffffff !important;
+}
+
+.navbar.navbar-light .nav-link {
+    color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.navbar.navbar-light .nav-link:hover {
+    color: rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Sidebar Styles - Override AdminLTE with high specificity */
+body:not(.dark-mode) .wrapper .main-sidebar.sidebar-dark-primary,
+body:not(.dark-mode) .wrapper .main-sidebar.sidebar-light-primary {
+    background-color: #ffffff !important;
+}
+
+body:not(.dark-mode) .wrapper .main-sidebar .sidebar .nav-sidebar > .nav-item > .nav-link,
+body:not(.dark-mode) .wrapper .main-sidebar .brand-link,
+body:not(.dark-mode) .wrapper .main-sidebar .nav-treeview > .nav-item > .nav-link,
+body:not(.dark-mode) .wrapper .main-sidebar .user-panel .info a,
+body:not(.dark-mode) .wrapper .main-sidebar .user-panel .info span {
+    color: #343a40 !important;
+}
+
+body:not(.dark-mode) .wrapper .main-sidebar .nav-sidebar > .nav-item > .nav-link:hover,
+body:not(.dark-mode) .wrapper .main-sidebar .brand-link:hover,
+body:not(.dark-mode) .wrapper .main-sidebar .nav-treeview > .nav-item > .nav-link:hover {
+    color: #121416 !important;
+    background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark-mode .wrapper .main-sidebar.sidebar-dark-primary,
+.dark-mode .wrapper .main-sidebar.sidebar-light-primary {
+    background-color: #343a40 !important;
+}
+
+.dark-mode .wrapper .main-sidebar .sidebar .nav-sidebar > .nav-item > .nav-link,
+.dark-mode .wrapper .main-sidebar .brand-link,
+.dark-mode .wrapper .main-sidebar .nav-treeview > .nav-item > .nav-link,
+.dark-mode .wrapper .main-sidebar .user-panel .info a,
+.dark-mode .wrapper .main-sidebar .user-panel .info span {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.dark-mode .wrapper .main-sidebar .nav-sidebar > .nav-item > .nav-link:hover,
+.dark-mode .wrapper .main-sidebar .brand-link:hover,
+.dark-mode .wrapper .main-sidebar .nav-treeview > .nav-item > .nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Active states with high specificity */
+.wrapper .main-sidebar .nav-sidebar > .nav-item > .nav-link.active,
+.wrapper .main-sidebar .nav-treeview > .nav-item > .nav-link.active {
+    background-color: #007bff !important;
+    color: #ffffff !important;
+}
+
+/* User panel specific styles */
+body:not(.dark-mode) .wrapper .main-sidebar .user-panel {
+    border-bottom-color: #dee2e6 !important;
+}
+
+.dark-mode .wrapper .main-sidebar .user-panel {
+    border-bottom-color: #4b545c !important;
+}
+
+/* Active state for both themes */
+.main-sidebar .nav-link.active {
+    background-color: #007bff !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .content-wrapper {
+    background-color: #1a1a1a !important;
+}
+
+.dark-mode .card {
+    background-color: #2d3238 !important;
+    border-color: #4b545c !important;
+}
+
+.dark-mode .modal-content {
+    background-color: #2d3238 !important;
+    border-color: #4b545c !important;
+}
+
+/* Dropdown styles for both themes */
+.navbar-dark .dropdown-menu {
+    background-color: #343a40 !important;
+    border-color: #4b545c !important;
+}
+
+.navbar-dark .dropdown-item {
+    color: #ffffff !important;
+}
+
+.navbar-dark .dropdown-item:hover {
+    background-color: #4b545c !important;
+}
+
+.navbar-light .dropdown-menu {
+    background-color: #ffffff !important;
+    border-color: #dee2e6 !important;
+}
+
+.navbar-light .dropdown-item {
+    color: #343a40 !important;
+}
+
+.navbar-light .dropdown-item:hover {
+    background-color: #e9ecef !important;
+}
+
+/* Theme Toggle Animation */
+#darkModeToggle i {
+    transition: transform 0.3s ease-in-out;
+}
+
+#darkModeToggle:hover i {
+    transform: rotate(180deg);
+}
+
+/* Login Page Styles */
+.login-page {
+    transition: background-color 0.3s ease-in-out;
+}
+
+.login-page .card {
+    transition: all 0.3s ease-in-out;
+}
+
+.dark-mode .login-page {
+    background-color: #1a1a1a !important;
+}
+
+.login-page .card-header {
+    border-bottom: none;
+}
+
+.login-page .brand-image {
+    transition: transform 0.3s ease-in-out;
+}
+
+.login-page .card:hover .brand-image {
+    transform: scale(1.05);
+}
+
+.login-page .form-control,
+.login-page .input-group-text {
+    border-width: 2px;
+    transition: all 0.2s ease-in-out;
+}
+
+.login-page .form-control:focus {
+    box-shadow: none;
+    border-color: #3498db;
+}
+
+.login-page .input-group-text {
+    background: none;
+}
+
+.dark-mode .login-page .input-group-text {
+    border-color: #4b545c;
+    color: #ffffff;
+}
+
+.login-page .btn-primary {
+    transition: all 0.3s ease-in-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-page .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.login-page .submit-loader {
+    z-index: 2;
+}
+
+/* Sidebar Bottom Section */
+.sidebar-bottom {
+    position: fixed;
+    bottom: 0;
+    width: 250px;  /* Match AdminLTE sidebar width */
+    padding: 10px 0;
+    z-index: 1035;  /* Above sidebar content but below modals */
+    transition: all 0.3s ease-in-out;
+    overflow: hidden;  /* Prevent content overflow during transitions */
+}
+
+/* Position relative to main-sidebar */
+.main-sidebar .sidebar-bottom {
+    left: 0;
+}
+
+/* Sidebar bottom theme */
+body:not(.dark-mode) .wrapper .main-sidebar .sidebar-bottom {
+    background-color: #ffffff !important;
+}
+
+.dark-mode .wrapper .main-sidebar .sidebar-bottom {
+    background-color: #343a40 !important;
+}
+
+/* Match AdminLTE's nav-link styles */
+.wrapper .main-sidebar .sidebar-bottom .nav-sidebar {
+    margin: 0;
+}
+
+.wrapper .main-sidebar .sidebar-bottom .nav-item {
+    width: 100%;
+}
+
+.wrapper .main-sidebar .sidebar-bottom .nav-link {
+    padding: 0.8rem 1rem;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    position: relative;
+    text-decoration: none !important;
+}
+
+/* Light theme styles */
+body:not(.dark-mode) .wrapper .main-sidebar .sidebar-bottom .nav-link {
+    color: #343a40 !important;
+}
+
+body:not(.dark-mode) .wrapper .main-sidebar .sidebar-bottom .nav-link:hover {
+    color: #121416 !important;
+    background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Dark theme styles */
+.dark-mode .wrapper .main-sidebar .sidebar-bottom .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.dark-mode .wrapper .main-sidebar .sidebar-bottom .nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Icon and text alignment */
+.wrapper .main-sidebar .sidebar-bottom .nav-link i.nav-icon {
+    min-width: 2.25rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    margin-right: 0.2rem;
+    text-align: center;
+}
+
+.wrapper .main-sidebar .sidebar-bottom .nav-link p {
+    margin: 0;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+/* Handle collapsed sidebar state */
+.sidebar-mini.sidebar-collapse .sidebar-bottom {
+    width: 4.6rem;
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar:hover .sidebar-bottom {
+    width: 250px;
+}
+
+.sidebar-divider {
+    height: 1px;
+    margin: 0 1rem 10px 1rem;
+    transition: background-color 0.3s ease-in-out !important;
+}
+
+body:not(.dark-mode) .sidebar-divider {
+    background: rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark-mode .sidebar-divider {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Ensure main sidebar nav doesn't overlap with bottom section */
+.sidebar .nav-sidebar {
+    padding-bottom: 100px;  /* Give space for the fixed bottom section */
+}
+
+
+/* Improved Mobile Responsiveness */
+@media (max-width: 768px) {
+    .flash-message {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+
+    .sidebar-mini.sidebar-collapse .main-sidebar:hover {
+        width: 250px !important;
+    }
+}

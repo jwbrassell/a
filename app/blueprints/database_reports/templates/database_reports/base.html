@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='src/datatables/css/dataTables.bootstrap4.min.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='src/datatables/css/buttons.bootstrap4.min.css') }}">
+<style>
+.report-card {
+    transition: transform 0.2s;
+}
+.report-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.tag {
+    font-size: 0.8em;
+    padding: 0.2em 0.6em;
+    margin: 0.2em;
+    border-radius: 12px;
+    background-color: #e9ecef;
+    color: #495057;
+    display: inline-block;
+}
+.modal-xl {
+    max-width: 95%;
+}
+.table-preview {
+    max-height: 400px;
+    overflow-y: auto;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='src/datatables/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/dataTables.bootstrap4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/dataTables.buttons.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/buttons.bootstrap4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/jszip/jszip.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/buttons.html5.min.js') }}"></script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('database_reports.index') }}">Database Reports</a></li>
+                    {% block breadcrumb %}{% endblock %}
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    {% block database_reports_content %}{% endblock %}
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends "database_reports/base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('database_reports.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('database_reports.list_connections') }}">Database Connections</a></li>
+<li class="breadcrumb-item active">New Connection</li>
+{% endblock %}
+
+{% block database_reports_content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>New Database Connection</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Connection Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required
+                               pattern="[a-zA-Z0-9_-]+" title="Only letters, numbers, underscores, and hyphens allowed">
+                        <div class="form-text">
+                            This name will be used to identify the connection and create the vault path.
+                            Use only letters, numbers, underscores, and hyphens.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="db_type" class="form-label">Database Type</label>
+                        <select class="form-select" id="db_type" name="db_type" required>
+                            <option value="">Select database type...</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="sqlite">SQLite</option>
+                        </select>
+                    </div>
+
+                    <div id="networkFields">
+                        <div class="mb-3">
+                            <label for="host" class="form-label">Host</label>
+                            <input type="text" class="form-control" id="host" name="host">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="port" class="form-label">Port</label>
+                            <input type="number" class="form-control" id="port" name="port">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="database" class="form-label">Database</label>
+                        <input type="text" class="form-control" id="database" name="database" required>
+                        <div class="form-text" id="databaseHelp">
+                            For SQLite, enter the full path to the database file.
+                        </div>
+                    </div>
+
+                    <div id="credentialsFields">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('database_reports.list_connections') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Create Connection</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Connection Help</h5>
+                <div id="oracleHelp" class="connection-help d-none">
+                    <h6>Oracle Connection Format</h6>
+                    <p>Host: The hostname or IP address of your Oracle server</p>
+                    <p>Port: Usually 1521</p>
+                    <p>Database: The service name or SID</p>
+                    <p>Example:</p>
+                    <pre>Host: oracle.example.com
+Port: 1521
+Database: ORCL</pre>
+                </div>
+
+                <div id="mysqlHelp" class="connection-help d-none">
+                    <h6>MySQL Connection Format</h6>
+                    <p>Host: The hostname or IP address of your MySQL server</p>
+                    <p>Port: Usually 3306</p>
+                    <p>Database: The database name</p>
+                    <p>Example:</p>
+                    <pre>Host: mysql.example.com
+Port: 3306
+Database: myapp_db</pre>
+                </div>
+
+                <div id="sqliteHelp" class="connection-help d-none">
+                    <h6>SQLite Connection Format</h6>
+                    <p>Database: Full path to the SQLite database file</p>
+                    <p>Example:</p>
+                    <pre>Database: /path/to/database.db</pre>
+                    <p class="text-muted">Note: Host and port are not used for SQLite connections.</p>
+                </div>
+
+                <hr>
+
+                <h6>Security Note</h6>
+                <p class="text-muted small">
+                    Credentials are stored securely in vault and are never exposed in the application.
+                    Make sure you have the necessary permissions to access the database.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dbTypeSelect = document.getElementById('db_type');
+    const networkFields = document.getElementById('networkFields');
+    const credentialsFields = document.getElementById('credentialsFields');
+    const helpPanels = document.querySelectorAll('.connection-help');
+    const databaseHelp = document.getElementById('databaseHelp');
+    
+    function updateFormFields() {
+        const dbType = dbTypeSelect.value;
+        
+        // Show/hide network fields based on database type
+        if (dbType === 'sqlite') {
+            networkFields.style.display = 'none';
+            credentialsFields.style.display = 'none';
+            databaseHelp.style.display = 'block';
+        } else {
+            networkFields.style.display = 'block';
+            credentialsFields.style.display = 'block';
+            databaseHelp.style.display = 'none';
+        }
+        
+        // Update help text
+        helpPanels.forEach(panel => panel.classList.add('d-none'));
+        if (dbType) {
+            document.getElementById(`${dbType}Help`).classList.remove('d-none');
+        }
+        
+        // Update required fields
+        const hostInput = document.getElementById('host');
+        const portInput = document.getElementById('port');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        
+        if (dbType === 'sqlite') {
+            hostInput.required = false;
+            portInput.required = false;
+            usernameInput.required = false;
+            passwordInput.required = false;
+        } else {
+            hostInput.required = true;
+            portInput.required = true;
+            usernameInput.required = true;
+            passwordInput.required = true;
+        }
+    }
+    
+    // Initial update
+    updateFormFields();
+    
+    // Update on database type change
+    dbTypeSelect.addEventListener('change', updateFormFields);
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}

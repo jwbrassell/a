@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Example Plugin{% endblock %}
+
+{% block head %}
+<style>
+/* Modal content */
+.modal-content {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 2rem rgba(0,0,0,0.2);
+}
+.modal-header {
+    border-bottom: 2px solid #dee2e6;
+}
+.modal-body {
+    padding: 1.5rem;
+}
+
+/* Prevent scrolling issues */
+body.modal-open {
+    overflow: hidden;
+    padding-right: 0 !important;
+}
+.modal-open .modal {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+</style>
+{% endblock %}
+
+{% block page_content %}
+<!-- Toast Container for Notifications -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-danger text-white">
+            <strong class="me-auto">Error</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+    <div id="successToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white">
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+</div>
+
+<!-- AJAX Loader -->
+<div id="ajax-loader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="spinner-border text-light" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Example Plugin</h2>
+            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#howItWorksModal">
+                <i class="fas fa-question-circle"></i> How It Works
+            </button>
+        </div>
+        
+        <!-- Data Entry Form -->
+        <div class="card mb-4">
+            <div class="card-header">
+                Add New Data
+            </div>
+            <div class="card-body">
+                <form id="dataForm">
+                    <div class="mb-3">
+                        <label for="key" class="form-label">Key</label>
+                        <input type="text" class="form-control" id="key" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="value" class="form-label">Value</label>
+                        <input type="number" class="form-control" id="value" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="card">
+            <div class="card-header">
+                Data Visualization
+            </div>
+            <div class="card-body">
+                <div id="chart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Modal -->
+<div class="modal fade" id="howItWorksModal" tabindex="-1" aria-labelledby="howItWorksModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="howItWorksModalLabel">How This Plugin Works</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4>What is a Plugin?</h4>
+                <p>
+                    A plugin is like a new app that can be added to a bigger app. Think of it like adding a new game to your phone - 
+                    the phone already works, but now it can do something new!
+                </p>
+
+                <h4>Parts of This Plugin</h4>
+                <ul>
+                    <li>
+                        <strong>Blueprint</strong> (like a building plan):
+                        <p>
+                            A blueprint is a way to organize code. Just like a house blueprint shows where rooms go, 
+                            our code blueprint shows where different parts of the plugin belong.
+                        </p>
+                    </li>
+                    <li>
+                        <strong>Database</strong> (like a digital filing cabinet):
+                        <p>
+                            When you enter data in the form, it's stored in a database. Think of it like saving a note 
+                            on your phone - it's there even after you close the app.
+                        </p>
+                    </li>
+                    <li>
+                        <strong>API</strong> (Application Programming Interface):
+                        <p>
+                            An API is like a waiter at a restaurant. When you want food (data), you ask the waiter (API), 
+                            and they go to the kitchen (database) to get it for you.
+                        </p>
+                    </li>
+                </ul>
+
+                <h4>How Data Flows</h4>
+                <ol>
+                    <li>
+                        You enter a "key" (like a label) and a "value" (like a number) in the form.
+                    </li>
+                    <li>
+                        When you click submit:
+                        <ul>
+                            <li>The data is sent to the server (like mailing a letter)</li>
+                            <li>The server saves it in the database (like filing the letter)</li>
+                            <li>The chart updates to show your new data (like adding a new bar to a graph)</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h4>Special Terms</h4>
+                <ul>
+                    <li>
+                        <strong>AJAX</strong> (Asynchronous JavaScript and XML):
+                        <p>
+                            This lets the page update without reloading. It's like texting someone instead of mailing 
+                            a letter - you get an answer right away!
+                        </p>
+                    </li>
+                    <li>
+                        <strong>CSRF</strong> (Cross-Site Request Forgery) Protection:
+                        <p>
+                            This is like a special stamp that proves your data came from our form and not somewhere else. 
+                            It keeps the data safe!
+                        </p>
+                    </li>
+                    <li>
+                        <strong>JSON</strong> (JavaScript Object Notation):
+                        <p>
+                            A way to format data that both humans and computers can read. It's like writing a list 
+                            where everything is clearly labeled.
+                        </p>
+                    </li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Bootstrap Bundle -->
+<script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.min.js') }}"></script>
+<!-- Highcharts -->
+<script src="{{ url_for('static', filename='vendor/js/highcharts.min.js') }}"></script>
+
+<script>
+// Ensure loader functions exist
+if (typeof window.showAjaxLoader !== 'function') {
+    window.showAjaxLoader = function() {
+        const loader = document.getElementById('ajax-loader');
+        if (loader) loader.style.display = 'flex';
+    };
+}
+if (typeof window.hideAjaxLoader !== 'function') {
+    window.hideAjaxLoader = function() {
+        const loader = document.getElementById('ajax-loader');
+        if (loader) loader.style.display = 'none';
+    };
+}
+
+// Show toast notification
+function showToast(type, message) {
+    const toast = document.getElementById(type === 'error' ? 'errorToast' : 'successToast');
+    toast.querySelector('.toast-body').textContent = message;
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+
+// Show error toast
+function showError(message) {
+    showToast('error', message);
+}
+
+// Show success toast
+function showSuccess(message) {
+    showToast('success', message);
+}
+
+// Declare chart variable
+let chart;
+
+// Load data function
+function loadData() {
+    showAjaxLoader();
+    fetch('/example/data')
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to load data');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            const chartData = data.map(item => [item.key, item.value]);
+            chart.series[0].setData(chartData);
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+            showError(error.message || 'Failed to load data. Please try again.');
+        })
+        .finally(() => {
+            hideAjaxLoader();
+        });
+}
+
+// Form submission
+document.getElementById('dataForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    showAjaxLoader();
+    
+    const data = {
+        key: document.getElementById('key').value,
+        value: document.getElementById('value').value
+    };
+
+    fetch('/example/data', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(data),
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to save data');
+            });
+        }
+        return response.json();
+    })
+    .then(newData => {
+        // Add new data point to chart
+        const currentData = chart.series[0].data.map(point => [point.name, point.y]);
+        currentData.push([newData.key, newData.value]);
+        chart.series[0].setData(currentData);
+        document.getElementById('dataForm').reset();
+        showSuccess('Data added successfully');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError(error.message || 'Failed to save data. Please try again.');
+    })
+    .finally(() => {
+        hideAjaxLoader();
+    });
+});
+
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize chart
+    chart = Highcharts.chart('chart', {
+        chart: {
+            type: 'column'
+        },
+        title: {
+            text: 'Example Data Visualization'
+        },
+        xAxis: {
+            type: 'category'
+        },
+        yAxis: {
+            title: {
+                text: 'Values'
+            }
+        },
+        series: [{
+            name: 'Data Points',
+            data: []
+        }]
+    });
+
+    // Initial data load
+    loadData();
+});
+</script>
+{% endblock %}

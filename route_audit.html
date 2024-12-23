@@ -1,0 +1,798 @@
+
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Portal Route Audit</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .category { margin: 20px 0; }
+                    .route { margin: 10px 0 20px 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+                    .route h3 { margin: 0 0 10px 0; }
+                    .route p { margin: 5px 0; }
+                    .auth-required { color: #d63031; }
+                    .admin-required { color: #e17055; }
+                    .permission { display: inline-block; background: #00b894; color: white; padding: 2px 6px; border-radius: 3px; margin: 2px; }
+                    .test-link { display: inline-block; margin-top: 10px; padding: 5px 10px; background: #0984e3; color: white; text-decoration: none; border-radius: 4px; }
+                    .test-link:hover { background: #0769b5; }
+                </style>
+            </head>
+            <body>
+                <h1>Portal Route Audit</h1>
+                <p>Total Rendered Pages: 74</p>
+            
+                <div class="category">
+                    <h2>Main (6 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Custom_Static  </h3>
+                        <p><strong>URL:</strong> /static/<path:filename></p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/static/<path:filename>" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Main Login <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /login</p>
+                        <p><strong>Template:</strong> login.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/login" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Main Logout <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /logout</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/logout" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Main Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /index</p>
+                        <p><strong>Template:</strong> index.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/index" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Main Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /</p>
+                        <p><strong>Template:</strong> index.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Main Ohshit <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /ohshit</p>
+                        <p><strong>Template:</strong> ohshit.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/ohshit" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Projects (7 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Projects Static  </h3>
+                        <p><strong>URL:</strong> /projects/static/<path:filename></p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/projects/static/<path:filename>" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Projects Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /projects</p>
+                        <p><strong>Template:</strong> projects/error.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/projects" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Projects Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /projects/</p>
+                        <p><strong>Template:</strong> projects/error.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/projects/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Projects List_Projects <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /projects/list</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/projects/list" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Projects Project_Dashboard <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /projects/dashboard</p>
+                        <p><strong>Template:</strong> projects/error.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/projects/dashboard" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Projects Create_Project <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /projects/create</p>
+                        <p><strong>Template:</strong> projects/error.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/projects/create" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Projects View_Project <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /projects/<int:project_id>/view</p>
+                        <p><strong>Template:</strong> projects/error.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/projects/<int:project_id>/view" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Auth (4 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Auth Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /</p>
+                        <p><strong>Template:</strong> index.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Auth Login <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /login</p>
+                        <p><strong>Template:</strong> login.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/login" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Auth Logout <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /logout</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/logout" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Auth Profile <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /profile</p>
+                        <p><strong>Template:</strong> profile.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/profile" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Vault Dashboard (2 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Vault_Dashboard Dashboard <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/vault/</p>
+                        <p><strong>Template:</strong> admin/vault_dashboard.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/vault/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Vault_Dashboard Status <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/vault/status</p>
+                        <p><strong>Template:</strong> admin/vault_status.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/vault/status" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Admin (25 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Admin Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/</p>
+                        <p><strong>Template:</strong> admin/index.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_dashboard_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Routes <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/routes</p>
+                        <p><strong>Template:</strong> admin/routes.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_routes_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/routes" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin New_Route <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/routes/new</p>
+                        <p><strong>Template:</strong> admin/route_form.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_routes_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/routes/new" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Edit_Route <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/routes/<int:route_id>/edit</p>
+                        <p><strong>Template:</strong> admin/route_form.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_routes_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/routes/<int:route_id>/edit" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Delete_Route <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/routes/<int:route_id>/delete</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_routes_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/routes/<int:route_id>/delete" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Get_Routes <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/routes/list</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_routes_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/routes/list" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Analytics <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/analytics</p>
+                        <p><strong>Template:</strong> admin/analytics.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_analytics_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/analytics" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Logs <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/logs</p>
+                        <p><strong>Template:</strong> admin/logs.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_logs_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/logs" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Monitoring <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/monitoring</p>
+                        <p><strong>Template:</strong> admin/monitoring/index.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_monitoring_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/monitoring" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Users <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/users</p>
+                        <p><strong>Template:</strong> admin/users.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_users_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/users" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin New_User <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/users/new</p>
+                        <p><strong>Template:</strong> admin/user_form.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_users_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/users/new" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Edit_User <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/users/<int:user_id>/edit</p>
+                        <p><strong>Template:</strong> admin/user_form.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_users_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/users/<int:user_id>/edit" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Delete_User <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/users/<int:user_id>/delete</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_users_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/users/<int:user_id>/delete" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Roles <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/roles</p>
+                        <p><strong>Template:</strong> admin/roles.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_roles_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/roles" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin New_Role <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/roles/new</p>
+                        <p><strong>Template:</strong> admin/role_form.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_roles_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/roles/new" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Edit_Role <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/roles/<int:role_id>/edit</p>
+                        <p><strong>Template:</strong> admin/role_form.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_roles_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/roles/<int:role_id>/edit" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Delete_Role <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/roles/<int:role_id>/delete</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_roles_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/roles/<int:role_id>/delete" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Role_Members <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/roles/<int:role_id>/members</p>
+                        <p><strong>Template:</strong> admin/role_members.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_roles_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/roles/<int:role_id>/members" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Get_Icons <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/icons</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_icons_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/icons" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Search_Icons <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/icons/search</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_icons_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/icons/search" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Get_Icon_Categories <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/icons/categories</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_icons_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/icons/categories" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Validate_Icon <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/icons/validate</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_icons_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/icons/validate" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Navigation_Categories <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/navigation/categories</p>
+                        <p><strong>Template:</strong> admin/navigation_categories.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_routes_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/navigation/categories" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Delete_Category <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/navigation/categories/<int:category_id>/delete</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_routes_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/navigation/categories/<int:category_id>/delete" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Admin Get_Categories <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /admin/navigation/categories/list</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_routes_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/admin/navigation/categories/list" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Dispatch (2 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Dispatch Admin_Settings <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /dispatch/admin/settings</p>
+                        <p><strong>Template:</strong> dispatch/admin_settings.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_dispatch_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/dispatch/admin/settings" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Dispatch Dispatch_Request <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /dispatch/</p>
+                        <p><strong>Template:</strong> dispatch/request.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/dispatch/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Handoffs (6 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Handoffs Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /handoffs/</p>
+                        <p><strong>Template:</strong> handoffs/index.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/handoffs/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Handoffs Workcenter_List <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /handoffs/workcenter-list</p>
+                        <p><strong>Template:</strong> handoffs/workcenters.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_handoffs_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/handoffs/workcenter-list" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Handoffs Create_Workcenter <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /handoffs/workcenters/create</p>
+                        <p><strong>Template:</strong> handoffs/workcenter_form.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_handoffs_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/handoffs/workcenters/create" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Handoffs Create <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /handoffs/create</p>
+                        <p><strong>Template:</strong> handoffs/create.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/handoffs/create" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Handoffs Metrics <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /handoffs/metrics</p>
+                        <p><strong>Template:</strong> handoffs/metrics.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">view_metrics</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/handoffs/metrics" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Handoffs Admin_Settings <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /handoffs/admin/settings</p>
+                        <p><strong>Template:</strong> handoffs/admin_settings.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">admin_handoffs_access</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/handoffs/admin/settings" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Profile (1 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Profile Static  </h3>
+                        <p><strong>URL:</strong> /profile/static/<path:filename></p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/profile/static/<path:filename>" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Oncall (2 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Oncall Static  </h3>
+                        <p><strong>URL:</strong> /oncall/static/<path:filename></p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/oncall/static/<path:filename>" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Oncall Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /oncall/</p>
+                        <p><strong>Template:</strong> oncall/index.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/oncall/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Weblinks (11 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Weblinks Static  </h3>
+                        <p><strong>URL:</strong> /weblinks/static/<path:filename></p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/static/<path:filename>" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/</p>
+                        <p><strong>Template:</strong> weblinks/index.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Admin <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/admin</p>
+                        <p><strong>Template:</strong> weblinks/admin.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/admin" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Get_Stats <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/admin/stats</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/admin/stats" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Download_Template <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/admin/template</p>
+                        <p><strong>Template:</strong> weblinks/templates/weblinks/download_template.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/admin/template" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Get_Links <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/get_links</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/get_links" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Get_Common_Links <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/get_common_links</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/get_common_links" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Get_Link <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/get_link/<int:link_id></p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/get_link/<int:link_id>" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Get_Tags <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/get_tags</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/get_tags" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Search_Icons <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/search_icons</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/search_icons" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Weblinks Get_Icons <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /weblinks/get_icons</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/weblinks/get_icons" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+                <div class="category">
+                    <h2>Database Reports (8 pages)</h2>
+                
+                    <div class="route">
+                        <h3>Database_Reports List_Connections <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /database_reports/connections</p>
+                        <p><strong>Template:</strong> database_reports/connections/list.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">manage_database_connections</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/database_reports/connections" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Database_Reports New_Connection <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /database_reports/connections/new</p>
+                        <p><strong>Template:</strong> database_reports/connections/new.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">manage_database_connections</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/database_reports/connections/new" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Database_Reports Test_Connection <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /database_reports/connections/<int:id>/test</p>
+                        <p><strong>Template:</strong> None</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> <span class="permission">manage_database_connections</span></p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/database_reports/connections/<int:id>/test" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Database_Reports Index <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /database_reports/</p>
+                        <p><strong>Template:</strong> database_reports/reports/index.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/database_reports/" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Database_Reports New_Report <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /database_reports/reports/new</p>
+                        <p><strong>Template:</strong> database_reports/reports/new.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/database_reports/reports/new" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Database_Reports View_Report <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /database_reports/reports/<int:id></p>
+                        <p><strong>Template:</strong> database_reports/templates/database_reports/view_report.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/database_reports/reports/<int:id>" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Database_Reports Edit_Report <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /database_reports/reports/<int:id>/edit</p>
+                        <p><strong>Template:</strong> database_reports/reports/edit.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/database_reports/reports/<int:id>/edit" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    
+                    <div class="route">
+                        <h3>Database_Reports Search_Reports <span class="auth-required">Requires Authentication</span> </h3>
+                        <p><strong>URL:</strong> /database_reports/reports/search</p>
+                        <p><strong>Template:</strong> database_reports/templates/database_reports/search_reports.html</p>
+                        <p><strong>Required Roles:</strong> No specific roles required</p>
+                        <p><strong>Required Permissions:</strong> No specific permissions required</p>
+                        <p><strong>Shows in Navbar:</strong> False</p>
+                        <a href="http://localhost:5000/database_reports/reports/search" target="_blank" class="test-link">Test Page</a>
+                    </div>
+                    </div>
+            </body>
+            </html>
+            

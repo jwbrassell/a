@@ -1,0 +1,35 @@
+alembic
+blinker
+click
+Flask
+Flask-Caching
+Flask-Login
+Flask-Migrate
+Flask-SQLAlchemy
+Flask-Session
+Flask-WTF
+Flask-SocketIO
+python-socketio
+python-engineio
+eventlet
+greenlet
+gunicorn
+itsdangerous
+Jinja2
+Mako
+MarkupSafe
+packaging
+psutil
+PyMySQL
+python-dotenv
+SQLAlchemy
+typing_extensions
+Werkzeug
+pdfkit
+hvac
+cryptography
+python-dateutil
+requests
+email-validator
+oracledb  # Oracle database driver
+mysql-connector-python  # MySQL database driver

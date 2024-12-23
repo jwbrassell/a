@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<!-- DataTables -->
+<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/dataTables.bootstrap4.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='src/datatables/css/responsive.bootstrap4.min.css') }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+<li class="breadcrumb-item active">Profile</li>
+{% endblock %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-user mr-2"></i>Profile Information
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label>Username</label>
+                    <p class="form-control-static">{{ current_user.username }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Name</label>
+                    <p class="form-control-static">{{ current_user.name }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <p class="form-control-static">{{ current_user.email }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Roles</label>
+                    <div>
+                        {% for role in current_user.roles %}
+                        <span class="badge bg-primary">{{ role.name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Theme Preference</label>
+                    <div class="form-check form-switch" style="padding-left: 3rem;">
+                        <input class="form-check-input" type="checkbox" role="switch" id="profileThemeToggle" {% if current_user.get_preference('theme') == 'dark' %}checked{% endif %} style="margin-left: -2.8rem;">
+                        <label class="form-check-label" for="profileThemeToggle">Dark Mode</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-history mr-2"></i>Recent Activity
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="activity-table" class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Activity</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- DataTables & Plugins -->
+<script src="{{ url_for('static', filename='src/datatables/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/dataTables.bootstrap4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ url_for('static', filename='src/datatables/js/responsive.bootstrap4.min.js') }}"></script>
+
+<script>
+// Handle profile theme toggle
+document.getElementById('profileThemeToggle').addEventListener('change', function(e) {
+    const newTheme = this.checked ? 'dark' : 'light';
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    
+    // Trigger the navbar toggle to handle the theme change
+    if (darkModeToggle) {
+        const event = new Event('click');
+        darkModeToggle.dispatchEvent(event);
+    }
+});
+
+$(function () {
+    $('#activity-table').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "ajax": {
+            "url": "{{ url_for('profile.activities_data') }}",
+            "type": "GET"
+        },
+        "columns": [
+            {
+                "data": null,
+                "render": function(data, type, row, meta) {
+                    return meta.row + meta.settings._iDisplayStart + 1;
+                }
+            },
+            {"data": "activity"},
+            {
+                "data": "timestamp",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return new Date(data).toLocaleString();
+                    }
+                    return data;
+                }
+            }
+        ],
+        "order": [[2, 'desc']], // Sort by timestamp descending by default
+        "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        "language": {
+            "processing": '<i class="fa fa-spinner fa-spin fa-2x fa-fw"></i><span class="sr-only">Loading...</span>',
+            "search": "Search activities:",
+            "lengthMenu": "Show _MENU_ activities per page",
+            "info": "Showing _START_ to _END_ of _TOTAL_ activities",
+            "infoEmpty": "No activities found",
+            "emptyTable": "No activities recorded yet"
+        },
+        "responsive": true,
+        "autoWidth": false
+    });
+});
+</script>
+{% endblock %}

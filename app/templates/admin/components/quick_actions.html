@@ -1,0 +1,23 @@
+{% macro quick_actions() %}
+<div class="quick-actions">
+    <button class="btn btn-primary quick-action-btn" data-toggle="tooltip" title="New User"
+            onclick="window.location.href='{{ url_for('admin.users') }}'">
+        <i class="fas fa-user-plus"></i>
+    </button>
+    <button class="btn btn-success quick-action-btn" data-toggle="tooltip" title="New Role"
+            onclick="window.location.href='{{ url_for('admin.new_role') }}'">
+        <i class="fas fa-user-shield"></i>
+    </button>
+    <button class="btn btn-info quick-action-btn" data-toggle="tooltip" title="System Status"
+            onclick="window.location.href='{{ url_for('admin.monitoring') }}'">
+        <i class="fas fa-heartbeat"></i>
+    </button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips for quick action buttons
+    $('[data-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endmacro %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Error{% endblock %}
+
+{% block page_content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="card-title mb-0">Error</h4>
+                </div>
+                <div class="card-body">
+                    <h5>{{ error_title|default('An error occurred') }}</h5>
+                    <p>{{ error_message|default('The server encountered an internal error and was unable to complete your request.') }}</p>
+                    <div class="mt-4">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-primary">Return to Home</a>
+                        <button onclick="window.history.back()" class="btn btn-secondary">Go Back</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,199 @@
+{% extends "aws/base_aws.html" %}
+
+{% block aws_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>AWS Health Events</h2>
+            <div class="btn-group">
+                <button class="btn btn-info me-2" onclick="refreshEvents()">
+                    <i class="fas fa-sync"></i> Refresh Events
+                </button>
+                <button class="btn btn-primary" onclick="showNotificationPreferences()">
+                    <i class="fas fa-bell"></i> Notification Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <select class="form-control" id="refresh-interval">
+            <option value="0">Manual Refresh</option>
+            <option value="60">Refresh every minute</option>
+            <option value="300">Refresh every 5 minutes</option>
+            <option value="600">Refresh every 10 minutes</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-control" id="event-type-filter" onchange="filterEvents()">
+            <option value="">All Event Types</option>
+            <option value="issue">Issues</option>
+            <option value="scheduledChange">Scheduled Changes</option>
+            <option value="accountNotification">Account Notifications</option>
+        </select>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="table-responsive">
+            <table class="table table-striped aws-table" id="events-table">
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Event Type</th>
+                        <th>Category</th>
+                        <th>Region</th>
+                        <th>Status</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Event Details</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Event Information</h6>
+                        <dl>
+                            <dt>Service</dt>
+                            <dd id="event-service"></dd>
+                            <dt>Event Type</dt>
+                            <dd id="event-type"></dd>
+                            <dt>Category</dt>
+                            <dd id="event-category"></dd>
+                            <dt>Region</dt>
+                            <dd id="event-region"></dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Timing</h6>
+                        <dl>
+                            <dt>Start Time</dt>
+                            <dd id="event-start-time"></dd>
+                            <dt>End Time</dt>
+                            <dd id="event-end-time"></dd>
+                            <dt>Status</dt>
+                            <dd id="event-status"></dd>
+                        </dl>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Description</h6>
+                        <p id="event-description"></p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Affected Resources</h6>
+                        <ul id="event-resources" class="list-unstyled">
+                            <!-- Populated by JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Preferences Modal -->
+<div class="modal fade" id="notificationPreferencesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Notification Preferences</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="notificationPreferencesForm">
+                    <div class="mb-3">
+                        <h6>Severity Levels</h6>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="notify-critical" checked>
+                            <label class="form-check-label" for="notify-critical">
+                                Critical Events
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="notify-warning" checked>
+                            <label class="form-check-label" for="notify-warning">
+                                Warning Events
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="notify-info">
+                            <label class="form-check-label" for="notify-info">
+                                Informational Events
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Event Types</h6>
+                        <select class="form-control" id="notify-event-types" multiple>
+                            <option value="issue">Issues</option>
+                            <option value="scheduledChange">Scheduled Changes</option>
+                            <option value="accountNotification">Account Notifications</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            Hold Ctrl/Cmd to select multiple. Leave empty to receive all types.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Services</h6>
+                        <select class="form-control" id="notify-services" multiple>
+                            <!-- Populated by JavaScript -->
+                        </select>
+                        <small class="form-text text-muted">
+                            Hold Ctrl/Cmd to select multiple. Leave empty to receive all services.
+                        </small>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="enable-browser-notifications">
+                        <label class="form-check-label" for="enable-browser-notifications">
+                            Enable Browser Notifications
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveNotificationPreferences()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block aws_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="{{ url_for('aws_manager.static', filename='js/health_events.js') }}"></script>
+<script>
+    // Initialize with config ID from server
+    initializeHealthEvents({{ config_id|tojson|safe }});
+</script>
+{% endblock %}
