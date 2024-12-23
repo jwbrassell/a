@@ -12,8 +12,7 @@ import re
 import time
 import shutil
 from pathlib import Path
-from utils.generate_dev_certs import CertificateGenerator
-from utils.install_vault import VaultInstaller
+from generate_vault_cert import generate_certificates
 
 # Configure logging
 logging.basicConfig(
@@ -27,7 +26,6 @@ class VaultDevSetup:
         self.base_dir = Path.cwd()
         self.vault_data_dir = self.base_dir / "vault-data"
         self.bin_dir = self.base_dir / "bin"
-        self.cert_generator = CertificateGenerator()
         self.vault_binary = self.bin_dir / "vault"
         if sys.platform == "win32":
             self.vault_binary = self.bin_dir / "vault.exe"
@@ -35,9 +33,9 @@ class VaultDevSetup:
     def ensure_vault_installed(self):
         """Ensure Vault is installed."""
         if not self.vault_binary.exists():
-            logger.info("Vault not found. Installing...")
-            installer = VaultInstaller()
-            installer.install()
+            logger.info("Vault not found. Please install Vault first.")
+            logger.info("Visit: https://developer.hashicorp.com/vault/downloads")
+            sys.exit(1)
         return True
 
     def clean_vault_data(self):
@@ -54,7 +52,7 @@ class VaultDevSetup:
 
     def generate_certificates(self):
         """Generate SSL certificates."""
-        self.cert_generator.setup_certificates()
+        generate_certificates()
 
     def kill_existing_vault(self):
         """Kill any existing Vault processes."""
