@@ -24,9 +24,10 @@ logger = logging.getLogger(__name__)
 
 class VaultDevSetup:
     def __init__(self):
-        self.base_dir = Path.cwd()
+        self.base_dir = Path(__file__).resolve().parent.parent
         self.vault_data_dir = self.base_dir / "vault-data"
         self.bin_dir = self.base_dir / "bin"
+        self.config_dir = self.base_dir / "config"
         self.vault_binary = self.bin_dir / "vault"
         if sys.platform == "win32":
             self.vault_binary = self.bin_dir / "vault.exe"
@@ -41,8 +42,9 @@ class VaultDevSetup:
         """Clean up existing Vault data."""
         if self.vault_data_dir.exists():
             shutil.rmtree(self.vault_data_dir)
-        if Path('.env.vault').exists():
-            Path('.env.vault').unlink()
+        env_vault_path = self.base_dir / '.env.vault'
+        if env_vault_path.exists():
+            env_vault_path.unlink()
 
     def setup_directories(self):
         """Create necessary directories."""
@@ -100,29 +102,6 @@ class VaultDevSetup:
             logger.debug(f"Error checking Vault status: {e}")
             return False, True
 
-    def update_env_file(self, token):
-        """Update .env file with Vault token"""
-        env_path = Path('.env')
-        if env_path.exists():
-            content = env_path.read_text()
-            
-            # Remove existing Vault settings
-            lines = [line for line in content.splitlines() 
-                    if not line.startswith(('VAULT_TOKEN=', 'VAULT_ADDR=', 'VAULT_SKIP_VERIFY='))]
-            
-            # Add new Vault settings
-            lines.extend([
-                '',
-                '# Vault Configuration',
-                'VAULT_ADDR=http://127.0.0.1:8201',  # Updated port
-                f'VAULT_TOKEN={token}',
-                'VAULT_SKIP_VERIFY=true'
-            ])
-            
-            # Write updated content
-            env_path.write_text('\n'.join(lines))
-            logger.info("Updated .env file with Vault configuration")
-
     def setup_kvv2_engine(self, env):
         """Setup KVv2 secrets engine"""
         try:
@@ -177,7 +156,7 @@ class VaultDevSetup:
             server_process = subprocess.Popen([
                 str(self.vault_binary),
                 'server',
-                '-config=config/vault-dev.hcl'
+                f'-config={self.config_dir}/vault-dev.hcl'
             ], env=env)
 
             # Wait for Vault to be ready
@@ -208,12 +187,32 @@ class VaultDevSetup:
             init_data = json.loads(result.stdout)
 
             # Save root token and unseal key
-            with open('.env.vault', 'w') as f:
+            env_vault_path = self.base_dir / '.env.vault'
+            with open(env_vault_path, 'w') as f:
                 f.write(f"VAULT_TOKEN={init_data['root_token']}\n")
                 f.write(f"VAULT_UNSEAL_KEY={init_data['unseal_keys_b64'][0]}\n")
 
             # Update .env file with Vault token
-            self.update_env_file(init_data['root_token'])
+            env_path = self.base_dir / '.env'
+            if env_path.exists():
+                content = env_path.read_text()
+                
+                # Remove existing Vault settings
+                lines = [line for line in content.splitlines() 
+                        if not line.startswith(('VAULT_TOKEN=', 'VAULT_ADDR=', 'VAULT_SKIP_VERIFY='))]
+                
+                # Add new Vault settings
+                lines.extend([
+                    '',
+                    '# Vault Configuration',
+                    'VAULT_ADDR=http://127.0.0.1:8201',  # Updated port
+                    f'VAULT_TOKEN={init_data["root_token"]}',
+                    'VAULT_SKIP_VERIFY=true'
+                ])
+                
+                # Write updated content
+                env_path.write_text('\n'.join(lines))
+                logger.info("Updated .env file with Vault configuration")
 
             # Unseal Vault
             unseal_cmd = [
