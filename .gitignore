@@ -84,7 +84,9 @@ vault-config.json
 vault-policy.hcl
 vault-token
 .vault-token
-config/vault-dev.hcl
 config/vault-prod.hcl
 config/vault-secure.hcl
 bin/vault
+
+# Keep development config
+!config/vault-dev.hcl
