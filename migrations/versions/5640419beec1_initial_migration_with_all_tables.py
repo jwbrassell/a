@@ -65,11 +65,17 @@ def upgrade():
     op.create_table('user',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('username', sa.String(length=64), unique=True, nullable=False),
-        sa.Column('email', sa.String(length=120), unique=True, nullable=False),
-        sa.Column('password_hash', sa.String(length=128), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.Column('last_seen', sa.DateTime(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=True),
+        sa.Column('employee_number', sa.String(length=32), unique=True),
+        sa.Column('name', sa.String(length=128)),
+        sa.Column('email', sa.String(length=128)),
+        sa.Column('vzid', sa.String(length=32), unique=True),
+        sa.Column('password_hash', sa.String(length=256)),
+        sa.Column('is_active', sa.Boolean(), default=True),
+        sa.Column('created_at', sa.DateTime(), default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime(), default=sa.func.now(), onupdate=sa.func.now()),
+        sa.Column('last_login', sa.DateTime()),
+        sa.Column('avatar_data', sa.LargeBinary()),
+        sa.Column('avatar_mimetype', sa.String(length=32)),
         sa.PrimaryKeyConstraint('id')
     )
 
