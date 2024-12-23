@@ -22,12 +22,22 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Export Vault environment variables
+export VAULT_ADDR="http://127.0.0.1:8201"
+export VAULT_SKIP_VERIFY="true"
+
 # Source environment variables from .env.vault
-source "$PROJECT_ROOT/.env.vault"
+if [ -f "$PROJECT_ROOT/.env.vault" ]; then
+    echo "Loading Vault credentials..."
+    source "$PROJECT_ROOT/.env.vault"
+else
+    echo "Error: .env.vault file not found"
+    exit 1
+fi
 
 # Initialize database
 echo "Initializing database..."
-python "$PROJECT_ROOT/init_database.py"
+PYTHONPATH="$PROJECT_ROOT" python "$PROJECT_ROOT/init_database.py"
 if [ $? -ne 0 ]; then
     echo "Database initialization failed"
     exit 1
@@ -35,7 +45,7 @@ fi
 
 # Then run complete application setup
 echo "Running application setup..."
-python "$PROJECT_ROOT/setup/setup_complete.py"
+PYTHONPATH="$PROJECT_ROOT" python "$PROJECT_ROOT/setup/setup_complete.py"
 if [ $? -ne 0 ]; then
     echo "Application setup failed"
     exit 1
