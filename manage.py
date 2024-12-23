@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 from flask.cli import FlaskGroup
+from flask_migrate import Migrate
 from app import create_app
-from app.extensions import db, migrate
+from app.extensions import db
 
-def create_cli_app():
-    return create_app()
+app = create_app()
+migrate = Migrate(app, db)
 
-cli = FlaskGroup(create_app=create_cli_app)
+cli = FlaskGroup(app)
 
 if __name__ == "__main__":
     cli()
