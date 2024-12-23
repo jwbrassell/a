@@ -12,6 +12,11 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
     WTF_CSRF_ENABLED = True
     
+    # Vault certificate paths
+    VAULT_CACERT = os.getenv('VAULT_CACERT', os.path.join('instance', 'certs', 'vault-ca.pem'))
+    VAULT_CLIENT_CERT = os.getenv('VAULT_CLIENT_CERT', os.path.join('instance', 'certs', 'vault-client.pem'))
+    VAULT_CLIENT_KEY = os.getenv('VAULT_CLIENT_KEY', os.path.join('instance', 'certs', 'vault-client-key.pem'))
+    
     # Database configuration
     DB_TYPE = os.getenv('DB_TYPE', 'sqlite')  # Default to SQLite if not specified
     
@@ -74,6 +79,11 @@ class Config:
         cache_dir = os.path.join(instance_path, 'cache')
         os.makedirs(cache_dir, exist_ok=True)
         os.chmod(cache_dir, 0o755)
+        
+        # Create certs directory and set permissions
+        certs_dir = os.path.join(instance_path, 'certs')
+        os.makedirs(certs_dir, exist_ok=True)
+        os.chmod(certs_dir, 0o700)  # More restrictive permissions for certificates
         
         # Set database URI based on configuration
         if app.config['DB_TYPE'] == 'mariadb':

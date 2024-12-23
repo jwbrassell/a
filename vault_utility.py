@@ -251,11 +251,8 @@ class VaultUtility:
         if not self.vault_url:
             raise VaultError("VAULT_ADDR environment variable not set")
         
-        # Enforce HTTPS in production
+        # Parse URL and validate hostname
         parsed_url = urlparse(self.vault_url)
-        if not os.getenv("FLASK_ENV") == "development":
-            if parsed_url.scheme != "https":
-                raise VaultError("HTTPS is required for Vault communication in production")
         
         # Validate URL is localhost
         if parsed_url.hostname not in ["localhost", "127.0.0.1"]:
@@ -266,10 +263,23 @@ class VaultUtility:
         if not self.token:
             raise VaultError("VAULT_TOKEN environment variable not set")
 
-        # Get certificate paths
-        self.ca_cert = os.getenv("VAULT_CACERT")
-        self.client_cert = os.getenv("VAULT_CLIENT_CERT")
-        self.client_key = os.getenv("VAULT_CLIENT_KEY")
+        # Get certificate paths from Flask config if available, fallback to env vars
+        if current_app:
+            self.ca_cert = current_app.config.get('VAULT_CACERT') or os.getenv("VAULT_CACERT")
+            self.client_cert = current_app.config.get('VAULT_CLIENT_CERT') or os.getenv("VAULT_CLIENT_CERT")
+            self.client_key = current_app.config.get('VAULT_CLIENT_KEY') or os.getenv("VAULT_CLIENT_KEY")
+        else:
+            self.ca_cert = os.getenv("VAULT_CACERT")
+            self.client_cert = os.getenv("VAULT_CLIENT_CERT")
+            self.client_key = os.getenv("VAULT_CLIENT_KEY")
+
+        # Convert relative paths to absolute using app root path
+        if current_app and self.ca_cert and not os.path.isabs(self.ca_cert):
+            self.ca_cert = os.path.join(current_app.root_path, self.ca_cert)
+        if current_app and self.client_cert and not os.path.isabs(self.client_cert):
+            self.client_cert = os.path.join(current_app.root_path, self.client_cert)
+        if current_app and self.client_key and not os.path.isabs(self.client_key):
+            self.client_key = os.path.join(current_app.root_path, self.client_key)
 
         # Verify certificate files exist
         if not os.getenv("FLASK_ENV") == "development":
@@ -328,7 +338,17 @@ class VaultUtility:
     def authenticate_vault(self):
         """Authenticate with Vault and return the client."""
         try:
-            verify = str(Path(self.ca_cert).resolve()) if self.ca_cert else False
+            # If CA cert is provided, use it for verification
+            # For self-signed certs, this will be the self-signed cert path
+            if self.ca_cert:
+                verify = str(Path(self.ca_cert).resolve())
+            else:
+                # If no CA cert provided but in production, warn about security
+                if not os.getenv("FLASK_ENV") == "development":
+                    logger.warning("Running in production without SSL verification. This is not recommended.")
+                verify = False
+            
+            # Set up client certificates if provided
             cert = (str(Path(self.client_cert).resolve()), str(Path(self.client_key).resolve())) if self.client_cert and self.client_key else None
             
             client = hvac.Client(

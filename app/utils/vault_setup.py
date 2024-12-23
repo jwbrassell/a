@@ -18,6 +18,7 @@ from pathlib import Path
 
 # Import from root directory
 from vault_utility import VaultUtility, VaultError
+from setup.generate_vault_cert import setup_vault_certificates
 
 # Configure logging
 logging.basicConfig(
@@ -151,22 +152,22 @@ class IntegratedVaultSetup:
             time.sleep(1)
         return False
 
-    def update_env_file(self, token):
+    def update_env_file(self, token, cert_path):
         """Update .env file with Vault token"""
         if self.env_file.exists():
             content = self.env_file.read_text()
             
             # Remove existing Vault settings
             lines = [line for line in content.splitlines() 
-                    if not line.startswith(('VAULT_TOKEN=', 'VAULT_ADDR=', 'VAULT_SKIP_VERIFY='))]
+                    if not line.startswith(('VAULT_TOKEN=', 'VAULT_ADDR=', 'VAULT_CACERT='))]
             
             # Add new Vault settings
             lines.extend([
                 '',
                 '# Vault Configuration',
-                'VAULT_ADDR=http://127.0.0.1:8201',
+                'VAULT_ADDR=https://127.0.0.1:8201',
                 f'VAULT_TOKEN={token}',
-                'VAULT_SKIP_VERIFY=true'
+                f'VAULT_CACERT={cert_path}'
             ])
             
             # Write updated content
@@ -207,10 +208,15 @@ class IntegratedVaultSetup:
             # Kill any existing Vault process
             self.kill_existing_vault()
             
+            # Generate SSL certificate
+            logger.info("Generating SSL certificate...")
+            cert_path = setup_vault_certificates()
+            
             # Setup environment
             env = os.environ.copy()
             env["PATH"] = str(self.bin_dir) + os.pathsep + env["PATH"]
-            env["VAULT_ADDR"] = "http://127.0.0.1:8201"
+            env["VAULT_ADDR"] = "https://127.0.0.1:8201"
+            env["VAULT_CACERT"] = cert_path
             
             # Start the Vault server
             logger.info("Starting Vault server...")
@@ -249,10 +255,11 @@ class IntegratedVaultSetup:
             self.vault_env_file.write_text(
                 f"VAULT_TOKEN={root_token}\n"
                 f"VAULT_UNSEAL_KEY={unseal_key}\n"
+                f"VAULT_CACERT={cert_path}\n"
             )
 
             # Update .env file with Vault token
-            self.update_env_file(root_token)
+            self.update_env_file(root_token, cert_path)
 
             # Unseal Vault
             logger.info("Unsealing Vault...")
