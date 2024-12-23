@@ -281,8 +281,8 @@ class VaultUtility:
         if current_app and self.client_key and not os.path.isabs(self.client_key):
             self.client_key = os.path.join(current_app.root_path, self.client_key)
 
-        # Verify certificate files exist
-        if not os.getenv("FLASK_ENV") == "development":
+        # Verify certificate files exist if using TLS
+        if self.vault_url.startswith('https://') and not os.getenv("FLASK_ENV") == "development":
             self._verify_certificates()
 
         # Initialize Vault client
@@ -338,18 +338,24 @@ class VaultUtility:
     def authenticate_vault(self):
         """Authenticate with Vault and return the client."""
         try:
-            # If CA cert is provided, use it for verification
-            # For self-signed certs, this will be the self-signed cert path
-            if self.ca_cert:
-                verify = str(Path(self.ca_cert).resolve())
-            else:
-                # If no CA cert provided but in production, warn about security
-                if not os.getenv("FLASK_ENV") == "development":
-                    logger.warning("Running in production without SSL verification. This is not recommended.")
-                verify = False
+            # Check if we're using TLS by examining the URL
+            is_tls = self.vault_url.startswith('https://')
             
-            # Set up client certificates if provided
-            cert = (str(Path(self.client_cert).resolve()), str(Path(self.client_key).resolve())) if self.client_cert and self.client_key else None
+            # For TLS connections, handle certificate verification
+            if is_tls:
+                if self.ca_cert:
+                    verify = str(Path(self.ca_cert).resolve())
+                else:
+                    # If no CA cert provided but using TLS, warn about security
+                    logger.warning("Running with TLS but without SSL verification. This is not recommended.")
+                    verify = False
+                
+                # Set up client certificates if provided
+                cert = (str(Path(self.client_cert).resolve()), str(Path(self.client_key).resolve())) if self.client_cert and self.client_key else None
+            else:
+                # For non-TLS connections, disable verification
+                verify = False
+                cert = None
             
             client = hvac.Client(
                 url=self.vault_url,
