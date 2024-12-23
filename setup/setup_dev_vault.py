@@ -13,6 +13,7 @@ import time
 import shutil
 from pathlib import Path
 from generate_vault_cert import setup_vault_certificates
+from vault_installer import VaultInstaller
 
 # Configure logging
 logging.basicConfig(
@@ -32,10 +33,8 @@ class VaultDevSetup:
         
     def ensure_vault_installed(self):
         """Ensure Vault is installed."""
-        if not self.vault_binary.exists():
-            logger.info("Vault not found. Please install Vault first.")
-            logger.info("Visit: https://developer.hashicorp.com/vault/downloads")
-            sys.exit(1)
+        installer = VaultInstaller()
+        installer.install()
         return True
 
     def clean_vault_data(self):
