@@ -91,20 +91,49 @@ curl http://127.0.0.1:8200/v1/sys/health
 ```
 
 4. Common issues:
-- On Linux, if you see "permission denied", the script will automatically fall back to using disable_mlock
-- If Vault seems to start but commands don't work, ensure VAULT_ADDR is set:
+
+Linux-specific:
+- If you see "start-stop-daemon: command not found", install it:
   ```bash
-  export VAULT_ADDR='http://127.0.0.1:8200'
+  # On CentOS/Rocky:
+  sudo yum install psmisc
   ```
-- If you see "Error checking seal status", wait a few seconds and try again
-- If process exists but Vault isn't responding, try:
+- If you see "permission denied", the script will automatically fall back to using disable_mlock
+- Make sure the vault binary is executable:
   ```bash
-  # Stop Vault
+  chmod +x ~/.vault/vault
+  ```
+
+General issues:
+- If Vault seems to start but commands don't work:
+  ```bash
+  # Ensure VAULT_ADDR is set
+  export VAULT_ADDR='http://127.0.0.1:8200'
+  
+  # Check process status
+  ps aux | grep vault
+  
+  # Check logs
+  tail -f vault.log
+  ```
+
+- If process exists but Vault isn't responding:
+  ```bash
+  # Full cleanup and restart
   python3 setup/scripts/vault_shutdown.py
+  rm -f vault.pid vault.log
+  rm -rf ~/.vault/data/*  # Clear vault data if needed
+  python3 setup/scripts/vault_setup.py  # Complete fresh start
+  ```
+
+- For detailed debugging:
+  ```bash
+  # Check all vault-related processes
+  ps aux | grep vault
   
-  # Remove any leftover files
-  rm vault.pid vault.log
+  # Check listening ports
+  sudo lsof -i :8200
   
-  # Start fresh
-  python3 setup/scripts/vault_start.py
+  # Check system logs (Linux)
+  sudo journalctl | grep vault
   ```

@@ -126,20 +126,36 @@ ui = false
             # Start vault server with log file
             log_file = Path("vault.log")
             with open(log_file, "w") as log:
-                process = subprocess.Popen(
-                    [str(self.vault_bin), "server", "-config", str(self.vault_config)],
-                    stdout=log,
-                    stderr=log,
-                    start_new_session=True,  # This creates a new process group
-                    preexec_fn=os.setsid if self.is_linux else None  # Linux-specific process group handling
-                )
+                if self.is_linux:
+                    # On Linux, use start-stop-daemon to properly daemonize the process
+                    cmd = [
+                        "start-stop-daemon",
+                        "--start",
+                        "--background",
+                        "--make-pidfile",
+                        "--pidfile", str(self.pid_file),
+                        "--exec", str(self.vault_bin),
+                        "--",
+                        "server",
+                        "-config", str(self.vault_config)
+                    ]
+                    subprocess.run(cmd, check=True, stdout=log, stderr=log)
+                else:
+                    # On macOS, use the original method
+                    process = subprocess.Popen(
+                        [str(self.vault_bin), "server", "-config", str(self.vault_config)],
+                        stdout=log,
+                        stderr=log,
+                        start_new_session=True
+                    )
+                    # Save PID
+                    self.pid_file.write_text(str(process.pid))
             
-            # Save PID
-            self.pid_file.write_text(str(process.pid))
-            self.pid_file.chmod(0o600)  # Secure the PID file
+            # Secure the PID file
+            self.pid_file.chmod(0o600)
             
             # Wait for Vault to start and verify it's running
-            max_attempts = 10
+            max_attempts = 15  # Increased attempts
             for attempt in range(max_attempts):
                 try:
                     time.sleep(2)  # Give Vault time to start
@@ -149,15 +165,27 @@ ui = false
                     if response.status_code in (200, 429, 472, 473):  # Various Vault status codes
                         print(f"Vault is starting (attempt {attempt + 1}/{max_attempts})")
                         if response.status_code == 200:
+                            print("Vault is now running!")
                             break
                 except requests.exceptions.ConnectionError:
                     print(f"Waiting for Vault to start (attempt {attempt + 1}/{max_attempts})")
-                    
+                
+                # On the last attempt, check logs and raise error
                 if attempt == max_attempts - 1:
-                    # Check log file for errors
                     if log_file.exists():
                         log_content = log_file.read_text()
                         print(f"Vault log contents:\n{log_content}")
+                    
+                    # Check if process is actually running
+                    if self.is_linux:
+                        try:
+                            with open(self.pid_file) as f:
+                                pid = int(f.read().strip())
+                            os.kill(pid, 0)  # Check if process exists
+                            print(f"Process {pid} exists but Vault is not responding")
+                        except (ProcessLookupError, ValueError, FileNotFoundError):
+                            print("Vault process is not running")
+                    
                     raise Exception("Vault failed to start. Check vault.log for details.")
 
         except Exception as e:
