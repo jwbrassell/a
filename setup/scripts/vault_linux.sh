@@ -91,17 +91,22 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Initialize Vault and capture output
-echo "Initializing Vault..."
-INIT_OUTPUT=$("$VAULT_BIN" operator init -key-shares=5 -key-threshold=3 -format=json)
+# Check if Vault is initialized
+INIT_STATUS=$("$VAULT_BIN" status -format=json)
+INITIALIZED=$(echo "$INIT_STATUS" | grep -o '"initialized":[^,}]*' | cut -d':' -f2)
+SEALED=$(echo "$INIT_STATUS" | grep -o '"sealed":[^,}]*' | cut -d':' -f2)
 
-# Extract root token and unseal keys
-ROOT_TOKEN=$(echo "$INIT_OUTPUT" | grep -o '"root_token":"[^"]*"' | cut -d'"' -f4)
-UNSEAL_KEYS=($(echo "$INIT_OUTPUT" | grep -o '"unseal_keys_hex":\[\[[^]]*\]\]' | grep -o '"[^"]*"' | sed 's/"//g'))
-
-# Save to environment file
-echo "Saving credentials to $ENV_FILE..."
-cat > "$ENV_FILE" << EOF
+if [ "$INITIALIZED" = "false" ]; then
+    echo "Initializing new Vault..."
+    INIT_OUTPUT=$("$VAULT_BIN" operator init -key-shares=5 -key-threshold=3 -format=json)
+    
+    # Extract root token and unseal keys
+    ROOT_TOKEN=$(echo "$INIT_OUTPUT" | grep -o '"root_token":"[^"]*"' | cut -d'"' -f4)
+    UNSEAL_KEYS=($(echo "$INIT_OUTPUT" | grep -o '"unseal_keys_hex":\[\[[^]]*\]\]' | grep -o '"[^"]*"' | sed 's/"//g'))
+    
+    # Save to environment file
+    echo "Saving credentials to $ENV_FILE..."
+    cat > "$ENV_FILE" << EOF
 VAULT_ADDR=http://127.0.0.1:8200
 VAULT_TOKEN=$ROOT_TOKEN
 VAULT_UNSEAL_KEY_1=${UNSEAL_KEYS[0]}
@@ -110,22 +115,41 @@ VAULT_UNSEAL_KEY_3=${UNSEAL_KEYS[2]}
 VAULT_UNSEAL_KEY_4=${UNSEAL_KEYS[3]}
 VAULT_UNSEAL_KEY_5=${UNSEAL_KEYS[4]}
 EOF
-chmod 600 "$ENV_FILE"
+    chmod 600 "$ENV_FILE"
+    
+    echo "Unsealing new Vault..."
+    "$VAULT_BIN" operator unseal ${UNSEAL_KEYS[0]}
+    "$VAULT_BIN" operator unseal ${UNSEAL_KEYS[1]}
+    "$VAULT_BIN" operator unseal ${UNSEAL_KEYS[2]}
+    
+elif [ "$SEALED" = "true" ]; then
+    echo "Vault is initialized but sealed. Checking for credentials..."
+    if [ -f "$ENV_FILE" ]; then
+        echo "Found existing credentials. Unsealing..."
+        source "$ENV_FILE"
+        "$VAULT_BIN" operator unseal $VAULT_UNSEAL_KEY_1
+        "$VAULT_BIN" operator unseal $VAULT_UNSEAL_KEY_2
+        "$VAULT_BIN" operator unseal $VAULT_UNSEAL_KEY_3
+    else
+        echo "Error: Vault is sealed and no credentials file found at $ENV_FILE"
+        exit 1
+    fi
+else
+    echo "Vault is already initialized and unsealed."
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "Warning: No credentials file found at $ENV_FILE"
+        echo "You'll need to provide your own credentials for Vault access."
+    fi
+fi
 
-# Unseal Vault
-echo "Unsealing Vault..."
-"$VAULT_BIN" operator unseal ${UNSEAL_KEYS[0]}
-"$VAULT_BIN" operator unseal ${UNSEAL_KEYS[1]}
-"$VAULT_BIN" operator unseal ${UNSEAL_KEYS[2]}
-
-# Verify Vault is unsealed
+# Final verification
 echo "Verifying Vault status..."
 STATUS_OUTPUT=$("$VAULT_BIN" status -format=json)
 if echo "$STATUS_OUTPUT" | grep -q '"sealed":false'; then
     echo "Success! Vault is unsealed and ready to use."
-    echo "Credentials saved to: $ENV_FILE"
-    echo "Root Token: $ROOT_TOKEN"
-    echo "Unseal Keys (first 3 needed): ${UNSEAL_KEYS[@]}"
+    if [ -f "$ENV_FILE" ]; then
+        echo "Credentials available at: $ENV_FILE"
+    fi
 else
     echo "Error: Vault is still sealed. Check $LOG_FILE for details."
     exit 1
