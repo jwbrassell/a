@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 import os
 import sys
@@ -55,23 +56,45 @@ class VaultSetup:
             self.vault_data.mkdir(parents=True, exist_ok=True)
 
             if self.is_linux:
+                # Download and extract Vault
                 url = f"https://releases.hashicorp.com/vault/{self.vault_version}/vault_{self.vault_version}_linux_amd64.zip"
                 subprocess.run(["wget", "-O", "vault.zip", url], check=True)
-                subprocess.run(["unzip", "vault.zip"], check=True)
-                subprocess.run(["mv", "vault", str(self.vault_bin)], check=True)
+                subprocess.run(["unzip", "-o", "vault.zip"], check=True)  # -o to overwrite
+                subprocess.run(["mv", "-f", "vault", str(self.vault_bin)], check=True)
                 subprocess.run(["rm", "vault.zip"], check=True)
-                subprocess.run(["sudo", "setcap", "cap_ipc_lock=+ep", str(self.vault_bin)], check=True)
+                
+                # Set proper permissions
+                self.vault_bin.chmod(0o755)  # Executable permissions
+                
+                try:
+                    # Try setting capabilities (requires sudo)
+                    subprocess.run(["sudo", "setcap", "cap_ipc_lock=+ep", str(self.vault_bin)], check=True)
+                except subprocess.CalledProcessError:
+                    print("Warning: Could not set IPC_LOCK capability. Using disable_mlock=true instead.")
+                    # We'll handle this in create_config by setting disable_mlock=true
+                
+                # Ensure vault binary is accessible
+                os.environ["PATH"] = f"{self.vault_dir}:{os.environ['PATH']}"
             
             elif self.is_mac:
                 subprocess.run(["brew", "install", "vault"], check=True)
                 # Create symlink to our vault directory
                 subprocess.run(["ln", "-sf", "/usr/local/bin/vault", str(self.vault_bin)], check=True)
 
+            # Verify installation
+            try:
+                subprocess.run([str(self.vault_bin), "version"], check=True)
+            except subprocess.CalledProcessError:
+                raise Exception("Vault binary installed but not executable. Check permissions.")
+
         except subprocess.CalledProcessError as e:
             raise Exception(f"Failed to install Vault: {str(e)}")
 
     def create_config(self) -> None:
         """Create Vault configuration file."""
+        # Check if we need to disable mlock (if setcap failed on Linux)
+        disable_mlock = True  # Always true for our localhost setup
+        
         config = f"""
 storage "file" {{
     path = "{self.vault_data}"
@@ -83,42 +106,64 @@ listener "tcp" {{
 }}
 
 api_addr = "http://127.0.0.1:8200"
-disable_mlock = true
+cluster_addr = "http://127.0.0.1:8201"
+disable_mlock = {str(disable_mlock).lower()}
 ui = false
         """
         self.vault_config.write_text(config.strip())
+        self.vault_config.chmod(0o600)  # Secure the config file
 
     def start_vault(self) -> None:
         """Start Vault server."""
         try:
-            # Start vault server
-            process = subprocess.Popen(
-                [str(self.vault_bin), "server", "-config", str(self.vault_config)],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                start_new_session=True  # This creates a new process group
-            )
-            
-            # Save PID
-            self.pid_file.write_text(str(process.pid))
-            
-            # Wait for Vault to start
-            time.sleep(2)
+            # Ensure the binary is in PATH
+            if self.is_linux:
+                os.environ["PATH"] = f"{self.vault_dir}:{os.environ['PATH']}"
             
             # Set environment variable
             os.environ["VAULT_ADDR"] = "http://127.0.0.1:8200"
             
-            # Check if Vault is running
-            for _ in range(5):  # Try 5 times
+            # Start vault server with log file
+            log_file = Path("vault.log")
+            with open(log_file, "w") as log:
+                process = subprocess.Popen(
+                    [str(self.vault_bin), "server", "-config", str(self.vault_config)],
+                    stdout=log,
+                    stderr=log,
+                    start_new_session=True,  # This creates a new process group
+                    preexec_fn=os.setsid if self.is_linux else None  # Linux-specific process group handling
+                )
+            
+            # Save PID
+            self.pid_file.write_text(str(process.pid))
+            self.pid_file.chmod(0o600)  # Secure the PID file
+            
+            # Wait for Vault to start and verify it's running
+            max_attempts = 10
+            for attempt in range(max_attempts):
                 try:
-                    requests.get("http://127.0.0.1:8200/v1/sys/health")
-                    break
+                    time.sleep(2)  # Give Vault time to start
+                    
+                    # Try to check Vault status
+                    response = requests.get("http://127.0.0.1:8200/v1/sys/health")
+                    if response.status_code in (200, 429, 472, 473):  # Various Vault status codes
+                        print(f"Vault is starting (attempt {attempt + 1}/{max_attempts})")
+                        if response.status_code == 200:
+                            break
                 except requests.exceptions.ConnectionError:
-                    time.sleep(2)
-            else:
-                raise Exception("Vault failed to start")
+                    print(f"Waiting for Vault to start (attempt {attempt + 1}/{max_attempts})")
+                    
+                if attempt == max_attempts - 1:
+                    # Check log file for errors
+                    if log_file.exists():
+                        log_content = log_file.read_text()
+                        print(f"Vault log contents:\n{log_content}")
+                    raise Exception("Vault failed to start. Check vault.log for details.")
 
         except Exception as e:
+            # Clean up PID file if startup failed
+            if self.pid_file.exists():
+                self.pid_file.unlink()
             raise Exception(f"Failed to start Vault: {str(e)}")
 
     def initialize_vault(self) -> Tuple[List[str], str]:
