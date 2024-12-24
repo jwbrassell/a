@@ -22,6 +22,8 @@ cleanup() {
 
 trap cleanup ERR
 
+echo "Setting up Vault..."
+
 # Create directories
 mkdir -p "$VAULT_DIR" "$VAULT_DATA"
 
@@ -70,45 +72,61 @@ fi
 echo "Starting Vault..."
 export VAULT_ADDR='http://127.0.0.1:8200'
 "$VAULT_BIN" server -config="$VAULT_CONFIG" > "$LOG_FILE" 2>&1 &
-echo $! > "$PID_FILE"
+PID=$!
+echo $PID > "$PID_FILE"
 chmod 600 "$PID_FILE"
 
 # Wait for Vault to start
 echo "Waiting for Vault to start..."
 for i in {1..30}; do
     if curl -s http://127.0.0.1:8200/v1/sys/health >/dev/null; then
+        echo "Vault is running!"
         break
     fi
-    echo "Attempt $i: Vault not ready yet..."
+    if [ $i -eq 30 ]; then
+        echo "Vault failed to start. Check $LOG_FILE for details."
+        exit 1
+    fi
+    echo "Waiting for Vault to start (attempt $i/30)..."
     sleep 1
 done
 
-# Initialize Vault if needed
-if ! curl -s http://127.0.0.1:8200/v1/sys/health | grep -q "initialized\":true"; then
-    echo "Initializing Vault..."
-    init_response=$("$VAULT_BIN" operator init -format=json -key-shares=5 -key-threshold=3)
-    
-    # Save credentials
-    echo "Saving credentials..."
-    cat > "$ENV_FILE" << EOF
-VAULT_ADDR=http://127.0.0.1:8200
-VAULT_TOKEN=$(echo "$init_response" | grep -o '"root_token":"[^"]*' | cut -d'"' -f4)
-VAULT_UNSEAL_KEY_1=$(echo "$init_response" | grep -o '"keys":\[[^]]*' | grep -o '"[^"]*"' | sed 's/"//g' | sed -n '1p')
-VAULT_UNSEAL_KEY_2=$(echo "$init_response" | grep -o '"keys":\[[^]]*' | grep -o '"[^"]*"' | sed 's/"//g' | sed -n '2p')
-VAULT_UNSEAL_KEY_3=$(echo "$init_response" | grep -o '"keys":\[[^]]*' | grep -o '"[^"]*"' | sed 's/"//g' | sed -n '3p')
-VAULT_UNSEAL_KEY_4=$(echo "$init_response" | grep -o '"keys":\[[^]]*' | grep -o '"[^"]*"' | sed 's/"//g' | sed -n '4p')
-VAULT_UNSEAL_KEY_5=$(echo "$init_response" | grep -o '"keys":\[[^]]*' | grep -o '"[^"]*"' | sed 's/"//g' | sed -n '5p')
-EOF
-    chmod 600 "$ENV_FILE"
-    
-    # Unseal Vault
-    echo "Unsealing Vault..."
-    for key in $(echo "$init_response" | grep -o '"keys":\[[^]]*' | grep -o '"[^"]*"' | sed 's/"//g' | head -n3); do
-        "$VAULT_BIN" operator unseal "$key"
-    done
-fi
+# Initialize Vault and capture output
+echo "Initializing Vault..."
+INIT_OUTPUT=$("$VAULT_BIN" operator init -key-shares=5 -key-threshold=3 -format=json)
 
-echo "Vault is ready!"
-echo "PID: $(cat $PID_FILE)"
-echo "Log file: $LOG_FILE"
-echo "Environment file: $ENV_FILE"
+# Extract root token and unseal keys
+ROOT_TOKEN=$(echo "$INIT_OUTPUT" | grep -o '"root_token":"[^"]*"' | cut -d'"' -f4)
+UNSEAL_KEYS=($(echo "$INIT_OUTPUT" | grep -o '"unseal_keys_hex":\[\[[^]]*\]\]' | grep -o '"[^"]*"' | sed 's/"//g'))
+
+# Save to environment file
+echo "Saving credentials to $ENV_FILE..."
+cat > "$ENV_FILE" << EOF
+VAULT_ADDR=http://127.0.0.1:8200
+VAULT_TOKEN=$ROOT_TOKEN
+VAULT_UNSEAL_KEY_1=${UNSEAL_KEYS[0]}
+VAULT_UNSEAL_KEY_2=${UNSEAL_KEYS[1]}
+VAULT_UNSEAL_KEY_3=${UNSEAL_KEYS[2]}
+VAULT_UNSEAL_KEY_4=${UNSEAL_KEYS[3]}
+VAULT_UNSEAL_KEY_5=${UNSEAL_KEYS[4]}
+EOF
+chmod 600 "$ENV_FILE"
+
+# Unseal Vault
+echo "Unsealing Vault..."
+"$VAULT_BIN" operator unseal ${UNSEAL_KEYS[0]}
+"$VAULT_BIN" operator unseal ${UNSEAL_KEYS[1]}
+"$VAULT_BIN" operator unseal ${UNSEAL_KEYS[2]}
+
+# Verify Vault is unsealed
+echo "Verifying Vault status..."
+STATUS_OUTPUT=$("$VAULT_BIN" status -format=json)
+if echo "$STATUS_OUTPUT" | grep -q '"sealed":false'; then
+    echo "Success! Vault is unsealed and ready to use."
+    echo "Credentials saved to: $ENV_FILE"
+    echo "Root Token: $ROOT_TOKEN"
+    echo "Unseal Keys (first 3 needed): ${UNSEAL_KEYS[@]}"
+else
+    echo "Error: Vault is still sealed. Check $LOG_FILE for details."
+    exit 1
+fi
