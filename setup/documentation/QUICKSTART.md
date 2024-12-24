@@ -93,15 +93,28 @@ curl http://127.0.0.1:8200/v1/sys/health
 4. Common issues:
 
 Linux-specific:
-- If you see "start-stop-daemon: command not found", install it:
-  ```bash
-  # On CentOS/Rocky:
-  sudo yum install psmisc
-  ```
 - If you see "permission denied", the script will automatically fall back to using disable_mlock
 - Make sure the vault binary is executable:
   ```bash
   chmod +x ~/.vault/vault
+  ```
+- If the process starts but immediately stops:
+  ```bash
+  # Check the logs
+  tail -f vault.log
+  
+  # Verify the process is running in its own group
+  ps -ef | grep vault
+  
+  # Check if port 8200 is already in use
+  sudo lsof -i :8200
+  
+  # Kill any existing vault processes
+  pkill vault
+  
+  # Clean up and try again
+  rm -f vault.pid nohup.out vault.log
+  python3 setup/scripts/vault_setup.py
   ```
 
 General issues:
@@ -128,12 +141,20 @@ General issues:
 
 - For detailed debugging:
   ```bash
-  # Check all vault-related processes
-  ps aux | grep vault
+  # Check all vault-related processes and their process groups
+  ps -ef | grep vault
   
   # Check listening ports
   sudo lsof -i :8200
   
   # Check system logs (Linux)
   sudo journalctl | grep vault
+  
+  # Check file permissions
+  ls -la ~/.vault/
+  ls -la vault.pid vault.log
+  
+  # Verify environment
+  echo $VAULT_ADDR
+  echo $PATH | grep vault
   ```

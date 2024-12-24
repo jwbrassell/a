@@ -125,31 +125,35 @@ ui = false
             
             # Start vault server with log file
             log_file = Path("vault.log")
-            with open(log_file, "w") as log:
-                if self.is_linux:
-                    # On Linux, use start-stop-daemon to properly daemonize the process
-                    cmd = [
-                        "start-stop-daemon",
-                        "--start",
-                        "--background",
-                        "--make-pidfile",
-                        "--pidfile", str(self.pid_file),
-                        "--exec", str(self.vault_bin),
-                        "--",
-                        "server",
-                        "-config", str(self.vault_config)
-                    ]
-                    subprocess.run(cmd, check=True, stdout=log, stderr=log)
-                else:
-                    # On macOS, use the original method
-                    process = subprocess.Popen(
-                        [str(self.vault_bin), "server", "-config", str(self.vault_config)],
-                        stdout=log,
-                        stderr=log,
-                        start_new_session=True
-                    )
-                    # Save PID
-                    self.pid_file.write_text(str(process.pid))
+            
+            if self.is_linux:
+                # On Linux, use nohup to run in background
+                cmd = [
+                    "nohup",
+                    str(self.vault_bin),
+                    "server",
+                    "-config", str(self.vault_config)
+                ]
+                
+                # Start the process
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=open(log_file, 'w'),
+                    stderr=subprocess.STDOUT,
+                    preexec_fn=os.setpgrp,  # Run in new process group
+                    start_new_session=True
+                )
+            else:
+                # On macOS, use the original method
+                process = subprocess.Popen(
+                    [str(self.vault_bin), "server", "-config", str(self.vault_config)],
+                    stdout=open(log_file, 'w'),
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True
+                )
+            
+            # Save PID
+            self.pid_file.write_text(str(process.pid))
             
             # Secure the PID file
             self.pid_file.chmod(0o600)
