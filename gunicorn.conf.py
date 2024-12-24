@@ -5,13 +5,6 @@ import os
 bind = "0.0.0.0:8000"
 backlog = 2048
 
-# Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
-worker_class = 'sync'
-worker_connections = 1000
-timeout = 120
-keepalive = 5
-
 # Process naming
 proc_name = 'portal'
 default_proc_name = 'portal'
@@ -103,7 +96,7 @@ loglevel = os.getenv('GUNICORN_LOG_LEVEL', 'info')
 proc_name = os.getenv('GUNICORN_PROC_NAME', 'portal')
 
 # Worker config
-workers = int(os.getenv('GUNICORN_WORKERS', multiprocessing.cpu_count() * 2 + 1))
+workers = multiprocessing.cpu_count() * 2 + 1
 worker_class = os.getenv('GUNICORN_WORKER_CLASS', 'sync')
 worker_connections = int(os.getenv('GUNICORN_WORKER_CONNECTIONS', 1000))
 timeout = int(os.getenv('GUNICORN_TIMEOUT', 120))
