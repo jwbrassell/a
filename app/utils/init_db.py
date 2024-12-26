@@ -11,44 +11,39 @@ def init_roles():
     """Initialize default roles if they don't exist."""
     try:
         from app.models.role import Role
+        from sqlalchemy import inspect
 
-        # Check if Admin role exists
-        admin_role = Role.query.filter_by(name='Administrator').first()
-        if not admin_role:
-            logger.info("Creating Administrator role")
-            admin_role = Role(
-                name='Administrator',
-                description='Full system access',
-                is_system_role=True,
-                created_by='system'  # Set created_by field
-            )
-            db.session.add(admin_role)
+        # Check if table exists first
+        inspector = inspect(db.engine)
+        if 'role' not in inspector.get_table_names():
+            logger.info("Role table does not exist yet, skipping role initialization")
+            return True
 
-        # Check if Manager role exists
-        manager_role = Role.query.filter_by(name='Manager').first()
-        if not manager_role:
-            logger.info("Creating Manager role")
-            manager_role = Role(
-                name='Manager',
-                description='Project management access',
-                is_system_role=True,
-                created_by='system'  # Set created_by field
-            )
-            db.session.add(manager_role)
+        # Initialize default roles
+        default_roles = [
+            ('Administrator', 'Full system access', True),
+            ('Manager', 'Project management access', True),
+            ('User', 'Basic user access', True)
+        ]
 
-        # Check if User role exists
-        user_role = Role.query.filter_by(name='User').first()
-        if not user_role:
-            logger.info("Creating User role")
-            user_role = Role(
-                name='User',
-                description='Basic user access',
-                is_system_role=True,
-                created_by='system'  # Set created_by field
-            )
-            db.session.add(user_role)
+        for name, description, is_system in default_roles:
+            try:
+                role = Role.query.filter_by(name=name).first()
+                if not role:
+                    logger.info(f"Creating {name} role")
+                    role = Role(
+                        name=name,
+                        description=description,
+                        is_system_role=is_system,
+                        created_by='system'
+                    )
+                    db.session.add(role)
+                    db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Error creating role {name}: {str(e)}")
+                continue
 
-        db.session.commit()
         logger.info("Default roles initialized successfully")
         return True
     except Exception as e:
@@ -60,30 +55,41 @@ def init_project_status():
     """Initialize default project statuses if they don't exist."""
     try:
         from app.blueprints.projects.models import ProjectStatus
+        from sqlalchemy import inspect
 
         # Check if table exists first
-        try:
-            if not ProjectStatus.query.first():
-                logger.info("Creating default project statuses")
-                statuses = [
-                    ('Not Started', '#dc3545'),  # Red
-                    ('In Progress', '#ffc107'),  # Yellow
-                    ('On Hold', '#6c757d'),      # Gray
-                    ('Completed', '#28a745'),    # Green
-                    ('Cancelled', '#343a40')     # Dark
-                ]
-                for name, color in statuses:
+        inspector = inspect(db.engine)
+        if 'project_status' not in inspector.get_table_names():
+            logger.info("Project status table does not exist yet, skipping initialization")
+            return True
+
+        # Default statuses
+        statuses = [
+            ('Not Started', '#dc3545'),  # Red
+            ('In Progress', '#ffc107'),  # Yellow
+            ('On Hold', '#6c757d'),      # Gray
+            ('Completed', '#28a745'),    # Green
+            ('Cancelled', '#343a40')     # Dark
+        ]
+
+        for name, color in statuses:
+            try:
+                status = ProjectStatus.query.filter_by(name=name).first()
+                if not status:
+                    logger.info(f"Creating project status: {name}")
                     status = ProjectStatus(
                         name=name,
                         color=color,
                         created_by='system'
                     )
                     db.session.add(status)
-                db.session.commit()
-                logger.info("Default project statuses created")
-        except OperationalError:
-            logger.info("Project status table does not exist yet")
-            return True
+                    db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Error creating project status {name}: {str(e)}")
+                continue
+
+        logger.info("Default project statuses initialized successfully")
         return True
     except Exception as e:
         db.session.rollback()
@@ -94,29 +100,40 @@ def init_project_priorities():
     """Initialize default project priorities if they don't exist."""
     try:
         from app.blueprints.projects.models import ProjectPriority
+        from sqlalchemy import inspect
 
         # Check if table exists first
-        try:
-            if not ProjectPriority.query.first():
-                logger.info("Creating default project priorities")
-                priorities = [
-                    ('Low', '#28a745'),      # Green
-                    ('Medium', '#ffc107'),   # Yellow
-                    ('High', '#dc3545'),     # Red
-                    ('Critical', '#9c27b0')  # Purple
-                ]
-                for name, color in priorities:
+        inspector = inspect(db.engine)
+        if 'project_priority' not in inspector.get_table_names():
+            logger.info("Project priority table does not exist yet, skipping initialization")
+            return True
+
+        # Default priorities
+        priorities = [
+            ('Low', '#28a745'),      # Green
+            ('Medium', '#ffc107'),   # Yellow
+            ('High', '#dc3545'),     # Red
+            ('Critical', '#9c27b0')  # Purple
+        ]
+
+        for name, color in priorities:
+            try:
+                priority = ProjectPriority.query.filter_by(name=name).first()
+                if not priority:
+                    logger.info(f"Creating project priority: {name}")
                     priority = ProjectPriority(
                         name=name,
                         color=color,
                         created_by='system'
                     )
                     db.session.add(priority)
-                db.session.commit()
-                logger.info("Default project priorities created")
-        except OperationalError:
-            logger.info("Project priority table does not exist yet")
-            return True
+                    db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Error creating project priority {name}: {str(e)}")
+                continue
+
+        logger.info("Default project priorities initialized successfully")
         return True
     except Exception as e:
         db.session.rollback()
@@ -127,6 +144,13 @@ def init_actions():
     """Initialize default actions if they don't exist."""
     try:
         from app.models.permissions import Action
+        from sqlalchemy import inspect
+
+        # Check if table exists first
+        inspector = inspect(db.engine)
+        if 'action' not in inspector.get_table_names():
+            logger.info("Action table does not exist yet, skipping action initialization")
+            return True
 
         # Default actions with their HTTP methods
         default_actions = [
@@ -141,18 +165,23 @@ def init_actions():
         ]
 
         for name, method, description in default_actions:
-            action = Action.query.filter_by(name=name, method=method).first()
-            if not action:
-                logger.info(f"Creating action: {name} ({method})")
-                action = Action(
-                    name=name,
-                    method=method,
-                    description=description,
-                    created_by='system'
-                )
-                db.session.add(action)
+            try:
+                action = Action.query.filter_by(name=name, method=method).first()
+                if not action:
+                    logger.info(f"Creating action: {name} ({method})")
+                    action = Action(
+                        name=name,
+                        method=method,
+                        description=description,
+                        created_by='system'
+                    )
+                    db.session.add(action)
+                    db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Error creating action {name}: {str(e)}")
+                continue
 
-        db.session.commit()
         logger.info("Default actions initialized successfully")
         return True
     except Exception as e:
@@ -164,26 +193,31 @@ def init_database():
     """Initialize database with required data."""
     try:
         with current_app.app_context():
-            # Initialize actions first since permissions depend on them
-            if not init_actions():
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            logger.info(f"Found tables: {', '.join(tables)}")
+
+            # Initialize core system tables first
+            logger.info("Initializing core system tables...")
+            if 'action' in tables and not init_actions():
                 logger.error("Failed to initialize actions")
                 return False
 
-            # Initialize roles since other parts depend on it
-            if not init_roles():
+            if 'role' in tables and not init_roles():
                 logger.error("Failed to initialize roles")
                 return False
-                
-            # Initialize project statuses
-            if not init_project_status():
+
+            # Initialize plugin tables if they exist
+            logger.info("Initializing plugin tables...")
+            if 'project_status' in tables and not init_project_status():
                 logger.error("Failed to initialize project statuses")
                 return False
-                
-            # Initialize project priorities
-            if not init_project_priorities():
+
+            if 'project_priority' in tables and not init_project_priorities():
                 logger.error("Failed to initialize project priorities")
                 return False
-                
+
             logger.info("Database initialized successfully")
             return True
     except Exception as e:

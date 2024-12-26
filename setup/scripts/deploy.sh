@@ -56,12 +56,65 @@ run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 echo "Setting up Vault..."
 run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
 
-# 5. Run migrations and initialize database
+# 5. Set up and verify database
 echo "Running database migrations..."
 run_remote "cd ~/flask_app && . venv/bin/activate && flask db upgrade"
 
-echo "Initializing database and actions..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py && python3 init_actions.py"
+# Verify migrations
+echo "Verifying migrations..."
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
+from flask_migrate import current
+from app import create_app
+app = create_app()
+with app.app_context():
+    revision = current.get_current_revision()
+    if not revision:
+        raise Exception('Migrations failed to apply')
+    print(f'Current migration revision: {revision}')
+\""
+
+# Initialize database with retries
+echo "Initializing database..."
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
+import time
+from app import create_app, db
+from app.models.permissions import Action
+
+def verify_database():
+    app = create_app()
+    with app.app_context():
+        # Check if tables exist
+        tables = db.engine.table_names()
+        required_tables = ['action', 'permission', 'role', 'user']
+        missing = [t for t in required_tables if t not in tables]
+        if missing:
+            raise Exception(f'Missing tables: {missing}')
+        
+        # Run init_database
+        import init_database
+        if not init_database.init_database():
+            raise Exception('Database initialization failed')
+        
+        # Verify core data
+        if not Action.query.first():
+            raise Exception('No actions found after initialization')
+
+max_retries = 3
+retry_delay = 5
+
+for attempt in range(max_retries):
+    try:
+        verify_database()
+        print('Database initialization successful')
+        break
+    except Exception as e:
+        if attempt < max_retries - 1:
+            print(f'Attempt {attempt + 1} failed: {e}')
+            print(f'Retrying in {retry_delay} seconds...')
+            time.sleep(retry_delay)
+        else:
+            raise Exception(f'Database initialization failed after {max_retries} attempts: {e}')
+\""
 
 # 6. Initialize all blueprints and routes in correct order
 echo "Initializing routes and blueprints..."

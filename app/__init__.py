@@ -121,14 +121,6 @@ def create_app(config_class=Config):
         app.logger.setLevel(logging.INFO)
         app.logger.info('Flask application startup')
 
-    # Initialize database if not skipped
-    if not app.config.get('SKIP_DB_INIT', False):
-        with app.app_context():
-            if init_database():
-                app.logger.info("Database initialized successfully")
-            else:
-                app.logger.error("Failed to initialize database")
-
     # Initialize blueprints if not skipped
     if not app.config.get('SKIP_BLUEPRINTS', False):
         with app.app_context():

@@ -10,21 +10,16 @@ from flask_migrate import upgrade
 def init_database():
     app = create_app()
     with app.app_context():
-        try:
-            # Apply migrations first
-            upgrade()
-            db.session.commit()
-            print("Migrations applied successfully")
-        except Exception as e:
-            print(f"Error applying migrations: {e}")
-            return False
-
-        # Now create default actions
+        # Create default actions
         default_actions = [
             ('read', 'GET', 'Read access'),
             ('write', 'POST', 'Write access'),
             ('update', 'PUT', 'Update access'),
             ('delete', 'DELETE', 'Delete access'),
+            ('list', 'GET', 'List access'),
+            ('create', 'POST', 'Create access'),
+            ('edit', 'PUT', 'Edit access'),
+            ('remove', 'DELETE', 'Remove access')
         ]
         
         for name, method, desc in default_actions:
@@ -98,6 +93,49 @@ def init_database():
             admin_user.roles.append(admin_role)
             db.session.add(admin_user)
         
+        # Initialize project statuses
+        try:
+            from app.blueprints.projects.models import ProjectStatus
+            if not ProjectStatus.query.first():
+                print("Creating default project statuses")
+                statuses = [
+                    ('Not Started', '#dc3545'),  # Red
+                    ('In Progress', '#ffc107'),  # Yellow
+                    ('On Hold', '#6c757d'),      # Gray
+                    ('Completed', '#28a745'),    # Green
+                    ('Cancelled', '#343a40')     # Dark
+                ]
+                for name, color in statuses:
+                    status = ProjectStatus(
+                        name=name,
+                        color=color,
+                        created_by='system'
+                    )
+                    db.session.add(status)
+        except Exception as e:
+            print(f"Note: Project status table not available: {e}")
+
+        # Initialize project priorities
+        try:
+            from app.blueprints.projects.models import ProjectPriority
+            if not ProjectPriority.query.first():
+                print("Creating default project priorities")
+                priorities = [
+                    ('Low', '#28a745'),      # Green
+                    ('Medium', '#ffc107'),   # Yellow
+                    ('High', '#dc3545'),     # Red
+                    ('Critical', '#9c27b0')  # Purple
+                ]
+                for name, color in priorities:
+                    priority = ProjectPriority(
+                        name=name,
+                        color=color,
+                        created_by='system'
+                    )
+                    db.session.add(priority)
+        except Exception as e:
+            print(f"Note: Project priority table not available: {e}")
+
         try:
             db.session.commit()
             print("Database initialized successfully")
