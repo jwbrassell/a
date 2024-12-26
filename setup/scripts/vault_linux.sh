@@ -199,7 +199,7 @@ fi
 # Final verification
 echo "Verifying Vault status..."
 STATUS_OUTPUT=$("$VAULT_BIN" status -format=json)
-if echo "$STATUS_OUTPUT" | grep -q '"sealed":false'; then
+if [ "$(echo "$STATUS_OUTPUT" | jq -r '.sealed')" = "false" ]; then
     echo "Success! Vault is unsealed and ready to use."
     if [ -f "$ENV_FILE" ]; then
         echo "Credentials available at: $ENV_FILE"
