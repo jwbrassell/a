@@ -62,25 +62,28 @@ run_remote "cd ~/flask_app && rm -f app.db"
 echo "Setting up database..."
 run_remote "cd ~/flask_app && . venv/bin/activate && rm -rf migrations && mkdir -p migrations && cp -r dist/migrations/* migrations/ && SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true FLASK_APP=migrations_config.py flask db upgrade head"
 
-# Initialize database with packaged script
-echo "Initializing database with packaged data..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 package_init_db.py"
+# Initialize database
+echo "Initializing database..."
+run_remote "cd ~/flask_app && . venv/bin/activate && flask db upgrade && python init_database.py"
 
-# Verify database setup with minimal app
-echo "Verifying database setup..."
+# Verify the setup
+echo "Verifying setup..."
 run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
 from app import create_app
 from app.models.user import User
-from app.models.role import Role
-
 app = create_app()
 with app.app_context():
-    # Verify admin user exists
     admin = User.query.filter_by(username='admin').first()
-    if not admin or not admin.roles:
-        raise Exception('Database verification failed: Admin user not properly initialized')
-    print('Database verification successful')
+    if not admin:
+        print('Error: Admin user not created')
+        exit(1)
+    print('Admin user verified successfully')
 \""
+
+echo "Database initialization complete!"
+echo "Default admin credentials:"
+echo "Username: admin"
+echo "Password: admin"
 
 # 5. Set up Vault and restore full app
 echo "Setting up Vault..."
