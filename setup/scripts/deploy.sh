@@ -56,9 +56,9 @@ run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 echo "Setting up Vault..."
 run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
 
-# 5. Initialize database and run migrations
+# 5. Initialize database, run migrations, and setup actions
 echo "Initializing database..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py && flask db upgrade"
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py && flask db upgrade && python3 init_actions.py"
 
 # 6. Update and reload systemd service
 echo "Updating systemd service..."
