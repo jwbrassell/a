@@ -377,14 +377,27 @@ class VaultUtility:
         """Get the mount point for the kv-v2 secrets engine."""
         try:
             mounts = self.client.sys.list_mounted_secrets_engines()
+            if not isinstance(mounts, dict):
+                logger.error(f"Unexpected response type from list_mounted_secrets_engines: {type(mounts)}")
+                raise VaultError("Invalid response from Vault API")
+                
             for mount_point, details in mounts.items():
-                if details.get('type') == 'kv' and details.get('options', {}).get('version') == '2':
+                if not isinstance(details, dict):
+                    continue
+                    
+                mount_type = details.get('type')
+                options = details.get('options', {})
+                if not isinstance(options, dict):
+                    continue
+                    
+                if mount_type == 'kv' and options.get('version') == '2':
                     logger.info(f"Found kv-v2 mount point: {mount_point}")
                     return mount_point.rstrip('/')
+                    
             raise VaultError("No kv-v2 secrets engine found")
         except Exception as e:
             logger.error(f"Failed to get kv-v2 mount points: {e}")
-            raise
+            raise VaultError(f"Failed to get kv-v2 mount points: {str(e)}")
 
     def get_secret(self, path):
         """Get a secret from Vault."""
