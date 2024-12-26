@@ -7,8 +7,8 @@ class MigrateConfig(Config):
     SKIP_DB_INIT = True  # Skip database initialization
     SKIP_BLUEPRINTS = True  # Skip blueprint initialization
     
-    # Use simple session type for migrations
-    SESSION_TYPE = 'simple'
+    # Use null session type for migrations
+    SESSION_TYPE = 'null'
     
     # Set SQLite database path
     basedir = os.path.abspath(os.path.dirname(__file__))
