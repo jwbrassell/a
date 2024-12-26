@@ -44,7 +44,11 @@ echo "Stopping services on remote..."
 run_remote "sudo systemctl stop flask_app || true"
 run_remote "sudo pkill vault || true"
 
-# 2. Set up permissions
+# 2. Install Python dependencies
+echo "Installing Python dependencies..."
+run_remote "cd ~/flask_app && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+
+# 3. Set up permissions
 echo "Setting up permissions..."
 run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 
