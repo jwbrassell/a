@@ -24,8 +24,9 @@ copy_to_remote() {
 
 echo "Starting deployment process..."
 
-# Ensure we have the latest code on the remote machine
-echo "Updating code on remote machine..."
+# Configure git and update code on remote machine
+echo "Configuring git and updating code..."
+run_remote "cd ~/flask_app && git config --global --add safe.directory /home/ec2-user/flask_app"
 run_remote "cd ~/flask_app && git remote add fluffy git@github.com:jwbrassell/a.git 2>/dev/null || true"
 run_remote "cd ~/flask_app && git fetch fluffy && git checkout xmas && git pull fluffy xmas"
 
