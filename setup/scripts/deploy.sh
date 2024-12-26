@@ -48,23 +48,27 @@ run_remote "sudo pkill vault || true"
 echo "Installing Python dependencies..."
 run_remote "cd ~/flask_app && rm -rf venv && python3 -m venv venv && . venv/bin/activate && venv/bin/pip install --upgrade pip && venv/bin/pip install -r requirements.txt"
 
-# 3. Set up permissions
+# 3. Initialize database
+echo "Initializing database..."
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py"
+
+# 4. Set up permissions
 echo "Setting up permissions..."
 run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 
-# 3. Set up Vault
+# 5. Set up Vault
 echo "Setting up Vault..."
 run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
 
-# 4. Update and reload systemd service
+# 6. Update and reload systemd service
 echo "Updating systemd service..."
 run_remote "cd ~/flask_app && sudo cp flask_app.service /etc/systemd/system/ && sudo systemctl daemon-reload"
 
-# 5. Start Flask application
+# 7. Start Flask application
 echo "Starting Flask application..."
 run_remote "sudo systemctl restart flask_app"
 
-# 6. Check service status
+# 8. Check service status
 echo "Checking service status..."
 run_remote "sudo systemctl status flask_app"
 
