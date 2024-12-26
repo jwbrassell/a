@@ -10,10 +10,16 @@ from flask_migrate import upgrade
 def init_database():
     app = create_app()
     with app.app_context():
-        # Apply migrations
-        upgrade()
-        
-        # Create default actions if they don't exist
+        try:
+            # Apply migrations first
+            upgrade()
+            db.session.commit()
+            print("Migrations applied successfully")
+        except Exception as e:
+            print(f"Error applying migrations: {e}")
+            return False
+
+        # Now create default actions
         default_actions = [
             ('read', 'GET', 'Read access'),
             ('write', 'POST', 'Write access'),
