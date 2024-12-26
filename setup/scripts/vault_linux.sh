@@ -176,9 +176,7 @@ EOF
     echo "Unsealing new Vault..."
     for i in {0..2}; do
         echo "Using key ${i}: ${UNSEAL_KEYS[$i]}"
-        "$VAULT_BIN" operator unseal -format=json <<EOF
-{"key": "${UNSEAL_KEYS[$i]}"}
-EOF
+        "$VAULT_BIN" operator unseal "${UNSEAL_KEYS[$i]}"
     done
     
 elif [ "$SEALED" = "true" ]; then
@@ -188,9 +186,7 @@ elif [ "$SEALED" = "true" ]; then
         source "$ENV_FILE"
         for key in "$VAULT_UNSEAL_KEY_1" "$VAULT_UNSEAL_KEY_2" "$VAULT_UNSEAL_KEY_3"; do
             echo "Using key: $key"
-            "$VAULT_BIN" operator unseal -format=json <<EOF
-{"key": "$key"}
-EOF
+            "$VAULT_BIN" operator unseal "$key"
         done
     else
         echo "Error: Vault is sealed and no credentials file found at $ENV_FILE"
