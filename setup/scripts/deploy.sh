@@ -32,12 +32,15 @@ copy_to_remote "$HOME/.ssh/id_ed25519" "~/.ssh/"
 copy_to_remote "$HOME/.ssh/id_ed25519.pub" "~/.ssh/"
 run_remote "chmod 600 ~/.ssh/id_ed25519*"
 
-# Configure git and update code on remote machine
-echo "Configuring git and updating code..."
+# Package the application locally
+echo "Packaging application..."
+bash "$SCRIPT_DIR/package.sh"
+
+# Copy packaged files to remote
+echo "Copying packaged files to remote..."
+run_remote "rm -rf ~/flask_app/*"  # Clean existing files
+copy_to_remote "dist/*" "~/flask_app/"
 run_remote "sudo chown -R ec2-user:ec2-user ~/flask_app"
-run_remote "cd ~/flask_app && git config --global --add safe.directory /home/ec2-user/flask_app"
-run_remote "cd ~/flask_app && git remote add fluffy git@github.com:jwbrassell/a.git 2>/dev/null || true"
-run_remote "cd ~/flask_app && git fetch fluffy && git checkout xmas && git pull fluffy xmas"
 
 # 1. Stop services on remote
 echo "Stopping services on remote..."
@@ -52,106 +55,44 @@ run_remote "cd ~/flask_app && rm -rf venv && python3 -m venv venv && . venv/bin/
 echo "Setting up permissions..."
 run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 
-# 4. Set up Vault
+# 4. Set up database using minimal app
+echo "Setting up database..."
+run_remote "cd ~/flask_app && . venv/bin/activate && FLASK_APP=package_init_db.py SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true flask db upgrade"
+
+# Initialize database with packaged script
+echo "Initializing database with packaged data..."
+run_remote "cd ~/flask_app && . venv/bin/activate && SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true python3 package_init_db.py"
+
+# Verify database setup with minimal config
+echo "Verifying database setup..."
+run_remote "cd ~/flask_app && . venv/bin/activate && SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true python3 -c \"
+from app import create_app
+from app.models.user import User
+from app.models.role import Role
+
+app = create_app()
+with app.app_context():
+    # Verify admin user exists
+    admin = User.query.filter_by(username='admin').first()
+    if not admin or not admin.roles:
+        raise Exception('Database verification failed: Admin user not properly initialized')
+    print('Database verification successful')
+\""
+
+# 5. Set up Vault and restore full app
 echo "Setting up Vault..."
 run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
 
-# 5. Set up and verify database
-echo "Running database migrations..."
-run_remote "cd ~/flask_app && . venv/bin/activate && flask db upgrade"
+# Restore full app version
+echo "Restoring full app..."
+run_remote "cd ~/flask_app && chmod +x restore_app.sh && ./restore_app.sh && rm -f app/__init__.py.minimal"
 
-# Verify migrations
-echo "Verifying migrations..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
-from flask_migrate import current
-from app import create_app
-app = create_app()
-with app.app_context():
-    revision = current.get_current_revision()
-    if not revision:
-        raise Exception('Migrations failed to apply')
-    print(f'Current migration revision: {revision}')
-\""
-
-# Initialize database with retries
-echo "Initializing database..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
-import time
-from app import create_app, db
-from app.models.permissions import Action
-
-def verify_database():
-    app = create_app()
-    with app.app_context():
-        # Check if tables exist
-        tables = db.engine.table_names()
-        required_tables = ['action', 'permission', 'role', 'user']
-        missing = [t for t in required_tables if t not in tables]
-        if missing:
-            raise Exception(f'Missing tables: {missing}')
-        
-        # Run init_database
-        import init_database
-        if not init_database.init_database():
-            raise Exception('Database initialization failed')
-        
-        # Verify core data
-        if not Action.query.first():
-            raise Exception('No actions found after initialization')
-
-max_retries = 3
-retry_delay = 5
-
-for attempt in range(max_retries):
-    try:
-        verify_database()
-        print('Database initialization successful')
-        break
-    except Exception as e:
-        if attempt < max_retries - 1:
-            print(f'Attempt {attempt + 1} failed: {e}')
-            print(f'Retrying in {retry_delay} seconds...')
-            time.sleep(retry_delay)
-        else:
-            raise Exception(f'Database initialization failed after {max_retries} attempts: {e}')
-\""
-
-# 6. Initialize all blueprints and routes in correct order
-echo "Initializing routes and blueprints..."
+# 6. Initialize routes and blueprints
+echo "Initializing application..."
 run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
 from app import create_app
-from app.utils.add_admin_route import add_admin_routes
-from app.utils.add_vault_routes import add_vault_routes
-from app.utils.add_database_report_routes import add_database_report_routes
-from app.utils.add_project_routes import add_project_routes
-from app.utils.add_dispatch_routes import add_dispatch_routes
-from app.utils.add_handoff_routes import add_handoff_routes
-from app.utils.add_oncall_routes import add_oncall_routes
-from app.utils.add_weblinks_routes import add_weblinks_routes
-from app.utils.add_example_routes import register_example_plugin
-from app.blueprints.aws_manager.plugin import init_plugin
-from app.blueprints.bug_reports import init_app as init_bug_reports
-from app.blueprints.feature_requests import init_app as init_feature_requests
-
 app = create_app()
-with app.app_context():
-    # Core routes first
-    add_admin_routes()
-    add_vault_routes()
-    
-    # Main features
-    add_database_report_routes()
-    add_project_routes()
-    add_dispatch_routes()
-    add_handoff_routes()
-    add_oncall_routes()
-    add_weblinks_routes()
-    
-    # Additional features
-    register_example_plugin(app)
-    init_plugin(app)
-    init_bug_reports(app)
-    init_feature_requests(app)
+print('Application initialized successfully')
 \""
 
 # 7. Verify all routes are registered
