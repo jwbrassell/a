@@ -143,7 +143,8 @@ SEALED=$(echo "$INIT_STATUS" | jq -r '.sealed')
 echo "Initialized: $INITIALIZED"
 echo "Sealed: $SEALED"
 
-if [ "$INITIALIZED" = "false" ]; then
+if [ "$INITIALIZED" != "true" ]; then
+    echo "Vault needs initialization..."
     echo "Initializing new Vault..."
     INIT_OUTPUT=$("$VAULT_BIN" operator init -key-shares=5 -key-threshold=3 -format=json)
     
@@ -182,11 +183,7 @@ elif [ "$SEALED" = "true" ]; then
         exit 1
     fi
 else
-    echo "Vault is already initialized and unsealed."
-    if [ ! -f "$ENV_FILE" ]; then
-        echo "Warning: No credentials file found at $ENV_FILE"
-        echo "You'll need to provide your own credentials for Vault access."
-    fi
+    echo "Vault is already initialized."
 fi
 
 # Final verification
