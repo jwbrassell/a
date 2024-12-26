@@ -203,11 +203,22 @@ def create_app(config_class=Config):
             except Exception as e:
                 app.logger.error(f"Error initializing weblinks blueprint: {e}")
 
+        # Initialize AWS manager blueprint
+        with app.app_context():
+            try:
+                from app.blueprints.aws_manager.plugin import init_plugin
+                if init_plugin(app):
+                    app.logger.info("AWS manager blueprint initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize AWS manager blueprint")
+            except Exception as e:
+                app.logger.error(f"Error initializing AWS manager blueprint: {e}")
+
         # Initialize database reports blueprint
         with app.app_context():
             try:
-                from app.utils.add_database_report_routes import add_database_report_routes
-                if add_database_report_routes():
+                from app.blueprints.database_reports.plugin import init_app as init_database_reports
+                if init_database_reports(app):
                     app.logger.info("Database reports blueprint initialized successfully")
                 else:
                     app.logger.warning("Failed to initialize database reports blueprint")
@@ -226,8 +237,8 @@ def create_app(config_class=Config):
         # Initialize bug reports blueprint
         with app.app_context():
             try:
-                from app.utils.add_bug_report_routes import add_bug_report_routes
-                if add_bug_report_routes():
+                from app.blueprints.bug_reports import init_app as init_bug_reports
+                if init_bug_reports(app):
                     app.logger.info("Bug reports blueprint initialized successfully")
                 else:
                     app.logger.warning("Failed to initialize bug reports blueprint")
@@ -237,8 +248,8 @@ def create_app(config_class=Config):
         # Initialize feature requests blueprint
         with app.app_context():
             try:
-                from app.utils.add_feature_request_routes import add_feature_request_routes
-                if add_feature_request_routes():
+                from app.blueprints.feature_requests import init_app as init_feature_requests
+                if init_feature_requests(app):
                     app.logger.info("Feature requests blueprint initialized successfully")
                 else:
                     app.logger.warning("Failed to initialize feature requests blueprint")
