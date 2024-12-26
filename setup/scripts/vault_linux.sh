@@ -81,14 +81,12 @@ export PATH="$VAULT_DIR:$PATH"
 export VAULT_ADDR='http://127.0.0.1:8200'
 export HOME="/home/ec2-user"  # Ensure HOME is set correctly
 
-# Create token helper config
-mkdir -p "$HOME/.vault"
-echo '{"token_helper": ""}' > "$HOME/.vault/config"
-chmod 600 "$HOME/.vault/config"
+# Remove any existing Vault user configuration
+rm -rf "$HOME/.vault"
 
-# Start Vault
+# Start Vault with no token helper
 echo "Starting Vault..."
-"$VAULT_BIN" server -config="$VAULT_CONFIG" > "$LOG_FILE" 2>&1 &
+VAULT_TOKEN="" "$VAULT_BIN" server -config="$VAULT_CONFIG" > "$LOG_FILE" 2>&1 &
 PID=$!
 echo $PID > "$PID_FILE"
 chmod 600 "$PID_FILE"
