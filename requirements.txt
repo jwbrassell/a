@@ -10,7 +10,7 @@ Flask-Caching==2.1.0
 requests==2.31.0
 python-dotenv==1.0.0
 hvac==1.2.1
-
+flask_session
 # Database
 SQLAlchemy==2.0.20
 Flask-SQLAlchemy==3.0.5
