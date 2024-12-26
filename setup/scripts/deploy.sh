@@ -56,8 +56,11 @@ echo "Setting up permissions..."
 run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 
 # 4. Set up database using minimal app
+echo "Cleaning existing database..."
+run_remote "cd ~/flask_app && rm -f app.db"
+
 echo "Setting up database..."
-run_remote "cd ~/flask_app && . venv/bin/activate && FLASK_APP=migrations_config.py flask db upgrade"
+run_remote "cd ~/flask_app && . venv/bin/activate && rm -rf migrations && mkdir -p migrations && cp -r dist/migrations/* migrations/ && SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true FLASK_APP=migrations_config.py flask db stamp head && SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true FLASK_APP=migrations_config.py flask db upgrade"
 
 # Initialize database with packaged script
 echo "Initializing database with packaged data..."

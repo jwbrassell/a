@@ -32,9 +32,6 @@ class PackageConfig:
 
 EOL
 
-# Clean existing migrations
-rm -rf migrations/versions/*
-
 # Create temporary files for packaging and migrations
 cat > temp_init.py << 'EOL'
 from flask import Flask
@@ -80,9 +77,16 @@ if __name__ == '__main__':
     app.run()
 EOL
 
-# Generate migrations using minimal config
+# Initialize fresh migrations
+rm -rf migrations
+mkdir -p migrations
 export FLASK_APP=migrations_config.py
-flask db migrate -m "Package migration"
+flask db init
+flask db migrate -m "Initial migration"
+
+# Create migrations directory in dist
+mkdir -p dist/migrations
+cp -r migrations/* dist/migrations/
 
 # Clean up temporary files
 rm temp_app.py package_config.py
