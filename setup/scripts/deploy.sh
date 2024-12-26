@@ -46,7 +46,7 @@ run_remote "sudo pkill vault || true"
 
 # 2. Install Python dependencies
 echo "Installing Python dependencies..."
-run_remote "cd ~/flask_app && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+run_remote "cd ~/flask_app && rm -rf venv && python3 -m venv venv && . venv/bin/activate && venv/bin/pip install --upgrade pip && venv/bin/pip install -r requirements.txt"
 
 # 3. Set up permissions
 echo "Setting up permissions..."
