@@ -24,6 +24,14 @@ copy_to_remote() {
 
 echo "Starting deployment process..."
 
+# Set up SSH for git
+echo "Setting up SSH for git..."
+run_remote "mkdir -p ~/.ssh && chmod 700 ~/.ssh"
+run_remote "ssh-keyscan github.com >> ~/.ssh/known_hosts"
+copy_to_remote "$HOME/.ssh/id_ed25519" "~/.ssh/"
+copy_to_remote "$HOME/.ssh/id_ed25519.pub" "~/.ssh/"
+run_remote "chmod 600 ~/.ssh/id_ed25519*"
+
 # Configure git and update code on remote machine
 echo "Configuring git and updating code..."
 run_remote "sudo chown -R ec2-user:ec2-user ~/flask_app/.git"
