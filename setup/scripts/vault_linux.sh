@@ -26,6 +26,12 @@ cleanup() {
 
 trap cleanup ERR
 
+# Ensure jq is installed
+if ! command -v jq &> /dev/null; then
+    echo "Installing jq..."
+    sudo yum install -y jq
+fi
+
 echo "Setting up Vault..."
 
 # Check if Vault is already running and accessible
@@ -132,12 +138,12 @@ done
 echo "Checking Vault initialization status..."
 INIT_STATUS=$("$VAULT_BIN" status -format=json || echo '{"initialized":false,"sealed":true}')
 echo "Vault status: $INIT_STATUS"
-INITIALIZED=$(echo "$INIT_STATUS" | grep -o '"initialized":[^,}]*' | cut -d':' -f2 || echo "false")
-SEALED=$(echo "$INIT_STATUS" | grep -o '"sealed":[^,}]*' | cut -d':' -f2 || echo "true")
+INITIALIZED=$(echo "$INIT_STATUS" | jq -r '.initialized')
+SEALED=$(echo "$INIT_STATUS" | jq -r '.sealed')
 echo "Initialized: $INITIALIZED"
 echo "Sealed: $SEALED"
 
-if [ "$INITIALIZED" = "false" ] || [ -z "$INITIALIZED" ]; then
+if [ "$INITIALIZED" = "false" ]; then
     echo "Initializing new Vault..."
     INIT_OUTPUT=$("$VAULT_BIN" operator init -key-shares=5 -key-threshold=3 -format=json)
     
