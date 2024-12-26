@@ -28,7 +28,10 @@ trap cleanup ERR
 
 echo "Setting up Vault..."
 
-# Create directories
+# Clean up any existing Vault directory
+rm -rf "$VAULT_DIR"
+
+# Create fresh directories
 mkdir -p "$VAULT_DIR" "$VAULT_DATA"
 
 # Download and install Vault if not exists
@@ -77,6 +80,11 @@ echo "Setting up environment..."
 export PATH="$VAULT_DIR:$PATH"
 export VAULT_ADDR='http://127.0.0.1:8200'
 export HOME="/home/ec2-user"  # Ensure HOME is set correctly
+
+# Create token helper config
+mkdir -p "$HOME/.vault"
+echo '{"token_helper": ""}' > "$HOME/.vault/config"
+chmod 600 "$HOME/.vault/config"
 
 # Start Vault
 echo "Starting Vault..."
