@@ -374,30 +374,45 @@ class VaultUtility:
             raise
 
     def get_kv_v2_mount_point(self):
-        """Get the mount point for the kv-v2 secrets engine."""
+        """Get the mount point for the kv-v2 secrets engine, enabling it if necessary."""
         try:
+            # First check if kv-v2 is already mounted
             mounts = self.client.sys.list_mounted_secrets_engines()
             if not isinstance(mounts, dict):
                 logger.error(f"Unexpected response type from list_mounted_secrets_engines: {type(mounts)}")
                 raise VaultError("Invalid response from Vault API")
-                
+            
+            # Look for existing kv-v2 mount
             for mount_point, details in mounts.items():
                 if not isinstance(details, dict):
                     continue
-                    
+                
                 mount_type = details.get('type')
                 options = details.get('options', {})
                 if not isinstance(options, dict):
                     continue
-                    
+                
                 if mount_type == 'kv' and options.get('version') == '2':
-                    logger.info(f"Found kv-v2 mount point: {mount_point}")
+                    logger.info(f"Found existing kv-v2 mount point: {mount_point}")
                     return mount_point.rstrip('/')
-                    
-            raise VaultError("No kv-v2 secrets engine found")
+            
+            # No kv-v2 found, let's enable it at the 'secret' path
+            logger.info("No kv-v2 secrets engine found. Enabling it at 'secret' path...")
+            try:
+                self.client.sys.enable_secrets_engine(
+                    backend_type='kv',
+                    path='secret',
+                    options={'version': '2'}
+                )
+                logger.info("Successfully enabled kv-v2 secrets engine at 'secret' path")
+                return 'secret'
+            except Exception as mount_error:
+                logger.error(f"Failed to enable kv-v2 secrets engine: {mount_error}")
+                raise VaultError(f"Failed to enable kv-v2 secrets engine: {str(mount_error)}")
+                
         except Exception as e:
-            logger.error(f"Failed to get kv-v2 mount points: {e}")
-            raise VaultError(f"Failed to get kv-v2 mount points: {str(e)}")
+            logger.error(f"Failed to get/enable kv-v2 mount points: {e}")
+            raise VaultError(f"Failed to get/enable kv-v2 mount points: {str(e)}")
 
     def get_secret(self, path):
         """Get a secret from Vault."""
