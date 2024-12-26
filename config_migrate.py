@@ -7,6 +7,9 @@ class MigrateConfig(Config):
     SKIP_DB_INIT = True  # Skip database initialization
     SKIP_BLUEPRINTS = True  # Skip blueprint initialization
     
+    # Disable session
+    SESSION_TYPE = None
+    
     # Set SQLite database path
     basedir = os.path.abspath(os.path.dirname(__file__))
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'instance', 'app.db')}"
@@ -18,27 +21,10 @@ class MigrateConfig(Config):
         instance_path = os.path.join(os.path.dirname(__file__), 'instance')
         os.makedirs(instance_path, exist_ok=True)
         
-        # Skip all blueprint imports
-        for module in [
-            'app.blueprints.database_reports',
-            'app.blueprints.database_reports.connections',
-            'app.blueprints.database_reports.models',
-            'app.blueprints.projects',
-            'app.blueprints.bug_reports',
-            'app.blueprints.feature_requests',
-            'app.blueprints.weblinks',
-            'app.blueprints.example',
-            'app.routes.admin',
-            'app.routes.profile',
-            'app.utils.add_dispatch_routes',
-            'app.utils.add_handoff_routes',
-            'app.utils.add_oncall_routes',
-            'app.utils.add_database_report_routes',
-            'app.utils.add_example_routes',
-            'app.utils.add_bug_report_routes',
-            'app.utils.add_feature_request_routes'
-        ]:
-            sys.modules[module] = None
+        # Prevent database_reports blueprint from being imported during migrations
+        sys.modules['app.blueprints.database_reports'] = None
+        sys.modules['app.blueprints.database_reports.connections'] = None
+        sys.modules['app.blueprints.database_reports.models'] = None
         
         # Skip initializations
         app.config['SKIP_VAULT_INIT'] = True

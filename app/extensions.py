@@ -23,7 +23,11 @@ def init_extensions(app):
     login_manager.login_view = 'main.login'
     login_manager.login_message_category = 'info'
     cache_manager.init_app(app)
+    
+    # Configure session to use our SQLAlchemy instance
+    app.config['SESSION_SQLALCHEMY'] = db
     session.init_app(app)
+    
     csrf.init_app(app)
     migrate.init_app(app, db)
     socketio.init_app(app)

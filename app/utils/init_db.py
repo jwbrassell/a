@@ -123,11 +123,53 @@ def init_project_priorities():
         logger.error(f"Error initializing project priorities: {str(e)}")
         return False
 
+def init_actions():
+    """Initialize default actions if they don't exist."""
+    try:
+        from app.models.permissions import Action
+
+        # Default actions with their HTTP methods
+        default_actions = [
+            ('read', 'GET', 'Read access'),
+            ('write', 'POST', 'Write access'),
+            ('update', 'PUT', 'Update access'),
+            ('delete', 'DELETE', 'Delete access'),
+            ('list', 'GET', 'List access'),
+            ('create', 'POST', 'Create access'),
+            ('edit', 'PUT', 'Edit access'),
+            ('remove', 'DELETE', 'Remove access')
+        ]
+
+        for name, method, description in default_actions:
+            action = Action.query.filter_by(name=name, method=method).first()
+            if not action:
+                logger.info(f"Creating action: {name} ({method})")
+                action = Action(
+                    name=name,
+                    method=method,
+                    description=description,
+                    created_by='system'
+                )
+                db.session.add(action)
+
+        db.session.commit()
+        logger.info("Default actions initialized successfully")
+        return True
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error initializing actions: {str(e)}")
+        return False
+
 def init_database():
     """Initialize database with required data."""
     try:
         with current_app.app_context():
-            # Initialize roles first since other parts depend on it
+            # Initialize actions first since permissions depend on them
+            if not init_actions():
+                logger.error("Failed to initialize actions")
+                return False
+
+            # Initialize roles since other parts depend on it
             if not init_roles():
                 logger.error("Failed to initialize roles")
                 return False
