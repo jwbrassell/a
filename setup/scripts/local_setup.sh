@@ -68,11 +68,46 @@ if ! command -v vault &> /dev/null; then
                 sudo apt-get update
                 sudo apt-get install -y vault
                 ;;
-            "rhel"|"fedora"|"centos"|"amzn")
-                # Add HashiCorp repository
+            "rhel"|"fedora"|"centos")
+                # Add HashiCorp repository for RHEL-based systems
                 sudo yum install -y yum-utils
                 sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
                 sudo yum -y install vault
+                ;;
+            "amzn")
+                # Direct RPM download for Amazon Linux
+                echo "Installing Vault on Amazon Linux..."
+                ARCH=$(uname -m)
+                case $ARCH in
+                    x86_64)
+                        VAULT_URL="https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip"
+                        ;;
+                    aarch64)
+                        VAULT_URL="https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_arm64.zip"
+                        ;;
+                    *)
+                        echo "Unsupported architecture: $ARCH"
+                        exit 1
+                        ;;
+                esac
+                
+                # Install required packages
+                sudo yum install -y unzip wget
+
+                # Download and install Vault
+                wget $VAULT_URL -O vault.zip
+                unzip vault.zip
+                sudo mv vault /usr/local/bin/
+                rm vault.zip
+                
+                # Set up Vault permissions
+                sudo setcap cap_ipc_lock=+ep /usr/local/bin/vault
+                
+                # Verify installation
+                vault --version || {
+                    echo "Vault installation failed"
+                    exit 1
+                }
                 ;;
             *)
                 echo "Unsupported operating system for automatic Vault installation"
