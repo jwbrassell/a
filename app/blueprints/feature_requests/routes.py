@@ -14,7 +14,7 @@ from datetime import datetime
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
 
-@bp.route('/')
+@bp.route('/list_requests')
 @login_required
 @requires_permission('feature_requests')
 def list_requests():

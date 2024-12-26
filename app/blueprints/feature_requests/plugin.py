@@ -102,7 +102,7 @@ def init_app(app):
         # Define route mappings
         route_mappings = [
             {
-                'route': '/feature_requests',
+                'route': '/feature_requests/list_requests',
                 'page_name': 'Feature Requests',
                 'roles': ['Administrator', 'User'],
                 'icon': 'fa-lightbulb',
