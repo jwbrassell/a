@@ -156,7 +156,7 @@ if [ "$INITIALIZED" != "true" ]; then
     echo "Root token: $ROOT_TOKEN"
     
     # Extract keys with proper array handling
-    readarray -t UNSEAL_KEYS < <(echo "$INIT_OUTPUT" | jq -r '.keys_hex[]')
+    readarray -t UNSEAL_KEYS < <(echo "$INIT_OUTPUT" | jq -r '.unseal_keys_hex[]')
     echo "Unseal keys:"
     printf '%s\n' "${UNSEAL_KEYS[@]}"
     
