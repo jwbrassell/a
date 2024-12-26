@@ -129,11 +129,15 @@ for i in {1..30}; do
 done
 
 # Check if Vault is initialized
-INIT_STATUS=$("$VAULT_BIN" status -format=json)
-INITIALIZED=$(echo "$INIT_STATUS" | grep -o '"initialized":[^,}]*' | cut -d':' -f2)
-SEALED=$(echo "$INIT_STATUS" | grep -o '"sealed":[^,}]*' | cut -d':' -f2)
+echo "Checking Vault initialization status..."
+INIT_STATUS=$("$VAULT_BIN" status -format=json || echo '{"initialized":false,"sealed":true}')
+echo "Vault status: $INIT_STATUS"
+INITIALIZED=$(echo "$INIT_STATUS" | grep -o '"initialized":[^,}]*' | cut -d':' -f2 || echo "false")
+SEALED=$(echo "$INIT_STATUS" | grep -o '"sealed":[^,}]*' | cut -d':' -f2 || echo "true")
+echo "Initialized: $INITIALIZED"
+echo "Sealed: $SEALED"
 
-if [ "$INITIALIZED" = "false" ]; then
+if [ "$INITIALIZED" = "false" ] || [ -z "$INITIALIZED" ]; then
     echo "Initializing new Vault..."
     INIT_OUTPUT=$("$VAULT_BIN" operator init -key-shares=5 -key-threshold=3 -format=json)
     
