@@ -17,35 +17,46 @@ def create_app(config_class=Config):
     # Import user model first to ensure it's registered
     from app.models.user import User
     
-    # Import core models
-    from app.models.role import Role
-    from app.models.permission import Permission
-    from app.models.permissions import Action, RoutePermission
-    from app.models.navigation import NavigationCategory, PageRouteMapping
-    from app.models.activity import UserActivity, PageVisit
-    from app.models.documents import Document, DocumentCategory, DocumentTag
-    from app.models.metrics import Metric, MetricAlert, MetricDashboard
-    from app.models.analytics import FeatureUsage, DocumentAnalytics, ProjectMetrics
-    from app.models.dispatch import DispatchSettings, DispatchHistory
-    from app.models.handoffs import WorkCenter, WorkCenterMember, HandoffSettings, Handoff
+    # Import core models if not skipping blueprints
+    if not getattr(config_class, 'SKIP_BLUEPRINTS', False):
+        from app.models.role import Role
+        from app.models.permission import Permission
+        from app.models.permissions import Action, RoutePermission
+        from app.models.navigation import NavigationCategory, PageRouteMapping
+        from app.models.documents import Document, DocumentCategory, DocumentTag
+        from app.models.metrics import Metric, MetricAlert, MetricDashboard
+        from app.models.analytics import FeatureUsage, DocumentAnalytics, ProjectMetrics
+        from app.models.dispatch import DispatchSettings, DispatchHistory
+        from app.models.handoffs import WorkCenter, WorkCenterMember, HandoffSettings, Handoff
+    else:
+        # Always import activity models since they're needed for migrations
+        from app.models.activity import UserActivity, PageVisit
     
-    # Import AWS models
-    from app.blueprints.aws_manager.models.ec2_instance import EC2Instance
-    from app.blueprints.aws_manager.models.ec2_template import EC2Template
-    from app.blueprints.aws_manager.models.aws_configuration import AWSConfiguration
-    from app.blueprints.aws_manager.models.health_event import AWSHealthEvent
-    
-    # Import blueprint models
-    from app.blueprints.projects.models import (
-        ProjectStatus, ProjectPriority, Project, Task, Todo, Comment, History
-    )
-    from app.blueprints.bug_reports.models import BugReport, BugReportScreenshot
-    from app.blueprints.feature_requests.models import FeatureRequest, FeatureVote, FeatureComment
-    from app.blueprints.weblinks.models import WebLink, Tag, WebLinkHistory
-    from app.blueprints.database_reports.models import (
-        DatabaseConnection, Report, ReportTagModel, ReportHistory
-    )
-    from app.blueprints.example.models import ExampleData
+    # Import blueprint models if not skipping blueprints
+    if not getattr(config_class, 'SKIP_BLUEPRINTS', False):
+        try:
+            # Import AWS models
+            from app.blueprints.aws_manager.models.ec2_instance import EC2Instance
+            from app.blueprints.aws_manager.models.ec2_template import EC2Template
+            from app.blueprints.aws_manager.models.aws_configuration import AWSConfiguration
+            from app.blueprints.aws_manager.models.health_event import AWSHealthEvent
+
+            from app.blueprints.projects.models import (
+                ProjectStatus, ProjectPriority, Project, Task, Todo, Comment, History
+            )
+            from app.blueprints.bug_reports.models import BugReport, BugReportScreenshot
+            from app.blueprints.feature_requests.models import FeatureRequest, FeatureVote, FeatureComment
+            from app.blueprints.weblinks.models import WebLink, Tag, WebLinkHistory
+            from app.blueprints.example.models import ExampleData
+
+            # Only import database_reports models if not skipping vault init
+            if not getattr(config_class, 'SKIP_VAULT_INIT', False):
+                from app.blueprints.database_reports.models import (
+                    DatabaseConnection, Report, ReportTagModel as Tag, ReportHistory
+                )
+        except ImportError:
+            # Ignore import errors during migrations
+            pass
 
     # Ensure correct MIME types are set
     mimetypes.add_type('text/css', '.css')
@@ -82,8 +93,9 @@ def create_app(config_class=Config):
     from app.template_filters import init_app as init_template_filters
     init_template_filters(app)
     
-    # Initialize Vault middleware
-    vault_enforcer = init_vault_middleware(app)
+    # Initialize Vault middleware if not skipped
+    if not app.config.get('SKIP_VAULT_MIDDLEWARE', False):
+        vault_enforcer = init_vault_middleware(app)
 
     # Custom static file handler
     @app.route('/static/<path:filename>')
@@ -109,140 +121,149 @@ def create_app(config_class=Config):
         app.logger.setLevel(logging.INFO)
         app.logger.info('Flask application startup')
 
-    # Initialize database
-    with app.app_context():
-        if init_database():
-            app.logger.info("Database initialized successfully")
+    # Initialize database if not skipped
+    if not app.config.get('SKIP_DB_INIT', False):
+        with app.app_context():
+            if init_database():
+                app.logger.info("Database initialized successfully")
+            else:
+                app.logger.error("Failed to initialize database")
+
+    # Initialize blueprints if not skipped
+    if not app.config.get('SKIP_BLUEPRINTS', False):
+        # Initialize projects blueprint first
+        with app.app_context():
+            try:
+                from app.blueprints.projects import init_app as init_projects
+                if init_projects(app):
+                    app.logger.info("Projects blueprint initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize projects blueprint")
+            except Exception as e:
+                app.logger.error(f"Error initializing projects blueprint: {e}")
+
+        # Initialize routes (skip admin routes if vault is disabled)
+        if not app.config.get('SKIP_VAULT_MIDDLEWARE', False):
+            from app.routes import init_routes
+            init_routes(app)
         else:
-            app.logger.error("Failed to initialize database")
+            # Initialize only non-admin routes
+            from app.routes.routes import init_base_routes
+            init_base_routes(app)
 
-    # Initialize projects blueprint first
-    with app.app_context():
+        # Initialize profile module
         try:
-            from app.blueprints.projects import init_app as init_projects
-            if init_projects(app):
-                app.logger.info("Projects blueprint initialized successfully")
-            else:
-                app.logger.warning("Failed to initialize projects blueprint")
+            from app.routes.profile import init_profile
+            if not init_profile(app):
+                app.logger.error("Failed to initialize profile module")
         except Exception as e:
-            app.logger.error(f"Error initializing projects blueprint: {e}")
+            app.logger.error(f"Error importing profile module: {e}")
 
-    # Initialize routes
-    from app.routes import init_routes
-    init_routes(app)
+        # Initialize dispatch routes
+        with app.app_context():
+            try:
+                from app.utils.add_dispatch_routes import add_dispatch_routes
+                if add_dispatch_routes():
+                    app.logger.info("Dispatch routes initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize dispatch routes")
+            except Exception as e:
+                app.logger.error(f"Error initializing dispatch routes: {e}")
 
-    # Initialize profile module
-    try:
-        from app.routes.profile import init_profile
-        if not init_profile(app):
-            app.logger.error("Failed to initialize profile module")
-    except Exception as e:
-        app.logger.error(f"Error importing profile module: {e}")
+        # Initialize handoff routes
+        with app.app_context():
+            try:
+                from app.utils.add_handoff_routes import add_handoff_routes
+                if add_handoff_routes():
+                    app.logger.info("Handoff routes initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize handoff routes")
+            except Exception as e:
+                app.logger.error(f"Error initializing handoff routes: {e}")
 
-    # Initialize dispatch routes
-    with app.app_context():
-        try:
-            from app.utils.add_dispatch_routes import add_dispatch_routes
-            if add_dispatch_routes():
-                app.logger.info("Dispatch routes initialized successfully")
-            else:
-                app.logger.warning("Failed to initialize dispatch routes")
-        except Exception as e:
-            app.logger.error(f"Error initializing dispatch routes: {e}")
+        # Initialize on-call routes
+        with app.app_context():
+            try:
+                from app.utils.add_oncall_routes import add_oncall_routes
+                if add_oncall_routes():
+                    app.logger.info("On-call routes initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize on-call routes")
+            except Exception as e:
+                app.logger.error(f"Error initializing on-call routes: {e}")
 
-    # Initialize handoff routes
-    with app.app_context():
-        try:
-            from app.utils.add_handoff_routes import add_handoff_routes
-            if add_handoff_routes():
-                app.logger.info("Handoff routes initialized successfully")
-            else:
-                app.logger.warning("Failed to initialize handoff routes")
-        except Exception as e:
-            app.logger.error(f"Error initializing handoff routes: {e}")
+        # Initialize weblinks blueprint
+        with app.app_context():
+            try:
+                from app.blueprints.weblinks import init_app as init_weblinks
+                if init_weblinks(app):
+                    app.logger.info("WebLinks blueprint initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize weblinks blueprint")
+            except Exception as e:
+                app.logger.error(f"Error initializing weblinks blueprint: {e}")
 
-    # Initialize on-call routes
-    with app.app_context():
-        try:
-            from app.utils.add_oncall_routes import add_oncall_routes
-            if add_oncall_routes():
-                app.logger.info("On-call routes initialized successfully")
-            else:
-                app.logger.warning("Failed to initialize on-call routes")
-        except Exception as e:
-            app.logger.error(f"Error initializing on-call routes: {e}")
+        # Initialize database reports blueprint
+        with app.app_context():
+            try:
+                from app.utils.add_database_report_routes import add_database_report_routes
+                if add_database_report_routes():
+                    app.logger.info("Database reports blueprint initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize database reports blueprint")
+            except Exception as e:
+                app.logger.error(f"Error initializing database reports blueprint: {e}")
 
-    # Initialize weblinks blueprint
-    with app.app_context():
-        try:
-            from app.blueprints.weblinks import init_app as init_weblinks
-            if init_weblinks(app):
-                app.logger.info("WebLinks blueprint initialized successfully")
-            else:
-                app.logger.warning("Failed to initialize weblinks blueprint")
-        except Exception as e:
-            app.logger.error(f"Error initializing weblinks blueprint: {e}")
+        # Initialize example plugin
+        with app.app_context():
+            try:
+                from app.utils.add_example_routes import register_example_plugin
+                register_example_plugin(app)
+                app.logger.info("Example plugin initialized successfully")
+            except Exception as e:
+                app.logger.error(f"Error initializing example plugin: {e}")
 
-    # Initialize database reports blueprint
-    with app.app_context():
-        try:
-            from app.utils.add_database_report_routes import add_database_report_routes
-            if add_database_report_routes():
-                app.logger.info("Database reports blueprint initialized successfully")
-            else:
-                app.logger.warning("Failed to initialize database reports blueprint")
-        except Exception as e:
-            app.logger.error(f"Error initializing database reports blueprint: {e}")
+        # Initialize bug reports blueprint
+        with app.app_context():
+            try:
+                from app.utils.add_bug_report_routes import add_bug_report_routes
+                if add_bug_report_routes():
+                    app.logger.info("Bug reports blueprint initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize bug reports blueprint")
+            except Exception as e:
+                app.logger.error(f"Error initializing bug reports blueprint: {e}")
 
-    # Initialize example plugin
-    with app.app_context():
-        try:
-            from app.utils.add_example_routes import register_example_plugin
-            register_example_plugin(app)
-            app.logger.info("Example plugin initialized successfully")
-        except Exception as e:
-            app.logger.error(f"Error initializing example plugin: {e}")
+        # Initialize feature requests blueprint
+        with app.app_context():
+            try:
+                from app.utils.add_feature_request_routes import add_feature_request_routes
+                if add_feature_request_routes():
+                    app.logger.info("Feature requests blueprint initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize feature requests blueprint")
+            except Exception as e:
+                app.logger.error(f"Error initializing feature requests blueprint: {e}")
 
-    # Initialize bug reports blueprint
-    with app.app_context():
-        try:
-            from app.utils.add_bug_report_routes import add_bug_report_routes
-            if add_bug_report_routes():
-                app.logger.info("Bug reports blueprint initialized successfully")
-            else:
-                app.logger.warning("Failed to initialize bug reports blueprint")
-        except Exception as e:
-            app.logger.error(f"Error initializing bug reports blueprint: {e}")
+    # Initialize Vault policies and setup if not skipped
+    if not app.config.get('SKIP_VAULT_MIDDLEWARE', False):
+        with app.app_context():
+            try:
+                if initialize_vault_policies():
+                    app.logger.info("Vault policies initialized successfully")
+                else:
+                    app.logger.warning("Failed to initialize Vault policies")
+            except Exception as e:
+                app.logger.error(f"Error initializing Vault policies: {e}")
 
-    # Initialize feature requests blueprint
-    with app.app_context():
-        try:
-            from app.utils.add_feature_request_routes import add_feature_request_routes
-            if add_feature_request_routes():
-                app.logger.info("Feature requests blueprint initialized successfully")
-            else:
-                app.logger.warning("Failed to initialize feature requests blueprint")
-        except Exception as e:
-            app.logger.error(f"Error initializing feature requests blueprint: {e}")
-
-    # Initialize Vault policies after blueprints are registered
-    with app.app_context():
-        try:
-            if initialize_vault_policies():
-                app.logger.info("Vault policies initialized successfully")
-            else:
-                app.logger.warning("Failed to initialize Vault policies")
-        except Exception as e:
-            app.logger.error(f"Error initializing Vault policies: {e}")
-
-        # Setup vault during app context
-        try:
-            from app.utils.vault_setup import setup_vault
-            if setup_vault():
-                app.logger.info("Vault setup completed successfully")
-            else:
-                app.logger.warning("Vault setup failed")
-        except Exception as e:
-            app.logger.error(f"Error during Vault setup: {e}")
+            # Setup vault during app context
+            try:
+                from app.utils.vault_setup import setup_vault
+                if setup_vault():
+                    app.logger.info("Vault setup completed successfully")
+                else:
+                    app.logger.warning("Vault setup failed")
+            except Exception as e:
+                app.logger.error(f"Error during Vault setup: {e}")
 
     return app

@@ -48,17 +48,17 @@ run_remote "sudo pkill vault || true"
 echo "Installing Python dependencies..."
 run_remote "cd ~/flask_app && rm -rf venv && python3 -m venv venv && . venv/bin/activate && venv/bin/pip install --upgrade pip && venv/bin/pip install -r requirements.txt"
 
-# 3. Initialize database
-echo "Initializing database..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py"
-
-# 4. Set up permissions
+# 3. Set up permissions
 echo "Setting up permissions..."
 run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 
-# 5. Set up Vault
+# 4. Set up Vault
 echo "Setting up Vault..."
 run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
+
+# 5. Initialize database and run migrations
+echo "Initializing database..."
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py && flask db upgrade"
 
 # 6. Update and reload systemd service
 echo "Updating systemd service..."

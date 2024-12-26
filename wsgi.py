@@ -2,7 +2,9 @@
 """WSGI entry point for the Flask application."""
 import os
 import logging
+import sys
 from app import create_app
+from config_migrate import MigrateConfig
 
 # Configure logging
 logging.basicConfig(
@@ -12,8 +14,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Create the Flask application
-env = os.getenv('FLASK_ENV', 'production')
-app = create_app(env)
+if len(sys.argv) > 1 and sys.argv[1] == 'db':
+    # Use MigrateConfig for database migrations
+    app = create_app(MigrateConfig)
+else:
+    # Use normal config for running the app
+    env = os.getenv('FLASK_ENV', 'production')
+    app = create_app(env)
 
 if __name__ == '__main__':
     app.run()

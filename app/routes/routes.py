@@ -19,6 +19,14 @@ from app.utils.activity_tracking import track_activity
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def init_base_routes(app):
+    """Initialize base routes without admin routes"""
+    from flask import Blueprint
+    bp = Blueprint('main', __name__)
+    init_routes(bp)
+    app.register_blueprint(bp)
+    return bp
+
 def init_routes(bp):
     """Initialize routes with blueprint"""
     
