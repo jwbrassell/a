@@ -94,8 +94,9 @@ chmod 600 "$PID_FILE"
 # Wait for Vault to start
 echo "Waiting for Vault to start..."
 for i in {1..30}; do
-    if curl -s http://127.0.0.1:8200/v1/sys/health >/dev/null; then
+    if pgrep -f "vault server" > /dev/null; then
         echo "Vault is running!"
+        sleep 2  # Give it a moment to fully initialize
         break
     fi
     if [ $i -eq 30 ]; then
