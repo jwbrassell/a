@@ -131,7 +131,7 @@ def create_app(config_class=Config):
 
     # Initialize blueprints if not skipped
     if not app.config.get('SKIP_BLUEPRINTS', False):
-        # Initialize projects blueprint first
+        # Initialize core blueprints first (they provide base functionality)
         with app.app_context():
             try:
                 from app.blueprints.projects import init_app as init_projects
@@ -142,7 +142,7 @@ def create_app(config_class=Config):
             except Exception as e:
                 app.logger.error(f"Error initializing projects blueprint: {e}")
 
-        # Initialize routes (skip admin routes if vault is disabled)
+        # Initialize core routes and permissions
         if not app.config.get('SKIP_VAULT_MIDDLEWARE', False):
             from app.routes import init_routes
             init_routes(app)
