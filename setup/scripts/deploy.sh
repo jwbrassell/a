@@ -57,15 +57,15 @@ run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 
 # 4. Set up database using minimal app
 echo "Setting up database..."
-run_remote "cd ~/flask_app && . venv/bin/activate && FLASK_APP=package_init_db.py SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true flask db upgrade"
+run_remote "cd ~/flask_app && . venv/bin/activate && FLASK_APP=migrations_config.py flask db upgrade"
 
 # Initialize database with packaged script
 echo "Initializing database with packaged data..."
-run_remote "cd ~/flask_app && . venv/bin/activate && SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true python3 package_init_db.py"
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 package_init_db.py"
 
-# Verify database setup with minimal config
+# Verify database setup with minimal app
 echo "Verifying database setup..."
-run_remote "cd ~/flask_app && . venv/bin/activate && SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true python3 -c \"
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
 from app import create_app
 from app.models.user import User
 from app.models.role import Role

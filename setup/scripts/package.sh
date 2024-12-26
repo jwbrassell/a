@@ -32,14 +32,10 @@ class PackageConfig:
 
 EOL
 
-# Generate database migrations without requiring Vault
-export FLASK_APP=app.py
-export PACKAGE_CONFIG=package_config.py
-
 # Clean existing migrations
 rm -rf migrations/versions/*
 
-# Create temporary files for packaging
+# Create temporary files for packaging and migrations
 cat > temp_init.py << 'EOL'
 from flask import Flask
 from app.extensions import db
@@ -84,7 +80,8 @@ if __name__ == '__main__':
     app.run()
 EOL
 
-# Generate fresh migrations using the temporary app
+# Generate migrations using minimal config
+export FLASK_APP=migrations_config.py
 flask db migrate -m "Package migration"
 
 # Clean up temporary files
@@ -95,8 +92,6 @@ cp app/__init__.py app/__init__.py.bak
 
 # Replace with minimal version for packaging
 cp temp_init.py app/__init__.py
-
-# Run migrations and database init with minimal app
 
 # Create a database initialization script that doesn't require Vault
 cat > package_init_db.py << 'EOL'
@@ -173,6 +168,7 @@ mkdir -p dist
 # Restore original __init__.py
 mv app/__init__.py.bak app/__init__.py
 
+
 # Copy necessary files to dist
 cp -r app dist/
 cp temp_init.py dist/app/__init__.py  # Use minimal init.py in dist
@@ -183,6 +179,7 @@ cp -r setup dist/
 cp requirements.txt dist/
 cp wsgi.py dist/
 cp package_init_db.py dist/
+cp migrations_config.py dist/
 cp flask_app.service dist/
 cp vault_utility.py dist/
 
