@@ -19,8 +19,13 @@ if len(sys.argv) > 1 and sys.argv[1] == 'db':
     app = create_app(MigrateConfig)
 else:
     # Use normal config for running the app
+    from config import config
     env = os.getenv('FLASK_ENV', 'production')
-    app = create_app(env)
+    config_class = config[env]
+    # Ensure Vault is initialized for database_reports
+    if hasattr(config_class, 'SKIP_VAULT_INIT'):
+        config_class.SKIP_VAULT_INIT = False
+    app = create_app(config_class)
 
 if __name__ == '__main__':
     app.run()

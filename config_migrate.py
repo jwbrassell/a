@@ -21,11 +21,6 @@ class MigrateConfig(Config):
         instance_path = os.path.join(os.path.dirname(__file__), 'instance')
         os.makedirs(instance_path, exist_ok=True)
         
-        # Prevent database_reports blueprint from being imported during migrations
-        sys.modules['app.blueprints.database_reports'] = None
-        sys.modules['app.blueprints.database_reports.connections'] = None
-        sys.modules['app.blueprints.database_reports.models'] = None
-        
         # Skip initializations
         app.config['SKIP_VAULT_INIT'] = True
         app.config['SKIP_VAULT_MIDDLEWARE'] = True
