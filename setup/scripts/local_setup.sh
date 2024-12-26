@@ -163,9 +163,20 @@ done
 # Update .env with root token
 sed -i.bak "s/VAULT_TOKEN=.*/VAULT_TOKEN=root/" .env
 
-# 5. Initialize database
-echo "Initializing database..."
-flask db upgrade
+# 5. Set up database
+echo "Setting up database..."
+rm -rf migrations
+mkdir -p migrations
+flask db init
+
+# Create initial migration
+FLASK_APP=migrations_config.py flask db migrate -m "Initial migration"
+
+# Run the migration
+FLASK_APP=migrations_config.py SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true flask db upgrade head
+
+# Initialize database with data
+echo "Initializing database with data..."
 python init_database.py
 
 # 6. Verify the setup
