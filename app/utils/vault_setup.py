@@ -16,9 +16,21 @@ import requests
 import zipfile
 from pathlib import Path
 
+import sys
+from pathlib import Path
+
+# Add setup directory to Python path
+setup_dir = Path(__file__).parent.parent.parent / 'setup'
+sys.path.append(str(setup_dir))
+
 # Import from root directory
 from vault_utility import VaultUtility, VaultError
-from setup.generate_vault_cert import setup_vault_certificates
+try:
+    from scripts.generate_vault_cert import setup_vault_certificates
+except ImportError:
+    def setup_vault_certificates():
+        """Fallback if certificate generation is not available"""
+        return None
 
 # Configure logging
 logging.basicConfig(
