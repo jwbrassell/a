@@ -34,7 +34,7 @@ run_remote "chmod 600 ~/.ssh/id_ed25519*"
 
 # Configure git and update code on remote machine
 echo "Configuring git and updating code..."
-run_remote "sudo chown -R ec2-user:ec2-user ~/flask_app/.git"
+run_remote "sudo chown -R ec2-user:ec2-user ~/flask_app"
 run_remote "cd ~/flask_app && git config --global --add safe.directory /home/ec2-user/flask_app"
 run_remote "cd ~/flask_app && git remote add fluffy git@github.com:jwbrassell/a.git 2>/dev/null || true"
 run_remote "cd ~/flask_app && git fetch fluffy && git checkout xmas && git pull fluffy xmas"
