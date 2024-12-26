@@ -24,39 +24,28 @@ copy_to_remote() {
 
 echo "Starting deployment process..."
 
-# 1. Push changes to git
-echo "Pushing changes to git..."
-git push origin main || {
-    echo "Failed to push to git. Please push your changes manually and run this script again."
-    exit 1
-}
-
-# 2. Stop services on remote
+# 1. Stop services on remote
 echo "Stopping services on remote..."
 run_remote "sudo systemctl stop flask_app || true"
 run_remote "sudo pkill vault || true"
 
-# 3. Pull latest changes on remote
-echo "Pulling latest changes on remote..."
-run_remote "cd ~/flask_app && git pull"
-
-# 4. Set up permissions
+# 2. Set up permissions
 echo "Setting up permissions..."
 run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 
-# 5. Set up Vault
+# 3. Set up Vault
 echo "Setting up Vault..."
 run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
 
-# 6. Update and reload systemd service
+# 4. Update and reload systemd service
 echo "Updating systemd service..."
 run_remote "cd ~/flask_app && sudo cp flask_app.service /etc/systemd/system/ && sudo systemctl daemon-reload"
 
-# 7. Start Flask application
+# 5. Start Flask application
 echo "Starting Flask application..."
 run_remote "sudo systemctl restart flask_app"
 
-# 8. Check service status
+# 6. Check service status
 echo "Checking service status..."
 run_remote "sudo systemctl status flask_app"
 
