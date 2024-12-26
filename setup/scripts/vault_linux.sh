@@ -28,6 +28,20 @@ trap cleanup ERR
 
 echo "Setting up Vault..."
 
+# Check if Vault is already running and accessible
+if pgrep -f "vault server" > /dev/null; then
+    echo "Found existing Vault process..."
+    export VAULT_ADDR='http://127.0.0.1:8200'
+    if "$VAULT_BIN" status >/dev/null 2>&1; then
+        echo "Existing Vault is accessible, using it"
+        exit 0
+    else
+        echo "Existing Vault is not accessible, cleaning up..."
+        sudo pkill -f "vault server"
+        sleep 2
+    fi
+fi
+
 # Clean up any existing Vault directory
 rm -rf "$VAULT_DIR"
 
