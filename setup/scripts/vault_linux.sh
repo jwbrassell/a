@@ -166,18 +166,18 @@ EOF
     chmod 600 "$ENV_FILE"
     
     echo "Unsealing new Vault..."
-    "$VAULT_BIN" operator unseal ${UNSEAL_KEYS[0]}
-    "$VAULT_BIN" operator unseal ${UNSEAL_KEYS[1]}
-    "$VAULT_BIN" operator unseal ${UNSEAL_KEYS[2]}
+    echo "${UNSEAL_KEYS[0]}" | "$VAULT_BIN" operator unseal -
+    echo "${UNSEAL_KEYS[1]}" | "$VAULT_BIN" operator unseal -
+    echo "${UNSEAL_KEYS[2]}" | "$VAULT_BIN" operator unseal -
     
 elif [ "$SEALED" = "true" ]; then
     echo "Vault is initialized but sealed. Checking for credentials..."
     if [ -f "$ENV_FILE" ]; then
         echo "Found existing credentials. Unsealing..."
         source "$ENV_FILE"
-        "$VAULT_BIN" operator unseal $VAULT_UNSEAL_KEY_1
-        "$VAULT_BIN" operator unseal $VAULT_UNSEAL_KEY_2
-        "$VAULT_BIN" operator unseal $VAULT_UNSEAL_KEY_3
+        echo "$VAULT_UNSEAL_KEY_1" | "$VAULT_BIN" operator unseal -
+        echo "$VAULT_UNSEAL_KEY_2" | "$VAULT_BIN" operator unseal -
+        echo "$VAULT_UNSEAL_KEY_3" | "$VAULT_BIN" operator unseal -
     else
         echo "Error: Vault is sealed and no credentials file found at $ENV_FILE"
         exit 1
