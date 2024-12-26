@@ -1,0 +1,16 @@
+[Unit]
+Description=Gunicorn instance to serve flask application
+After=network.target
+
+[Service]
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/flask_app
+Environment="PATH=/home/ec2-user/flask_app/venv/bin"
+Environment="PYTHONPATH=/home/ec2-user/flask_app"
+Environment="VAULT_ADDR=http://127.0.0.1:8200"
+EnvironmentFile=/home/ec2-user/flask_app/.env.vault
+ExecStart=/home/ec2-user/flask_app/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 wsgi:app
+
+[Install]
+WantedBy=multi-user.target

@@ -1,16 +1,20 @@
 #!/bin/bash
 
+# Get the absolute path of the script's directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 # Exit on any error
 set -e
 
-VAULT_DIR="$HOME/.vault"
+VAULT_DIR="$PROJECT_ROOT/.vault"
 VAULT_VERSION="1.13.3"
 VAULT_BIN="$VAULT_DIR/vault"
 VAULT_CONFIG="$VAULT_DIR/config.hcl"
 VAULT_DATA="$VAULT_DIR/data"
-PID_FILE="vault.pid"
-LOG_FILE="vault.log"
-ENV_FILE="setup/.env.vault"
+PID_FILE="$PROJECT_ROOT/vault.pid"
+LOG_FILE="$PROJECT_ROOT/vault.log"
+ENV_FILE="$PROJECT_ROOT/.env.vault"
 
 # Function to clean up on error
 cleanup() {
@@ -68,9 +72,14 @@ if [ -f "$PID_FILE" ]; then
     rm -f "$PID_FILE"
 fi
 
+# Add Vault to PATH and set environment
+echo "Setting up environment..."
+export PATH="$VAULT_DIR:$PATH"
+export VAULT_ADDR='http://127.0.0.1:8200'
+export HOME="/home/ec2-user"  # Ensure HOME is set correctly
+
 # Start Vault
 echo "Starting Vault..."
-export VAULT_ADDR='http://127.0.0.1:8200'
 "$VAULT_BIN" server -config="$VAULT_CONFIG" > "$LOG_FILE" 2>&1 &
 PID=$!
 echo $PID > "$PID_FILE"
