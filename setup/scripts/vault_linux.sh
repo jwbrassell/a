@@ -148,9 +148,17 @@ if [ "$INITIALIZED" != "true" ]; then
     echo "Initializing new Vault..."
     INIT_OUTPUT=$("$VAULT_BIN" operator init -key-shares=5 -key-threshold=3 -format=json)
     
+    # Debug initialization output
+    echo "Init output: $INIT_OUTPUT"
+    
     # Extract root token and unseal keys
     ROOT_TOKEN=$(echo "$INIT_OUTPUT" | jq -r '.root_token')
-    readarray -t UNSEAL_KEYS < <(echo "$INIT_OUTPUT" | jq -r '.unseal_keys_hex[]')
+    echo "Root token: $ROOT_TOKEN"
+    
+    # Extract keys with proper array handling
+    readarray -t UNSEAL_KEYS < <(echo "$INIT_OUTPUT" | jq -r '.keys_hex[]')
+    echo "Unseal keys:"
+    printf '%s\n' "${UNSEAL_KEYS[@]}"
     
     # Save to environment file
     echo "Saving credentials to $ENV_FILE..."
