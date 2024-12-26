@@ -149,8 +149,8 @@ if [ "$INITIALIZED" != "true" ]; then
     INIT_OUTPUT=$("$VAULT_BIN" operator init -key-shares=5 -key-threshold=3 -format=json)
     
     # Extract root token and unseal keys
-    ROOT_TOKEN=$(echo "$INIT_OUTPUT" | grep -o '"root_token":"[^"]*"' | cut -d'"' -f4)
-    UNSEAL_KEYS=($(echo "$INIT_OUTPUT" | grep -o '"unseal_keys_hex":\[\[[^]]*\]\]' | grep -o '"[^"]*"' | sed 's/"//g'))
+    ROOT_TOKEN=$(echo "$INIT_OUTPUT" | jq -r '.root_token')
+    readarray -t UNSEAL_KEYS < <(echo "$INIT_OUTPUT" | jq -r '.unseal_keys_hex[]')
     
     # Save to environment file
     echo "Saving credentials to $ENV_FILE..."
