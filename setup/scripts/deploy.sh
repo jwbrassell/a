@@ -63,7 +63,57 @@ run_remote "cd ~/flask_app && . venv/bin/activate && flask db upgrade"
 echo "Initializing database and actions..."
 run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py && python3 init_actions.py"
 
-# 6. Update and reload systemd service
+# 6. Initialize all blueprints and routes in correct order
+echo "Initializing routes and blueprints..."
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
+from app import create_app
+from app.utils.add_admin_route import add_admin_routes
+from app.utils.add_vault_routes import add_vault_routes
+from app.utils.add_database_report_routes import add_database_report_routes
+from app.utils.add_project_routes import add_project_routes
+from app.utils.add_dispatch_routes import add_dispatch_routes
+from app.utils.add_handoff_routes import add_handoff_routes
+from app.utils.add_oncall_routes import add_oncall_routes
+from app.utils.add_weblinks_routes import add_weblinks_routes
+from app.utils.add_example_routes import register_example_plugin
+from app.blueprints.aws_manager.plugin import init_plugin
+from app.blueprints.bug_reports import init_app as init_bug_reports
+from app.blueprints.feature_requests import init_app as init_feature_requests
+
+app = create_app()
+with app.app_context():
+    # Core routes first
+    add_admin_routes()
+    add_vault_routes()
+    
+    # Main features
+    add_database_report_routes()
+    add_project_routes()
+    add_dispatch_routes()
+    add_handoff_routes()
+    add_oncall_routes()
+    add_weblinks_routes()
+    
+    # Additional features
+    register_example_plugin(app)
+    init_plugin(app)
+    init_bug_reports(app)
+    init_feature_requests(app)
+\""
+
+# 7. Verify all routes are registered
+echo "Verifying route initialization..."
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
+from app import create_app
+app = create_app()
+with app.app_context():
+    routes = [str(rule) for rule in app.url_map.iter_rules()]
+    print('Registered routes:', len(routes))
+    if len(routes) < 50:  # We expect more than 50 routes in a fully initialized app
+        raise Exception('Not all routes were registered')
+\""
+
+# 8. Update and reload systemd service
 echo "Updating systemd service..."
 run_remote "cd ~/flask_app && sudo cp flask_app.service /etc/systemd/system/ && sudo systemctl daemon-reload"
 

@@ -131,130 +131,155 @@ def create_app(config_class=Config):
 
     # Initialize blueprints if not skipped
     if not app.config.get('SKIP_BLUEPRINTS', False):
-        # Initialize core blueprints first (they provide base functionality)
         with app.app_context():
+            # Initialize core routes and permissions first
+            if not app.config.get('SKIP_VAULT_MIDDLEWARE', False):
+                try:
+                    from app.routes import init_routes
+                    if not init_routes(app):
+                        app.logger.error("Failed to initialize core routes")
+                        raise Exception("Core routes initialization failed")
+                except Exception as e:
+                    app.logger.error(f"Error initializing core routes: {e}")
+                    raise
+            else:
+                try:
+                    from app.routes.routes import init_base_routes
+                    if not init_base_routes(app):
+                        app.logger.error("Failed to initialize base routes")
+                        raise Exception("Base routes initialization failed")
+                except Exception as e:
+                    app.logger.error(f"Error initializing base routes: {e}")
+                    raise
+
+            # Initialize admin routes first as other blueprints may depend on them
+            try:
+                from app.utils.add_admin_route import add_admin_routes
+                if not add_admin_routes():
+                    app.logger.error("Failed to initialize admin routes")
+                    raise Exception("Admin routes initialization failed")
+            except Exception as e:
+                app.logger.error(f"Error initializing admin routes: {e}")
+                raise
+
+            # Initialize vault routes next for security
+            try:
+                from app.utils.add_vault_routes import add_vault_routes
+                if not add_vault_routes():
+                    app.logger.error("Failed to initialize vault routes")
+                    raise Exception("Vault routes initialization failed")
+            except Exception as e:
+                app.logger.error(f"Error initializing vault routes: {e}")
+                raise
+
+            # Initialize profile module
+            try:
+                from app.routes.profile import init_profile
+                if not init_profile(app):
+                    app.logger.error("Failed to initialize profile module")
+                    raise Exception("Profile module initialization failed")
+            except Exception as e:
+                app.logger.error(f"Error initializing profile module: {e}")
+                raise
+
+            # Initialize core blueprints
             try:
                 from app.blueprints.projects import init_app as init_projects
-                if init_projects(app):
-                    app.logger.info("Projects blueprint initialized successfully")
-                else:
-                    app.logger.warning("Failed to initialize projects blueprint")
+                if not init_projects(app):
+                    app.logger.error("Failed to initialize projects blueprint")
+                    raise Exception("Projects blueprint initialization failed")
             except Exception as e:
                 app.logger.error(f"Error initializing projects blueprint: {e}")
+                raise
 
-        # Initialize core routes and permissions
-        if not app.config.get('SKIP_VAULT_MIDDLEWARE', False):
-            from app.routes import init_routes
-            init_routes(app)
-        else:
-            # Initialize only non-admin routes
-            from app.routes.routes import init_base_routes
-            init_base_routes(app)
-
-        # Initialize profile module
-        try:
-            from app.routes.profile import init_profile
-            if not init_profile(app):
-                app.logger.error("Failed to initialize profile module")
-        except Exception as e:
-            app.logger.error(f"Error importing profile module: {e}")
-
-        # Initialize dispatch routes
-        with app.app_context():
+            # Initialize dispatch routes
             try:
                 from app.utils.add_dispatch_routes import add_dispatch_routes
-                if add_dispatch_routes():
-                    app.logger.info("Dispatch routes initialized successfully")
-                else:
-                    app.logger.warning("Failed to initialize dispatch routes")
+                if not add_dispatch_routes():
+                    app.logger.error("Failed to initialize dispatch routes")
+                    raise Exception("Dispatch routes initialization failed")
             except Exception as e:
                 app.logger.error(f"Error initializing dispatch routes: {e}")
+                raise
 
-        # Initialize handoff routes
-        with app.app_context():
+            # Initialize handoff routes
             try:
                 from app.utils.add_handoff_routes import add_handoff_routes
-                if add_handoff_routes():
-                    app.logger.info("Handoff routes initialized successfully")
-                else:
-                    app.logger.warning("Failed to initialize handoff routes")
+                if not add_handoff_routes():
+                    app.logger.error("Failed to initialize handoff routes")
+                    raise Exception("Handoff routes initialization failed")
             except Exception as e:
                 app.logger.error(f"Error initializing handoff routes: {e}")
+                raise
 
-        # Initialize on-call routes
-        with app.app_context():
+            # Initialize on-call routes
             try:
                 from app.utils.add_oncall_routes import add_oncall_routes
-                if add_oncall_routes():
-                    app.logger.info("On-call routes initialized successfully")
-                else:
-                    app.logger.warning("Failed to initialize on-call routes")
+                if not add_oncall_routes():
+                    app.logger.error("Failed to initialize on-call routes")
+                    raise Exception("On-call routes initialization failed")
             except Exception as e:
                 app.logger.error(f"Error initializing on-call routes: {e}")
+                raise
 
-        # Initialize weblinks blueprint
-        with app.app_context():
+            # Initialize weblinks blueprint
             try:
                 from app.blueprints.weblinks import init_app as init_weblinks
-                if init_weblinks(app):
-                    app.logger.info("WebLinks blueprint initialized successfully")
-                else:
-                    app.logger.warning("Failed to initialize weblinks blueprint")
+                if not init_weblinks(app):
+                    app.logger.error("Failed to initialize weblinks blueprint")
+                    raise Exception("Weblinks blueprint initialization failed")
             except Exception as e:
                 app.logger.error(f"Error initializing weblinks blueprint: {e}")
+                raise
 
-        # Initialize AWS manager blueprint
-        with app.app_context():
+            # Initialize AWS manager blueprint
             try:
                 from app.blueprints.aws_manager.plugin import init_plugin
-                if init_plugin(app):
-                    app.logger.info("AWS manager blueprint initialized successfully")
-                else:
-                    app.logger.warning("Failed to initialize AWS manager blueprint")
+                if not init_plugin(app):
+                    app.logger.error("Failed to initialize AWS manager blueprint")
+                    raise Exception("AWS manager blueprint initialization failed")
             except Exception as e:
                 app.logger.error(f"Error initializing AWS manager blueprint: {e}")
+                raise
 
-        # Initialize database reports blueprint
-        with app.app_context():
+            # Initialize database reports blueprint
             try:
                 from app.blueprints.database_reports.plugin import init_app as init_database_reports
-                if init_database_reports(app):
-                    app.logger.info("Database reports blueprint initialized successfully")
-                else:
-                    app.logger.warning("Failed to initialize database reports blueprint")
+                if not init_database_reports(app):
+                    app.logger.error("Failed to initialize database reports blueprint")
+                    raise Exception("Database reports blueprint initialization failed")
             except Exception as e:
                 app.logger.error(f"Error initializing database reports blueprint: {e}")
+                raise
 
-        # Initialize example plugin
-        with app.app_context():
+            # Initialize example plugin
             try:
                 from app.utils.add_example_routes import register_example_plugin
                 register_example_plugin(app)
                 app.logger.info("Example plugin initialized successfully")
             except Exception as e:
                 app.logger.error(f"Error initializing example plugin: {e}")
+                raise
 
-        # Initialize bug reports blueprint
-        with app.app_context():
+            # Initialize bug reports blueprint
             try:
                 from app.blueprints.bug_reports import init_app as init_bug_reports
-                if init_bug_reports(app):
-                    app.logger.info("Bug reports blueprint initialized successfully")
-                else:
-                    app.logger.warning("Failed to initialize bug reports blueprint")
+                if not init_bug_reports(app):
+                    app.logger.error("Failed to initialize bug reports blueprint")
+                    raise Exception("Bug reports blueprint initialization failed")
             except Exception as e:
                 app.logger.error(f"Error initializing bug reports blueprint: {e}")
+                raise
 
-        # Initialize feature requests blueprint
-        with app.app_context():
+            # Initialize feature requests blueprint
             try:
                 from app.blueprints.feature_requests import init_app as init_feature_requests
-                if init_feature_requests(app):
-                    app.logger.info("Feature requests blueprint initialized successfully")
-                else:
-                    app.logger.warning("Failed to initialize feature requests blueprint")
+                if not init_feature_requests(app):
+                    app.logger.error("Failed to initialize feature requests blueprint")
+                    raise Exception("Feature requests blueprint initialization failed")
             except Exception as e:
                 app.logger.error(f"Error initializing feature requests blueprint: {e}")
+                raise
 
     # Initialize Vault policies and setup if not skipped
     if not app.config.get('SKIP_VAULT_MIDDLEWARE', False):
