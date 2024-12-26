@@ -28,7 +28,8 @@ def init_database():
                     name=name,
                     method=method,
                     description=desc,
-                    created_by='system'
+                    created_by='system',
+                    created_at=datetime.utcnow()
                 )
                 db.session.add(action)
         
@@ -109,7 +110,8 @@ def init_database():
                     status = ProjectStatus(
                         name=name,
                         color=color,
-                        created_by='system'
+                        created_by='system',
+                        created_at=datetime.utcnow()
                     )
                     db.session.add(status)
         except Exception as e:
@@ -130,7 +132,8 @@ def init_database():
                     priority = ProjectPriority(
                         name=name,
                         color=color,
-                        created_by='system'
+                        created_by='system',
+                        created_at=datetime.utcnow()
                     )
                     db.session.add(priority)
         except Exception as e:

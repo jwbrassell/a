@@ -142,52 +142,57 @@ def init_project_priorities():
 
 def init_actions():
     """Initialize default actions if they don't exist."""
-    try:
-        from app.models.permissions import Action
-        from sqlalchemy import inspect
+    from app.models.permissions import Action
+    from sqlalchemy import inspect
+    from datetime import datetime
 
-        # Check if table exists first
-        inspector = inspect(db.engine)
-        if 'action' not in inspector.get_table_names():
-            logger.info("Action table does not exist yet, skipping action initialization")
-            return True
+    # Check if table exists first
+    inspector = inspect(db.engine)
+    if 'action' not in inspector.get_table_names():
+        logger.info("Action table does not exist yet, skipping action initialization")
+        return True
 
-        # Default actions with their HTTP methods
-        default_actions = [
-            ('read', 'GET', 'Read access'),
-            ('write', 'POST', 'Write access'),
-            ('update', 'PUT', 'Update access'),
-            ('delete', 'DELETE', 'Delete access'),
-            ('list', 'GET', 'List access'),
-            ('create', 'POST', 'Create access'),
-            ('edit', 'PUT', 'Edit access'),
-            ('remove', 'DELETE', 'Remove access')
-        ]
+    # Default actions with their HTTP methods
+    default_actions = [
+        ('read', 'GET', 'Read access'),
+        ('write', 'POST', 'Write access'),
+        ('update', 'PUT', 'Update access'),
+        ('delete', 'DELETE', 'Delete access'),
+        ('list', 'GET', 'List access'),
+        ('create', 'POST', 'Create access'),
+        ('edit', 'PUT', 'Edit access'),
+        ('remove', 'DELETE', 'Remove access')
+    ]
 
-        for name, method, description in default_actions:
-            try:
-                action = Action.query.filter_by(name=name, method=method).first()
-                if not action:
+    with db.session.no_autoflush:
+        try:
+            for name, method, description in default_actions:
+                # Check if action exists using a fresh query
+                existing = db.session.query(Action).filter_by(
+                    name=name, 
+                    method=method
+                ).first()
+                
+                if not existing:
                     logger.info(f"Creating action: {name} ({method})")
                     action = Action(
                         name=name,
                         method=method,
                         description=description,
-                        created_by='system'
+                        created_by='system',  # Explicitly set
+                        created_at=datetime.utcnow()  # Explicitly set
                     )
                     db.session.add(action)
-                    db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                logger.error(f"Error creating action {name}: {str(e)}")
-                continue
+            
+            # Commit all changes at once outside the loop
+            db.session.commit()
+            logger.info("Default actions initialized successfully")
+            return True
 
-        logger.info("Default actions initialized successfully")
-        return True
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error initializing actions: {str(e)}")
-        return False
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error initializing actions: {str(e)}")
+            return False
 
 def init_database():
     """Initialize database with required data."""

@@ -165,19 +165,41 @@ sed -i.bak "s/VAULT_TOKEN=.*/VAULT_TOKEN=root/" .env
 
 # 5. Set up database
 echo "Setting up database..."
+# Clean up any existing database and migrations
+rm -f instance/app.db app.db
 rm -rf migrations
-mkdir -p migrations
+
+# Initialize fresh migrations
+export FLASK_APP=migrations_config.py
+export SKIP_VAULT_MIDDLEWARE=true
+export SKIP_VAULT_INIT=true
+export SKIP_BLUEPRINTS=true
+
+# Create instance directory if it doesn't exist
+mkdir -p instance
+
+# Initialize migrations directory
 flask db init
 
-# Create initial migration
-FLASK_APP=migrations_config.py flask db migrate -m "Initial migration"
+# Create and run initial migration
+flask db migrate -m "Initial database setup"
+flask db upgrade
 
-# Run the migration
-FLASK_APP=migrations_config.py SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true flask db upgrade head
+# Move database to correct location if needed
+if [ -f app.db ] && [ ! -f instance/app.db ]; then
+    mv app.db instance/app.db
+fi
 
 # Initialize database with data
 echo "Initializing database with data..."
 python init_database.py
+
+# Verify database setup
+echo "Verifying database setup..."
+sqlite3 instance/app.db ".tables" || {
+    echo "Error: Database tables not created properly"
+    exit 1
+}
 
 # 6. Verify the setup
 echo "Verifying setup..."
