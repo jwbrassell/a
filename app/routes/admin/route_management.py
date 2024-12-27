@@ -120,7 +120,7 @@ def edit_route(route_id):
                          categories=categories,
                          roles=roles)
 
-@bp.route('/routes/<int:route_id>/delete')
+@bp.route('/routes/<int:route_id>/delete', methods=['POST'])
 @login_required
 @requires_permission('admin_routes_access', 'delete')
 @track_activity
