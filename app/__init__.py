@@ -45,8 +45,12 @@ def create_app(config_name='default'):
     app = Flask(__name__)
     
     # Load the configuration
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
+    if isinstance(config_name, str):
+        app.config.from_object(config[config_name])
+        config[config_name].init_app(app)
+    else:
+        app.config.from_object(config_name)
+        config_name.init_app(app)
 
     # Initialize all extensions
     init_extensions(app)
