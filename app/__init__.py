@@ -79,6 +79,10 @@ def create_app(config_name='default'):
     from app.blueprints.bug_reports.plugin import init_app as init_bug_reports
     init_bug_reports(app)
     
+    # Initialize example plugin
+    from app.utils.add_example_routes import register_example_plugin
+    register_example_plugin(app)
+    
     # Register feature requests blueprint
     from app.blueprints.feature_requests.routes import bp as feature_requests_bp
     app.register_blueprint(feature_requests_bp)
@@ -102,5 +106,23 @@ def create_app(config_name='default'):
     # Initialize and register profile module
     from app.routes.profile import init_profile
     init_profile(app)
+    
+    # Register dispatch routes
+    from app.routes.dispatch import dispatch
+    app.register_blueprint(dispatch)
+    from app.utils.add_dispatch_routes import add_dispatch_routes
+    add_dispatch_routes()
+    
+    # Initialize and register documents module
+    from app.routes.documents import init_documents
+    init_documents(app)
+    from app.utils.add_document_routes import add_document_routes
+    add_document_routes()
+    
+    # Register handoff routes
+    from app.routes.handoffs import handoffs
+    app.register_blueprint(handoffs)
+    from app.utils.add_handoff_routes import add_handoff_routes
+    add_handoff_routes()
     
     return app
