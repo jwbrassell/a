@@ -1,7 +1,7 @@
 from flask import render_template, request, flash, redirect, url_for, abort
 from flask_login import login_required, current_user
 import json
-from . import bp
+from .routes import bp
 from .models import DatabaseConnection, Report, ReportTagModel as Tag
 from app.extensions import db
 from .utils import format_value, execute_query, validate_sql_query

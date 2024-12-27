@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from flask_login import login_required
-from . import bp
+from .routes import bp
 from .models import DatabaseConnection
 import oracledb
 import mysql.connector

@@ -1,6 +1,6 @@
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
-from . import bp
+from .routes import bp
 from .models import DatabaseConnection
 from app.extensions import db
 from app.utils.enhanced_rbac import requires_permission
