@@ -19,7 +19,7 @@ def add_document_routes():
 
         # Get roles that should have access
         admin_role = Role.query.filter_by(name='Administrator').first()
-        user_role = Role.query.filter_by(name='user').first()
+        user_role = Role.query.filter_by(name='User').first()
         if not admin_role or not user_role:
             print("Error: Required roles not found")
             return
@@ -74,6 +74,11 @@ def add_document_routes():
         try:
             db.session.commit()
             print("Successfully added document routes")
+            return True
         except Exception as e:
             db.session.rollback()
             print(f"Error adding document routes: {str(e)}")
+            return False
+    except Exception as e:
+        print(f"Error setting up document routes: {str(e)}")
+        return False

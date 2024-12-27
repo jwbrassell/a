@@ -41,6 +41,7 @@ def init_database():
             ('user_manage', 'User management access', 'admin'),
             ('role_manage', 'Role management access', 'admin'),
             ('system_config', 'System configuration access', 'admin'),
+            ('user_access', 'Standard user access', 'user'),
         ]
         
         for name, desc, category in default_permissions:
@@ -79,6 +80,29 @@ def init_database():
             # Add all permissions to admin role
             admin_role.permissions = Permission.query.all()
             db.session.add(admin_role)
+            db.session.flush()
+
+        # Create User role if it doesn't exist
+        user_role = Role.query.filter_by(name='User').first()
+        if not user_role:
+            user_role = Role(
+                name='User',
+                description='Standard user access',
+                is_system_role=True,
+                weight=50,
+                created_at=datetime.utcnow(),
+                created_by='system',
+                updated_at=datetime.utcnow(),
+                updated_by='system',
+                ldap_groups=[],
+                auto_sync=False
+            )
+            # Add basic permissions to user role
+            basic_permissions = Permission.query.filter(
+                Permission.name.in_(['user_access'])
+            ).all()
+            user_role.permissions = basic_permissions
+            db.session.add(user_role)
             db.session.flush()
         
         # Create admin user if it doesn't exist

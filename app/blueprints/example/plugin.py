@@ -16,7 +16,7 @@ class ExamplePlugin:
             map_route_to_roles(
                 route_path='/example',
                 page_name='Example Plugin',
-                roles=['admin'],  # Default to admin only
+                roles=['Administrator'],  # Default to admin only
                 category_id='Tools',
                 icon='fa-chart-bar',  # Using chart icon since this is a data visualization plugin
                 weight=0
