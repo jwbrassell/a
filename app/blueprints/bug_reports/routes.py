@@ -11,7 +11,9 @@ from app.extensions import db
 from .models import BugReport, BugReportScreenshot
 from datetime import datetime
 
-bp = Blueprint('bug_reports', __name__, template_folder='templates')
+bp = Blueprint('bug_reports', __name__, 
+              url_prefix='/bug_reports',
+              template_folder='templates')
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}

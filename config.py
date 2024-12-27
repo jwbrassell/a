@@ -105,9 +105,17 @@ class Config:
                 'pool_use_lifo': True,  # Use LIFO to reduce thread contention
             }
         else:
-            # Ensure SQLite directory exists
+            # Ensure SQLite directory exists with proper permissions
             sqlite_path = os.path.join(app.root_path, app.config['SQLITE_PATH'])
-            os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
+            sqlite_dir = os.path.dirname(sqlite_path)
+            os.makedirs(sqlite_dir, exist_ok=True)
+            os.chmod(sqlite_dir, 0o775)  # Allow group write access
+            
+            # Create database file if it doesn't exist and set permissions
+            if not os.path.exists(sqlite_path):
+                open(sqlite_path, 'a').close()  # Create file if doesn't exist
+            os.chmod(sqlite_path, 0o664)  # Allow group write access
+            
             app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{sqlite_path}'
             app.logger.info("Using SQLite configuration")
             # Set SQLite-specific engine options

@@ -62,9 +62,9 @@ def init_app(app):
             raise
 
     try:
-        # Register blueprint first
-        app.register_blueprint(bp, url_prefix='/bug_reports')
-        app.logger.info("Bug reports blueprint registered with prefix '/bug_reports'")
+        # Register blueprint
+        app.register_blueprint(bp)
+        app.logger.info("Bug reports blueprint registered")
         
         # Verify routes are registered
         registered_rules = [rule for rule in app.url_map.iter_rules() if rule.endpoint.startswith('bug_reports.')]

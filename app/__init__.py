@@ -67,9 +67,9 @@ def create_app(config_name='default'):
     from app.main import routes as main_routes
     app.register_blueprint(main_routes.bp)
     
-    # Register admin blueprint
-    from app.routes.admin import bp as admin_bp
-    app.register_blueprint(admin_bp)
+    # Initialize admin module
+    from app.routes.admin import init_app as init_admin_module
+    init_admin_module(app)
     
     # Register project blueprint
     from app.blueprints.projects.routes import bp as projects_bp

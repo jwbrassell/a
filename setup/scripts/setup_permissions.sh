@@ -25,6 +25,17 @@ sudo chmod 755 "$PROJECT_ROOT"
 sudo chmod 755 /var/log/flask_app
 sudo chmod 755 /var/run/flask_app
 
+# Set up instance directory and SQLite database permissions
+sudo mkdir -p "$PROJECT_ROOT/instance"
+sudo chown -R ec2-user:ec2-user "$PROJECT_ROOT/instance"
+sudo chmod 775 "$PROJECT_ROOT/instance"
+
+# Create SQLite database directory if it doesn't exist
+sudo mkdir -p "$PROJECT_ROOT/instance"
+if [ -f "$PROJECT_ROOT/instance/app.db" ]; then
+    sudo chmod 664 "$PROJECT_ROOT/instance/app.db"
+fi
+
 # Set permissions for environment files
 if [ -f "$PROJECT_ROOT/.env" ]; then
     sudo chmod 600 "$PROJECT_ROOT/.env"
