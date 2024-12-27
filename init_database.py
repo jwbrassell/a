@@ -5,7 +5,6 @@ from app.models.user import User
 from app.models.permission import Permission
 from app.models.permissions import Action
 from datetime import datetime
-from flask_migrate import upgrade
 
 def init_database():
     app = create_app()
