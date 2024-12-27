@@ -75,9 +75,9 @@ def create_app(config_name='default'):
     from app.blueprints.projects.routes import bp as projects_bp
     app.register_blueprint(projects_bp)
     
-    # Register bug reports blueprint
-    from app.blueprints.bug_reports.routes import bp as bug_reports_bp
-    app.register_blueprint(bug_reports_bp)
+    # Initialize bug reports plugin
+    from app.blueprints.bug_reports.plugin import init_app as init_bug_reports
+    init_bug_reports(app)
     
     # Register feature requests blueprint
     from app.blueprints.feature_requests.routes import bp as feature_requests_bp
