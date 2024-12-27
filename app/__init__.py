@@ -1,5 +1,5 @@
 from flask import Flask
-from app.extensions import init_extensions
+from app.extensions import init_extensions, db
 from config import config
 
 # Import all core models

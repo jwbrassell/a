@@ -52,7 +52,11 @@ run_remote "cd ~/flask_app && rm -rf venv && python3 -m venv venv && . venv/bin/
 echo "Setting up permissions..."
 run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
 
-# 4. Set up Vault
+# 4. Create initial .env file if it doesn't exist
+echo "Creating initial .env file..."
+run_remote "cd ~/flask_app && [ ! -f .env ] && cp .env.example .env || true"
+
+# 5. Set up Vault
 echo "Setting up Vault..."
 run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
 

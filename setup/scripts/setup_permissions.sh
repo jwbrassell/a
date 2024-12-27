@@ -25,6 +25,16 @@ sudo chmod 755 "$PROJECT_ROOT"
 sudo chmod 755 /var/log/flask_app
 sudo chmod 755 /var/run/flask_app
 
+# Set permissions for environment files
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    sudo chmod 600 "$PROJECT_ROOT/.env"
+    sudo chown ec2-user:ec2-user "$PROJECT_ROOT/.env"
+fi
+if [ -f "$PROJECT_ROOT/.env.vault" ]; then
+    sudo chmod 600 "$PROJECT_ROOT/.env.vault"
+    sudo chown ec2-user:ec2-user "$PROJECT_ROOT/.env.vault"
+fi
+
 # Add ec2-user to necessary groups
 sudo usermod -aG systemd-journal ec2-user
 

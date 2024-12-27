@@ -203,6 +203,14 @@ if [ "$(echo "$STATUS_OUTPUT" | jq -r '.sealed')" = "false" ]; then
     echo "Success! Vault is unsealed and ready to use."
     if [ -f "$ENV_FILE" ]; then
         echo "Credentials available at: $ENV_FILE"
+        # Also copy Vault credentials to .env
+        if [ -f "$PROJECT_ROOT/.env" ]; then
+            # Remove any existing Vault settings from .env
+            sed -i '/^VAULT_/d' "$PROJECT_ROOT/.env"
+        fi
+        # Append Vault settings from .env.vault to .env
+        grep '^VAULT_' "$ENV_FILE" >> "$PROJECT_ROOT/.env"
+        echo "Vault credentials also copied to .env"
     fi
 else
     echo "Error: Vault is still sealed. Check $LOG_FILE for details."

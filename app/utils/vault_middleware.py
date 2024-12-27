@@ -13,7 +13,7 @@ class VaultPolicyEnforcer:
     """Middleware to enforce Vault policies in Flask blueprints."""
     
     def __init__(self, vault_utility: Optional[VaultUtility] = None):
-        self.vault = vault_utility or VaultUtility()
+        self.vault = vault_utility or VaultUtility(env_file_path='.env')
     
     def _get_user_policies(self) -> List[str]:
         """Get policies associated with the current user."""
