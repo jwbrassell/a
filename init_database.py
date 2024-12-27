@@ -172,6 +172,23 @@ def init_database():
                     login_route.allowed_roles.append(admin_role)
                 db.session.add(login_route)
 
+            # Create profile route mapping
+            profile_route = PageRouteMapping.query.filter_by(route='/profile').first()
+            if not profile_route:
+                profile_route = PageRouteMapping(
+                    page_name='Profile',
+                    route='/profile',
+                    description='User profile page',
+                    icon='fa-user',
+                    weight=0,
+                    show_in_navbar=True,
+                    created_by='system'
+                )
+                # Add admin role to allowed roles
+                if admin_role:
+                    profile_route.allowed_roles.append(admin_role)
+                db.session.add(profile_route)
+
             db.session.commit()
             print("Database initialized successfully")
             return True

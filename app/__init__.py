@@ -99,4 +99,8 @@ def create_app(config_name='default'):
     from app.blueprints.weblinks.routes import bp as weblinks_bp
     app.register_blueprint(weblinks_bp)
     
+    # Initialize and register profile module
+    from app.routes.profile import init_profile
+    init_profile(app)
+    
     return app
