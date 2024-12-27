@@ -80,7 +80,7 @@ def create_app(config_name='default'):
     app.register_blueprint(database_reports_bp)
     
     # Register AWS manager blueprint
-    from app.blueprints.aws_manager.routes import bp as aws_manager_bp
+    from app.blueprints.aws_manager import aws_manager as aws_manager_bp
     app.register_blueprint(aws_manager_bp)
     
     # Register oncall blueprint
