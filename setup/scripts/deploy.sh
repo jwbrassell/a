@@ -60,9 +60,9 @@ run_remote "cd ~/flask_app && [ ! -f .env ] && cp .env.example .env || true"
 echo "Setting up Vault..."
 run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
 
-# 5. Initialize database and run migrations
-echo "Initializing database..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py && flask db upgrade"
+# 5. Initialize database and migrations
+echo "Initializing database and migrations..."
+run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py && flask db init && flask db migrate && flask db upgrade"
 
 # 6. Update and reload systemd service
 echo "Updating systemd service..."

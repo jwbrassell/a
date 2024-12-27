@@ -393,8 +393,11 @@ class VaultUtility:
                     continue
                 
                 if mount_type == 'kv' and options.get('version') == '2':
-                    logger.info(f"Found existing kv-v2 mount point: {mount_point}")
-                    return mount_point.rstrip('/')
+                    mount_point = mount_point.rstrip('/')
+                    if not hasattr(self, '_logged_mount_point'):
+                        logger.info(f"Found existing kv-v2 mount point: {mount_point}")
+                        self._logged_mount_point = True
+                    return mount_point
             
             # No kv-v2 found, let's enable it at the 'secret' path
             logger.info("No kv-v2 secrets engine found. Enabling it at 'secret' path...")
