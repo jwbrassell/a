@@ -5,7 +5,9 @@ A Flask application that provides a robust web interface with Vault integration,
 ## Features
 
 - **Vault Integration**: Secure secrets management and policy enforcement
-- **Role-Based Access Control (RBAC)**: Fine-grained permission management
+- **Role-Based Access Control (RBAC)**: Fine-grained permission management with two primary roles:
+  - Administrator: Full system access with all permissions
+  - User: Standard access with basic read/write capabilities
 - **Multiple Blueprints**:
   - AWS Manager: AWS resource management interface
   - Bug Reports: Issue tracking system
@@ -44,6 +46,7 @@ cp .env.example .env
 ```bash
 python init_database.py
 ```
+This will create the default roles (Administrator and User) with appropriate permissions and set up initial route mappings.
 
 ## Vault Setup
 
@@ -63,6 +66,30 @@ Key configuration files:
 - `config.py`: Main application configuration
 - `gunicorn.conf.py`: Gunicorn server configuration
 - `.env`: Environment variables
+
+## Role-Based Access Control
+
+The application implements a two-tier role system:
+
+### Administrator Role
+- Full system access with all permissions
+- Access to administrative features and configuration
+- Can manage users, roles, and system settings
+- Has access to all routes and features
+
+### User Role
+- Basic read/write access to standard features
+- Limited to user-level operations
+- Access to:
+  - Document viewing and creation
+  - Bug report submission
+  - Feature request creation
+  - Profile management
+
+Permissions are enforced at multiple levels:
+- Route level: Controls access to specific URLs
+- Action level: Controls specific operations (read, write, update, delete)
+- Feature level: Controls access to specific functionality
 
 ## Usage
 
@@ -99,7 +126,11 @@ A systemd service file is provided (`flask_app.service`) for running as a system
 ## Security
 
 - All secrets are managed through Vault
-- RBAC ensures proper access control
+- RBAC ensures proper access control through:
+  - Standardized role definitions (Administrator/User)
+  - Permission-based access control
+  - Action-level granularity (read, write, update, delete)
+  - Route-specific access mapping
 - Request tracking and activity monitoring
 - System health monitoring
 
