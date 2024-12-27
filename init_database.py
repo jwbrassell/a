@@ -4,6 +4,7 @@ from app.models.role import Role
 from app.models.user import User
 from app.models.permission import Permission
 from app.models.permissions import Action
+from app.models.navigation import NavigationCategory, PageRouteMapping
 from datetime import datetime
 
 def init_database():
@@ -139,6 +140,38 @@ def init_database():
             print(f"Note: Project priority table not available: {e}")
 
         try:
+            # Create default navigation category
+            auth_category = NavigationCategory.query.filter_by(name='Authentication').first()
+            if not auth_category:
+                auth_category = NavigationCategory(
+                    name='Authentication',
+                    icon='fa-lock',
+                    description='Authentication related pages',
+                    weight=0,
+                    created_by='system'
+                )
+                db.session.add(auth_category)
+                db.session.flush()
+
+            # Create login route mapping
+            login_route = PageRouteMapping.query.filter_by(route='/login').first()
+            if not login_route:
+                login_route = PageRouteMapping(
+                    page_name='Login',
+                    route='/login',
+                    description='User login page',
+                    icon='fa-sign-in-alt',
+                    weight=0,
+                    category_id=auth_category.id,
+                    show_in_navbar=True,
+                    created_by='system'
+                )
+                # Add admin role to allowed roles
+                admin_role = Role.query.filter_by(name='Administrator').first()
+                if admin_role:
+                    login_route.allowed_roles.append(admin_role)
+                db.session.add(login_route)
+
             db.session.commit()
             print("Database initialized successfully")
             return True

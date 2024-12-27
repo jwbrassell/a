@@ -55,6 +55,10 @@ def create_app(config_name='default'):
     # Initialize all extensions
     init_extensions(app)
     
+    # Initialize template filters
+    from app import template_filters
+    template_filters.init_app(app)
+    
     # Create database tables if they don't exist
     with app.app_context():
         db.create_all()
