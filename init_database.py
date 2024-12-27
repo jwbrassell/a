@@ -7,7 +7,7 @@ from app.models.permissions import Action
 from datetime import datetime
 
 def init_database():
-    app = create_app()
+    app = create_app('development')  # Explicitly use development config
     with app.app_context():
         # Create default actions
         default_actions = [
