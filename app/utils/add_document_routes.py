@@ -1,5 +1,6 @@
 from app.extensions import db
 from app.models import NavigationCategory, PageRouteMapping, Role
+from datetime import datetime
 
 def add_document_routes():
     """Add document routes to navigation under Documentation category."""
@@ -66,7 +67,9 @@ def add_document_routes():
                     icon=route_data['icon'],
                     weight=route_data['weight'],
                     category_id=docs_category.id,
-                    show_in_navbar=True
+                    show_in_navbar=True,
+                    created_by='system',
+                    created_at=datetime.utcnow()
                 )
                 route.allowed_roles.extend(route_data['roles'])
                 db.session.add(route)
