@@ -22,10 +22,17 @@ def package_init_database():
             ('delete', 'DELETE', 'Delete access')
         ]
         
-        for name, method, desc in default_actions:
-            if not Action.query.filter_by(name=name).first():
-                action = Action(name=name, method=method, description=desc)
-                db.session.add(action)
+        with db.session.no_autoflush:
+            for name, method, desc in default_actions:
+                if not Action.query.filter_by(name=name, method=method).first():
+                    action = Action(
+                        name=name,
+                        method=method,
+                        description=desc,
+                        created_by='system',
+                        created_at=datetime.utcnow()
+                    )
+                    db.session.add(action)
         
         # Create admin role
         admin_role = Role.query.filter_by(name='Administrator').first()
@@ -33,7 +40,14 @@ def package_init_database():
             admin_role = Role(
                 name='Administrator',
                 description='Full system access',
-                is_system_role=True
+                is_system_role=True,
+                created_by='system',
+                created_at=datetime.utcnow(),
+                updated_by='system',
+                updated_at=datetime.utcnow(),
+                icon='fas fa-user-tag',
+                ldap_groups=[],
+                auto_sync=False
             )
             db.session.add(admin_role)
         

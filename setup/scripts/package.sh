@@ -123,10 +123,17 @@ def package_init_database():
             ('delete', 'DELETE', 'Delete access')
         ]
         
-        for name, method, desc in default_actions:
-            if not Action.query.filter_by(name=name).first():
-                action = Action(name=name, method=method, description=desc)
-                db.session.add(action)
+        with db.session.no_autoflush:
+            for name, method, desc in default_actions:
+                if not Action.query.filter_by(name=name, method=method).first():
+                    action = Action(
+                        name=name,
+                        method=method,
+                        description=desc,
+                        created_by='system',
+                        created_at=datetime.utcnow()
+                    )
+                    db.session.add(action)
         
         # Create admin role
         admin_role = Role.query.filter_by(name='Administrator').first()
@@ -134,7 +141,14 @@ def package_init_database():
             admin_role = Role(
                 name='Administrator',
                 description='Full system access',
-                is_system_role=True
+                is_system_role=True,
+                created_by='system',
+                created_at=datetime.utcnow(),
+                updated_by='system',
+                updated_at=datetime.utcnow(),
+                icon='fas fa-user-tag',
+                ldap_groups=[],
+                auto_sync=False
             )
             db.session.add(admin_role)
         
@@ -167,25 +181,36 @@ EOL
 python package_init_db.py
 
 echo "Creating distribution directory..."
+rm -rf dist
 mkdir -p dist
 
 # Restore original __init__.py
 mv app/__init__.py.bak app/__init__.py
 
+# Create all necessary directories in dist
+mkdir -p dist/app
+mkdir -p dist/migrations
+mkdir -p dist/config
+mkdir -p dist/setup
 
-# Copy necessary files to dist
-cp -r app dist/
+# Copy necessary files to dist with verbose output
+echo "Copying files to dist directory..."
+cp -rv app/* dist/app/
 cp temp_init.py dist/app/__init__.py  # Use minimal init.py in dist
 cp app/__init__.py dist/app/__init__.py.bak  # Copy original init.py as backup
-cp -r migrations dist/
-cp -r config dist/
-cp -r setup dist/
-cp requirements.txt dist/
-cp wsgi.py dist/
-cp package_init_db.py dist/
-cp migrations_config.py dist/
-cp flask_app.service dist/
-cp vault_utility.py dist/
+cp -rv migrations/* dist/migrations/
+cp -rv config/* dist/config/
+cp -rv setup/* dist/setup/
+cp -v requirements.txt dist/
+cp -v wsgi.py dist/
+cp -v package_init_db.py dist/
+cp -v migrations_config.py dist/
+cp -v flask_app.service dist/
+cp -v vault_utility.py dist/
+
+# Verify dist directory contents
+echo "Verifying dist directory contents..."
+ls -la dist/
 
 # Create a script to handle app restoration
 cat > dist/restore_app.sh << 'EOL'

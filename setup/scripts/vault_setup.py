@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 import os
 import sys
@@ -18,26 +17,28 @@ class VaultSetup:
         self.vault_version = "1.13.3"  # Update as needed
         self.vault_dir = Path.home() / ".vault"
         self.vault_bin = self.vault_dir / "vault"
-        self.vault_config = self.vault_dir / "config.hcl"
+        self.vault_config = self.vault_dir / "config/vault.hcl"
         self.vault_data = self.vault_dir / "data"
-        self.env_file = Path("setup/.env.vault")
+        self.env_file = Path.home() / ".env.vault"
         self.pid_file = Path("vault.pid")
 
     def check_prerequisites(self) -> None:
         """Check and install required system packages."""
         try:
             if self.is_linux:
-                # Check if we're on CentOS/Rocky
+                # Check Linux distribution
                 with open("/etc/os-release") as f:
                     os_info = f.read().lower()
                     is_centos = "centos" in os_info
                     is_rocky = "rocky" in os_info
+                    is_amazon = "amazon linux" in os_info
                 
-                if not (is_centos or is_rocky):
-                    raise Exception("This script currently supports CentOS/Rocky Linux distributions")
+                if not (is_centos or is_rocky or is_amazon):
+                    raise Exception("This script supports CentOS, Rocky Linux, and Amazon Linux distributions")
                 
                 # Install required packages
-                subprocess.run(["sudo", "yum", "install", "-y", "wget", "unzip"], check=True)
+                subprocess.run(["sudo", "yum", "install", "-y", "wget", "unzip", "python3-pip", "net-tools"], check=True)
+                subprocess.run(["pip3", "install", "--user", "requests"], check=True)
             
             elif self.is_mac:
                 # Check if brew is installed
@@ -52,8 +53,13 @@ class VaultSetup:
     def download_and_install_vault(self) -> None:
         """Download and install Vault binary."""
         try:
-            self.vault_dir.mkdir(parents=True, exist_ok=True)
-            self.vault_data.mkdir(parents=True, exist_ok=True)
+            # Create directories with proper permissions
+            for directory in [self.vault_dir, self.vault_data, self.vault_config.parent]:
+                directory.mkdir(parents=True, exist_ok=True)
+                directory.chmod(0o700)  # Secure the directories
+                if self.is_linux:
+                    # Ensure proper ownership
+                    subprocess.run(["sudo", "chown", "-R", "ec2-user:ec2-user", str(directory)], check=True)
 
             if self.is_linux:
                 # Download and extract Vault
@@ -71,10 +77,10 @@ class VaultSetup:
                     subprocess.run(["sudo", "setcap", "cap_ipc_lock=+ep", str(self.vault_bin)], check=True)
                 except subprocess.CalledProcessError:
                     print("Warning: Could not set IPC_LOCK capability. Using disable_mlock=true instead.")
-                    # We'll handle this in create_config by setting disable_mlock=true
                 
                 # Ensure vault binary is accessible
                 os.environ["PATH"] = f"{self.vault_dir}:{os.environ['PATH']}"
+                os.environ["HOME"] = "/home/ec2-user"  # Ensure HOME is set correctly
             
             elif self.is_mac:
                 subprocess.run(["brew", "install", "vault"], check=True)
@@ -92,12 +98,10 @@ class VaultSetup:
 
     def create_config(self) -> None:
         """Create Vault configuration file."""
-        # Check if we need to disable mlock (if setcap failed on Linux)
-        disable_mlock = True  # Always true for our localhost setup
-        
+        # Always use disable_mlock for our localhost setup
         config = f"""
 storage "file" {{
-    path = "{self.vault_data}"
+    path = "/home/ec2-user/.vault/data"
 }}
 
 listener "tcp" {{
@@ -107,7 +111,7 @@ listener "tcp" {{
 
 api_addr = "http://127.0.0.1:8200"
 cluster_addr = "http://127.0.0.1:8201"
-disable_mlock = {str(disable_mlock).lower()}
+disable_mlock = true
 ui = false
         """
         self.vault_config.write_text(config.strip())
@@ -116,81 +120,59 @@ ui = false
     def start_vault(self) -> None:
         """Start Vault server."""
         try:
-            # Ensure the binary is in PATH
-            if self.is_linux:
-                os.environ["PATH"] = f"{self.vault_dir}:{os.environ['PATH']}"
-            
             # Set environment variable
             os.environ["VAULT_ADDR"] = "http://127.0.0.1:8200"
             
-            # Start vault server with log file
-            log_file = Path("vault.log")
+            # Check if Vault is already running and accessible
+            try:
+                subprocess.run([str(self.vault_bin), "status"], check=True)
+                print("Existing Vault is accessible, using it")
+                return
+            except subprocess.CalledProcessError:
+                pass
             
-            if self.is_linux:
-                # On Linux, use nohup to run in background
-                cmd = [
-                    "nohup",
-                    str(self.vault_bin),
-                    "server",
-                    "-config", str(self.vault_config)
-                ]
-                
-                # Start the process
-                process = subprocess.Popen(
-                    cmd,
-                    stdout=open(log_file, 'w'),
-                    stderr=subprocess.STDOUT,
-                    preexec_fn=os.setpgrp,  # Run in new process group
-                    start_new_session=True
-                )
-            else:
-                # On macOS, use the original method
-                process = subprocess.Popen(
-                    [str(self.vault_bin), "server", "-config", str(self.vault_config)],
-                    stdout=open(log_file, 'w'),
-                    stderr=subprocess.STDOUT,
-                    start_new_session=True
-                )
+            # Kill any existing Vault process
+            try:
+                subprocess.run(["sudo", "pkill", "-f", "vault server"], check=False)
+                time.sleep(2)
+            except subprocess.CalledProcessError:
+                pass
+            
+            # Clean up any existing files
+            if self.pid_file.exists():
+                self.pid_file.unlink()
+            
+            # Start Vault
+            print("Starting Vault...")
+            log_file = Path("vault.log")
+            process = subprocess.Popen(
+                [str(self.vault_bin), "server", "-config", str(self.vault_config)],
+                stdout=open(log_file, 'w'),
+                stderr=subprocess.STDOUT,
+                start_new_session=True
+            )
             
             # Save PID
             self.pid_file.write_text(str(process.pid))
-            
-            # Secure the PID file
             self.pid_file.chmod(0o600)
             
-            # Wait for Vault to start and verify it's running
-            max_attempts = 15  # Increased attempts
+            # Wait for Vault to start
+            print("Waiting for Vault to start...")
+            max_attempts = 30
             for attempt in range(max_attempts):
                 try:
-                    time.sleep(2)  # Give Vault time to start
-                    
-                    # Try to check Vault status
                     response = requests.get("http://127.0.0.1:8200/v1/sys/health")
-                    if response.status_code in (200, 429, 472, 473):  # Various Vault status codes
-                        print(f"Vault is starting (attempt {attempt + 1}/{max_attempts})")
-                        if response.status_code == 200:
-                            print("Vault is now running!")
-                            break
+                    if response.status_code in (200, 429, 472, 473):
+                        print("Vault is running!")
+                        time.sleep(2)  # Give it a moment to fully initialize
+                        break
                 except requests.exceptions.ConnectionError:
-                    print(f"Waiting for Vault to start (attempt {attempt + 1}/{max_attempts})")
-                
-                # On the last attempt, check logs and raise error
-                if attempt == max_attempts - 1:
-                    if log_file.exists():
-                        log_content = log_file.read_text()
-                        print(f"Vault log contents:\n{log_content}")
-                    
-                    # Check if process is actually running
-                    if self.is_linux:
-                        try:
-                            with open(self.pid_file) as f:
-                                pid = int(f.read().strip())
-                            os.kill(pid, 0)  # Check if process exists
-                            print(f"Process {pid} exists but Vault is not responding")
-                        except (ProcessLookupError, ValueError, FileNotFoundError):
-                            print("Vault process is not running")
-                    
-                    raise Exception("Vault failed to start. Check vault.log for details.")
+                    if attempt == max_attempts - 1:
+                        if log_file.exists():
+                            print(f"Vault log contents:\n{log_file.read_text()}")
+                        raise Exception("Vault failed to start. Check vault.log for details.")
+                    print(f"Waiting for Vault to start (attempt {attempt + 1}/{max_attempts})...")
+                    time.sleep(1)
 
         except Exception as e:
             # Clean up PID file if startup failed
@@ -201,11 +183,71 @@ ui = false
     def initialize_vault(self) -> Tuple[List[str], str]:
         """Initialize Vault and return unseal keys and root token."""
         try:
+            # Check if vault is already initialized
+            init_status = requests.get("http://127.0.0.1:8200/v1/sys/init")
+            if init_status.json().get("initialized", False):
+                print("Vault is already initialized")
+                
+                # Check if vault is sealed
+                seal_status = requests.get("http://127.0.0.1:8200/v1/sys/seal-status")
+                if seal_status.json().get("sealed", True):
+                    print("Vault is sealed, attempting to unseal with existing keys...")
+                    if self.env_file.exists():
+                        # Parse existing keys from env file
+                        env_content = self.env_file.read_text()
+                        keys = []
+                        for line in env_content.splitlines():
+                            if line.startswith("VAULT_UNSEAL_KEY_"):
+                                keys.append(line.split("=")[1].strip())
+                        
+                        # Use first 3 keys to unseal
+                        if len(keys) >= 3:
+                            for key in keys[:3]:
+                                unseal_response = requests.put(
+                                    "http://127.0.0.1:8200/v1/sys/unseal",
+                                    json={"key": key}
+                                ).json()
+                                print(f"Unseal progress: {unseal_response.get('progress', 0)}/3")
+                            
+                            # Verify unseal was successful
+                            time.sleep(2)
+                            seal_status = requests.get("http://127.0.0.1:8200/v1/sys/seal-status").json()
+                            if not seal_status.get("sealed", True):
+                                print("Vault unsealed successfully")
+                            else:
+                                print("Warning: Vault is still sealed after unseal attempt")
+                        else:
+                            print("Warning: Not enough unseal keys found in .env file")
+                    else:
+                        print("Warning: No .env file found with unseal keys")
+                
+                return [], ""
+
+            # Give vault a moment to settle after starting
+            time.sleep(5)
+            
             # Initialize vault
             init_response = requests.put(
                 "http://127.0.0.1:8200/v1/sys/init",
                 json={"secret_shares": 5, "secret_threshold": 3}
             ).json()
+
+            # Unseal vault with first 3 keys
+            print("Unsealing vault...")
+            for key in init_response["keys"][:3]:
+                unseal_response = requests.put(
+                    "http://127.0.0.1:8200/v1/sys/unseal",
+                    json={"key": key}
+                ).json()
+                print(f"Unseal progress: {unseal_response.get('progress', 0)}/3")
+            
+            # Verify unseal was successful
+            time.sleep(2)
+            seal_status = requests.get("http://127.0.0.1:8200/v1/sys/seal-status").json()
+            if not seal_status.get("sealed", True):
+                print("Vault unsealed successfully")
+            else:
+                raise Exception("Vault is still sealed after unseal attempt")
 
             return init_response["keys"], init_response["root_token"]
 
@@ -214,6 +256,14 @@ ui = false
 
     def save_credentials(self, keys: List[str], token: str) -> None:
         """Save unseal keys and token to .env file."""
+        # Skip if vault was already initialized
+        if not keys and not token:
+            print("Skipping credential save - vault already initialized")
+            return
+            
+        # Create parent directory if it doesn't exist
+        self.env_file.parent.mkdir(parents=True, exist_ok=True)
+        
         env_content = f"""
 VAULT_ADDR=http://127.0.0.1:8200
 VAULT_TOKEN={token}
@@ -225,8 +275,7 @@ VAULT_UNSEAL_KEY_5={keys[4]}
         """.strip()
         
         self.env_file.write_text(env_content)
-        # Secure the file
-        self.env_file.chmod(0o600)
+        self.env_file.chmod(0o600)  # Secure the file
 
     def setup(self) -> None:
         """Run the complete setup process."""

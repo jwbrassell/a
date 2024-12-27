@@ -14,118 +14,133 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Function to run commands on EC2
 run_remote() {
-    ssh -i "$KEY_PATH" "$EC2_USER@$EC2_HOST" "$1"
+    if ! ssh -i "$KEY_PATH" "$EC2_USER@$EC2_HOST" "$1"; then
+        echo "Error: Remote command failed: $1"
+        exit 1
+    fi
 }
 
 # Function to copy files to EC2
 copy_to_remote() {
-    scp -i "$KEY_PATH" -r "$1" "$EC2_USER@$EC2_HOST:$2"
+    if ! scp -i "$KEY_PATH" -r "$1" "$EC2_USER@$EC2_HOST:$2"; then
+        echo "Error: Failed to copy $1 to remote server"
+        exit 1
+    fi
 }
 
-echo "Starting deployment process..."
+# Function to check if a service or process is running
+check_service() {
+    local service=$1
+    local max_attempts=5
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        if [ "$service" = "vault" ]; then
+            # For vault, check the process and API
+            if run_remote "pgrep -f 'vault server' >/dev/null && curl -s http://127.0.0.1:8200/v1/sys/health >/dev/null"; then
+                echo "Vault is running and API is responsive"
+                return 0
+            fi
+        else
+            # For other services, use systemctl
+            if run_remote "sudo systemctl is-active $service >/dev/null 2>&1"; then
+                echo "Service $service is running"
+                return 0
+            fi
+        fi
+        echo "Waiting for $service to start (attempt $attempt/$max_attempts)..."
+        sleep 5
+        attempt=$((attempt + 1))
+    done
+    
+    echo "Warning: $service failed to start. Checking status..."
+    if [ "$service" = "vault" ]; then
+        run_remote "pgrep -f 'vault server' || echo 'No vault process found'"
+        run_remote "cat ~/flask_app/vault.log"
+    else
+        run_remote "sudo systemctl status $service"
+        run_remote "sudo journalctl -u $service --no-pager -n 50"
+    fi
+    return 1
+}
 
-# Set up SSH for git
-echo "Setting up SSH for git..."
-run_remote "mkdir -p ~/.ssh && chmod 700 ~/.ssh"
-run_remote "ssh-keyscan github.com >> ~/.ssh/known_hosts"
-copy_to_remote "$HOME/.ssh/id_ed25519" "~/.ssh/"
-copy_to_remote "$HOME/.ssh/id_ed25519.pub" "~/.ssh/"
-run_remote "chmod 600 ~/.ssh/id_ed25519*"
+echo "Starting infrastructure setup..."
 
-# Package the application locally
-echo "Packaging application..."
-bash "$SCRIPT_DIR/package.sh"
+# 1. Set up EC2 instance with required packages and services
+echo "Setting up EC2 environment..."
+if ! bash "$SCRIPT_DIR/ec2_setup.sh"; then
+    echo "Error: EC2 setup failed"
+    exit 1
+fi
 
-# Copy packaged files to remote
-echo "Copying packaged files to remote..."
-run_remote "rm -rf ~/flask_app/*"  # Clean existing files
-copy_to_remote "dist/*" "~/flask_app/"
-run_remote "sudo chown -R ec2-user:ec2-user ~/flask_app"
+# 2. Create required directories
+echo "Creating required directories..."
+run_remote "mkdir -p ~/.vault/{data,config} && \
+           mkdir -p ~/flask_app/{logs,instance}"
 
-# 1. Stop services on remote
-echo "Stopping services on remote..."
-run_remote "sudo systemctl stop flask_app || true"
-run_remote "sudo pkill vault || true"
+# 3. Copy setup scripts and configuration
+echo "Copying setup files..."
+copy_to_remote "$PROJECT_ROOT/setup/scripts/vault_linux.sh" "~/flask_app/setup/scripts/"
+copy_to_remote "$PROJECT_ROOT/setup/scripts/app_setup.py" "~/flask_app/setup/scripts/"
+copy_to_remote "$PROJECT_ROOT/flask_app.service" "~/"
+run_remote "sudo mv ~/flask_app.service /etc/systemd/system/"
 
-# 2. Install Python dependencies
-echo "Installing Python dependencies..."
-run_remote "cd ~/flask_app && rm -rf venv && python3 -m venv venv && . venv/bin/activate && venv/bin/pip install --upgrade pip && venv/bin/pip install -r requirements.txt"
-
-# 3. Set up permissions
-echo "Setting up permissions..."
-run_remote "cd ~/flask_app && sudo bash setup/scripts/setup_permissions.sh"
-
-# 4. Set up database using minimal app
-echo "Cleaning existing database..."
-run_remote "cd ~/flask_app && rm -f app.db"
-
-echo "Setting up database..."
-run_remote "cd ~/flask_app && . venv/bin/activate && rm -rf migrations && mkdir -p migrations && cp -r dist/migrations/* migrations/ && SKIP_VAULT_MIDDLEWARE=true SKIP_VAULT_INIT=true SKIP_BLUEPRINTS=true FLASK_APP=migrations_config.py flask db upgrade head"
-
-# Initialize database
-echo "Initializing database..."
-run_remote "cd ~/flask_app && . venv/bin/activate && flask db upgrade && python init_database.py"
-
-# Verify the setup
-echo "Verifying setup..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
-from app import create_app
-from app.models.user import User
-app = create_app()
-with app.app_context():
-    admin = User.query.filter_by(username='admin').first()
-    if not admin:
-        print('Error: Admin user not created')
-        exit(1)
-    print('Admin user verified successfully')
-\""
-
-echo "Database initialization complete!"
-echo "Default admin credentials:"
-echo "Username: admin"
-echo "Password: admin"
-
-# 5. Set up Vault and restore full app
+# 4. Set up Vault
 echo "Setting up Vault..."
 run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
 
-# Restore full app version
-echo "Restoring full app..."
-run_remote "cd ~/flask_app && chmod +x restore_app.sh && ./restore_app.sh && rm -f app/__init__.py.minimal"
+# 5. Configure and start nginx
+echo "Configuring services..."
+run_remote "sudo systemctl daemon-reload && \
+           sudo systemctl enable nginx && \
+           sudo systemctl start nginx"
 
-# 6. Initialize routes and blueprints
-echo "Initializing application..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
-from app import create_app
-app = create_app()
-print('Application initialized successfully')
-\""
+# 7. Verify services are running
+echo "Verifying services..."
+services=("nginx" "vault")
+failed_services=()
 
-# 7. Verify all routes are registered
-echo "Verifying route initialization..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 -c \"
-from app import create_app
-app = create_app()
-with app.app_context():
-    routes = [str(rule) for rule in app.url_map.iter_rules()]
-    print('Registered routes:', len(routes))
-    if len(routes) < 50:  # We expect more than 50 routes in a fully initialized app
-        raise Exception('Not all routes were registered')
-\""
+for service in "${services[@]}"; do
+    if ! check_service "$service"; then
+        failed_services+=("$service")
+    fi
+done
 
-# 8. Update and reload systemd service
-echo "Updating systemd service..."
-run_remote "cd ~/flask_app && sudo cp flask_app.service /etc/systemd/system/ && sudo systemctl daemon-reload"
+if [ ${#failed_services[@]} -ne 0 ]; then
+    echo "Warning: The following services failed to start:"
+    printf '%s\n' "${failed_services[@]}"
+    echo "Please check the logs for more information:"
+    echo "  sudo journalctl -u <service-name>"
+fi
 
-# 7. Start Flask application
-echo "Starting Flask application..."
-run_remote "sudo systemctl restart flask_app"
-
-# 8. Check service status
-echo "Checking service status..."
-run_remote "sudo systemctl status flask_app"
-
-echo "Deployment complete!"
+echo "Infrastructure setup complete!"
+echo ""
+echo "Next steps for application deployment:"
+echo "1. Clone the repository:"
+echo "   git clone [repository-url] ~/flask_app"
+echo ""
+echo "2. Set up Python environment:"
+echo "   cd ~/flask_app"
+echo "   python3 -m venv venv"
+echo "   source venv/bin/activate"
+echo "   pip install -r requirements.txt"
+echo ""
+echo "3. Configure Flask app with Vault:"
+echo "   python3 setup/scripts/app_setup.py"
+echo ""
+echo "4. Initialize database:"
+echo "   flask db upgrade"
+echo "   python init_database.py"
+echo ""
+echo "5. Start the application:"
+echo "   sudo systemctl start flask_app"
+echo ""
+echo "To check service status:"
+echo "  sudo systemctl status nginx"
+echo "  sudo systemctl status vault"
+echo "  sudo systemctl status flask_app"
+echo ""
 echo "To check logs:"
-echo "  Flask app logs: journalctl -u flask_app"
-echo "  Vault logs: cat ~/flask_app/vault.log"
+echo "  Nginx logs: sudo journalctl -u nginx"
+echo "  Vault logs: sudo journalctl -u vault"
+echo "  Flask app logs: sudo journalctl -u flask_app"

@@ -3,9 +3,8 @@
 # Exit on any error
 set -e
 
-# Get the absolute path of the script's directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# Use the flask_app directory in the user's home
+APP_DIR="/home/ec2-user/flask_app"
 
 echo "Setting up permissions for flask_app..."
 
@@ -14,14 +13,14 @@ sudo mkdir -p /var/log/flask_app
 sudo mkdir -p /var/run/flask_app
 
 # Set ownership of project directory and all contents
-sudo chown -R ec2-user:ec2-user "$PROJECT_ROOT"
+sudo chown -R ec2-user:ec2-user "$APP_DIR"
 
 # Set ownership of log and run directories
 sudo chown -R ec2-user:ec2-user /var/log/flask_app
 sudo chown -R ec2-user:ec2-user /var/run/flask_app
 
 # Set directory permissions
-sudo chmod 755 "$PROJECT_ROOT"
+sudo chmod 755 "$APP_DIR"
 sudo chmod 755 /var/log/flask_app
 sudo chmod 755 /var/run/flask_app
 
@@ -36,13 +35,26 @@ ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl start flask_app
 ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl stop flask_app
 ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl restart flask_app
 ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl status flask_app
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl enable flask_app
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl daemon-reload
 
 # Allow ec2-user to manage vault process
 ec2-user ALL=(ALL) NOPASSWD: /usr/bin/pkill vault
-ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl daemon-reload
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl start vault
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl stop vault
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl restart vault
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl status vault
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl enable vault
 
-# Allow ec2-user to update service file
-ec2-user ALL=(ALL) NOPASSWD: /bin/cp $PROJECT_ROOT/flask_app.service /etc/systemd/system/
+# Allow ec2-user to manage nginx
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl start nginx
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl stop nginx
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl restart nginx
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl status nginx
+ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl enable nginx
+
+# Allow ec2-user to update service files
+ec2-user ALL=(ALL) NOPASSWD: /bin/cp $APP_DIR/flask_app.service /etc/systemd/system/
 EOF
 
 # Set proper permissions on sudoers file
