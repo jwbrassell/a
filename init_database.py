@@ -55,9 +55,16 @@ def init_database():
                     updated_by='system',
                     updated_at=datetime.utcnow()
                 )
-                # Add all actions to admin_access permission
+                # Add appropriate actions to permissions
                 if name == 'admin_access':
+                    # Admin gets all actions
                     permission.actions = Action.query.all()
+                elif name == 'user_access':
+                    # Users get basic read/write actions
+                    basic_actions = Action.query.filter(
+                        Action.name.in_(['read', 'write', 'list', 'create'])
+                    ).all()
+                    permission.actions = basic_actions
                 db.session.add(permission)
         
         db.session.flush()
@@ -190,10 +197,13 @@ def init_database():
                     show_in_navbar=True,
                     created_by='system'
                 )
-                # Add admin role to allowed roles
+                # Add admin and user roles to allowed roles
                 admin_role = Role.query.filter_by(name='Administrator').first()
+                user_role = Role.query.filter_by(name='User').first()
                 if admin_role:
                     login_route.allowed_roles.append(admin_role)
+                if user_role:
+                    login_route.allowed_roles.append(user_role)
                 db.session.add(login_route)
 
             # Create profile route mapping
@@ -208,9 +218,11 @@ def init_database():
                     show_in_navbar=True,
                     created_by='system'
                 )
-                # Add admin role to allowed roles
+                # Add admin and user roles to allowed roles
                 if admin_role:
                     profile_route.allowed_roles.append(admin_role)
+                if user_role:
+                    profile_route.allowed_roles.append(user_role)
                 db.session.add(profile_route)
 
             db.session.commit()
