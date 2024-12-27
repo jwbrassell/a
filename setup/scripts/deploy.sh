@@ -62,7 +62,17 @@ run_remote "cd ~/flask_app && bash setup/scripts/vault_linux.sh"
 
 # 5. Initialize database and migrations
 echo "Initializing database and migrations..."
-run_remote "cd ~/flask_app && . venv/bin/activate && python3 init_database.py && flask db init && flask db migrate && flask db upgrade"
+run_remote "cd ~/flask_app && . venv/bin/activate && \
+    python3 init_database.py && \
+    if [ ! -d /home/ec2-user/flask_app/migrations ]; then \
+        echo 'Initializing migrations directory...' && \
+        flask db init; \
+    else \
+        echo 'Migrations directory already exists, skipping init...' && \
+        rm -f migrations/alembic.ini && \
+        flask db init; \
+    fi && \
+    flask db migrate && flask db upgrade"
 
 # 6. Update and reload systemd service
 echo "Updating systemd service..."

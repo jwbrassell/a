@@ -19,9 +19,18 @@ socketio = SocketIO()
 def init_extensions(app):
     """Initialize Flask extensions."""
     db.init_app(app)
+    
+    # Initialize login manager
     login_manager.init_app(app)
     login_manager.login_view = 'main.login'
     login_manager.login_message_category = 'info'
+    
+    # Set up user loader
+    from app.models.user import User
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+    
     cache_manager.init_app(app)
     
     # Only initialize session if not skipping
