@@ -1,11 +1,9 @@
 from app.extensions import db
-from app import create_app
 from app.models import NavigationCategory, PageRouteMapping, Role
 
 def add_document_routes():
     """Add document routes to navigation under Documentation category."""
-    app = create_app()
-    with app.app_context():
+    try:
         # Get or create Documentation category
         docs_category = NavigationCategory.query.filter_by(name='Documentation').first()
         if not docs_category:
@@ -20,7 +18,7 @@ def add_document_routes():
             db.session.flush()
 
         # Get roles that should have access
-        admin_role = Role.query.filter_by(name='admin').first()
+        admin_role = Role.query.filter_by(name='Administrator').first()
         user_role = Role.query.filter_by(name='user').first()
         if not admin_role or not user_role:
             print("Error: Required roles not found")
@@ -79,6 +77,3 @@ def add_document_routes():
         except Exception as e:
             db.session.rollback()
             print(f"Error adding document routes: {str(e)}")
-
-if __name__ == '__main__':
-    add_document_routes()
