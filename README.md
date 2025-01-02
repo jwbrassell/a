@@ -20,12 +20,14 @@ A Flask application that provides a robust web interface with Vault integration,
 ## Prerequisites
 
 - Python 3.x
-- HashiCorp Vault
+- Pre-configured HashiCorp Vault instance running on http://127.0.0.1:8200
+- Pre-configured nginx
+- Pre-configured gunicorn
 - PostgreSQL (recommended)
 
-## Installation
+## First-Time Setup
 
-1. Clone the repository
+1. Clone the repository to your desired location
 2. Create and activate a virtual environment:
 ```bash
 python -m venv venv
@@ -48,16 +50,11 @@ python init_database.py
 ```
 This will create the default roles (Administrator and User) with appropriate permissions and set up initial route mappings.
 
-## Vault Setup
-
-1. Configure Vault using the provided configuration files in `config/`:
-   - Development: `vault-dev.hcl`
-   - Production: `vault-prod.hcl.template`
-   - Secure Production: `vault-secure.hcl.template`
-
-2. Initialize Vault and set up policies:
+7. Initialize database migrations:
 ```bash
-./scripts/setup_secure_vault.py
+flask db init
+flask db migrate
+flask db upgrade
 ```
 
 ## Configuration
@@ -104,7 +101,12 @@ gunicorn -c gunicorn.conf.py wsgi:app
 ```
 
 ### System Service
-A systemd service file is provided (`flask_app.service`) for running as a system service.
+A systemd service file is provided (`flask_app.service`) for running as a system service:
+```bash
+sudo cp flask_app.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start flask_app
+```
 
 ## Project Structure
 
@@ -118,9 +120,8 @@ A systemd service file is provided (`flask_app.service`) for running as a system
 │   ├── templates/           # Jinja2 templates
 │   └── utils/               # Utility functions
 ├── config/                  # Configuration files
-├── scripts/                 # Management scripts
-├── setup/                   # Setup documentation and scripts
-└── vault/                   # Vault-related files
+├── setup/                   # Setup documentation
+└── flask_app.service        # Systemd service file
 ```
 
 ## Security

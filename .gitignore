@@ -90,3 +90,5 @@ bin/vault
 
 # Keep development config
 !config/vault-dev.hcl
+
+.codegpt
