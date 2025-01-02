@@ -1,5 +1,13 @@
 # Quick Start Guide
 
+## Prerequisites
+
+Ensure you have the following pre-configured services running:
+- Vault server running on http://127.0.0.1:8200
+- nginx
+- gunicorn
+- PostgreSQL (recommended)
+
 ## First Time Setup
 
 1. Clone and setup Python environment:
@@ -15,146 +23,106 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-2. Setup Vault and Flask integration:
+2. Set up environment and database:
 ```bash
-# Install and initialize Vault
-python3 setup/scripts/vault_setup.py
+# Copy and configure environment variables
+cp .env.example .env
 
-# Configure Flask app integration with Vault
-python3 setup/scripts/app_setup.py
+# Initialize database and migrations
+python init_database.py
+flask db init
+flask db migrate
+flask db upgrade
 ```
 
 ## Running the App
 
 ### Development Mode
 ```bash
-# 1. Start Vault (if not running)
-python3 setup/scripts/vault_start.py
-
-# 2. Run Flask development server
-flask run
+python app.py
 ```
 
 ### Production Mode
 ```bash
-# 1. Start Vault (if not running)
-python3 setup/scripts/vault_start.py
-
-# 2. Run with Gunicorn
-gunicorn wsgi:app
+gunicorn -c gunicorn.conf.py wsgi:app
 ```
 
-## Stopping Everything
+### System Service
 ```bash
-# Stop Flask/Gunicorn (Ctrl+C)
-
-# Shutdown Vault
-python3 setup/scripts/vault_shutdown.py
+# Install and start the Flask app service
+sudo cp flask_app.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start flask_app
 ```
 
 ## File Locations
 
-- Vault data: ~/.vault/data
-- Vault credentials: setup/.env.vault
 - App configuration: .env
+- Database: instance/app.db (if using SQLite)
+- Logs: /var/log/flask_app/ (when running as service)
 
 ## Notes
 
-- Everything runs on localhost only
-- No SSL/TLS (not needed for localhost)
-- No Vault UI (disabled for security)
-- Vault must be running before starting Flask/Gunicorn
+- Ensure Vault is running and accessible at http://127.0.0.1:8200 before starting the app
+- The app integrates with the pre-configured Vault instance for secrets management
+- nginx handles SSL/TLS termination in production
+- gunicorn manages multiple worker processes for production deployment
 
 ## Troubleshooting
 
-If Vault fails to start:
-
-1. Check the logs:
+1. Check the application logs:
 ```bash
-cat vault.log
+# If running as service
+sudo journalctl -u flask_app
+
+# Check nginx logs
+sudo tail -f /var/log/nginx/error.log
 ```
 
 2. Verify permissions:
 ```bash
 # Linux
-ls -l ~/.vault/vault
-ls -l ~/.vault/config.hcl
+ls -l /var/log/flask_app
+ls -l /var/run/flask_app
+ls -l instance/
 
-# Should show:
-# -rwxr-xr-x for vault binary
-# -rw------- for config.hcl
+# Should show proper ownership (usually ec2-user:ec2-user)
 ```
 
-3. Verify Vault is running:
-```bash
-curl http://127.0.0.1:8200/v1/sys/health
-```
+3. Common issues:
 
-4. Common issues:
-
-Linux-specific:
-- If you see "permission denied", the script will automatically fall back to using disable_mlock
-- Make sure the vault binary is executable:
+- If the app fails to start:
   ```bash
-  chmod +x ~/.vault/vault
-  ```
-- If the process starts but immediately stops:
-  ```bash
-  # Check the logs
-  tail -f vault.log
+  # Check if gunicorn is running
+  ps aux | grep gunicorn
   
-  # Verify the process is running in its own group
-  ps -ef | grep vault
+  # Check if port is already in use
+  sudo lsof -i :8000
   
-  # Check if port 8200 is already in use
-  sudo lsof -i :8200
-  
-  # Kill any existing vault processes
-  pkill vault
-  
-  # Clean up and try again
-  rm -f vault.pid nohup.out vault.log
-  python3 setup/scripts/vault_setup.py
+  # Restart the service
+  sudo systemctl restart flask_app
   ```
 
-General issues:
-- If Vault seems to start but commands don't work:
+- If database migrations fail:
   ```bash
-  # Ensure VAULT_ADDR is set
-  export VAULT_ADDR='http://127.0.0.1:8200'
+  # Remove existing migrations
+  rm -rf migrations/
   
-  # Check process status
-  ps aux | grep vault
-  
-  # Check logs
-  tail -f vault.log
-  ```
-
-- If process exists but Vault isn't responding:
-  ```bash
-  # Full cleanup and restart
-  python3 setup/scripts/vault_shutdown.py
-  rm -f vault.pid vault.log
-  rm -rf ~/.vault/data/*  # Clear vault data if needed
-  python3 setup/scripts/vault_setup.py  # Complete fresh start
+  # Reinitialize migrations
+  flask db init
+  flask db migrate
+  flask db upgrade
   ```
 
 - For detailed debugging:
   ```bash
-  # Check all vault-related processes and their process groups
-  ps -ef | grep vault
+  # Check service status
+  sudo systemctl status flask_app
   
-  # Check listening ports
-  sudo lsof -i :8200
+  # Check all logs
+  sudo journalctl -u flask_app -f
   
-  # Check system logs (Linux)
-  sudo journalctl | grep vault
-  
-  # Check file permissions
-  ls -la ~/.vault/
-  ls -la vault.pid vault.log
-  
-  # Verify environment
-  echo $VAULT_ADDR
-  echo $PATH | grep vault
-  ```
+  # Verify file permissions
+  ls -la /var/log/flask_app/
+  ls -la /var/run/flask_app/
+  ls -la instance/
